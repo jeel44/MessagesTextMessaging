@@ -10,7 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import dagger.hilt.android.AndroidEntryPoint
 import text.message.sms.messaging.ui.navigation.MessagingNavHost
-import text.message.sms.messaging.ui.theme.MessagingTheme
+import text.message.sms.messaging.ui.theme.AppTheme
 
 /** The app's only activity; every screen is a Compose destination inside [MessagingNavHost]. */
 @AndroidEntryPoint
@@ -20,7 +20,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MessagingTheme {
+            AppTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,

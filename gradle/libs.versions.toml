@@ -25,6 +25,9 @@ room = "2.8.5"
 workManager = "2.11.2"
 hiltWork = "1.4.0"
 
+# Onboarding
+lottieCompose = "6.7.1"
+
 # Kotlin libraries
 coroutines = "1.11.0"
 
@@ -69,6 +72,9 @@ androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx"
 androidx-work-testing = { group = "androidx.work", name = "work-testing", version.ref = "workManager" }
 androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
 androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltWork" }
+
+# Onboarding
+lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottieCompose" }
 
 # Kotlin libraries
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }

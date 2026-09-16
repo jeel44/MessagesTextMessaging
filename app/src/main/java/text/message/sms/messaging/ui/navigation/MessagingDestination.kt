@@ -6,6 +6,8 @@ package text.message.sms.messaging.ui.navigation
  */
 sealed class MessagingDestination(val route: String) {
 
+    data object Splash : MessagingDestination("splash")
+
     data object ConversationList : MessagingDestination("conversations")
 
     data object NewMessage : MessagingDestination("conversations/new")

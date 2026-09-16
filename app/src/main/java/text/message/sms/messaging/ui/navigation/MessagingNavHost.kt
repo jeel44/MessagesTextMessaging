@@ -11,6 +11,7 @@ import androidx.navigation.navArgument
 import text.message.sms.messaging.ui.screens.chat.ChatScreen
 import text.message.sms.messaging.ui.screens.conversationlist.ConversationListScreen
 import text.message.sms.messaging.ui.screens.newmessage.NewMessageScreen
+import text.message.sms.messaging.ui.screens.onboarding.SplashScreen
 import text.message.sms.messaging.ui.screens.search.SearchScreen
 
 /** Wires every screen together. Screens receive plain lambdas, never the controller itself. */
@@ -21,9 +22,20 @@ fun MessagingNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = MessagingDestination.ConversationList.route,
+        startDestination = MessagingDestination.Splash.route,
         modifier = modifier,
     ) {
+        composable(MessagingDestination.Splash.route) {
+            SplashScreen(
+                onTimeout = {
+                    // TODO: replace with Welcome screen once built
+                    navController.navigate(MessagingDestination.ConversationList.route) {
+                        popUpTo(MessagingDestination.Splash.route) { inclusive = true }
+                    }
+                },
+            )
+        }
+
         composable(MessagingDestination.ConversationList.route) {
             ConversationListScreen(
                 onConversationClick = { threadId ->

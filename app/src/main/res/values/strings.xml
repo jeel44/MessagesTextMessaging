@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">Messages</string>
 
+    <!-- Onboarding -->
+    <string name="splash_tagline">Simple. Fast. Secure.</string>
+
     <!-- Screen titles -->
     <string name="screen_conversations">Messages</string>
     <string name="screen_chat">Conversation</string>
