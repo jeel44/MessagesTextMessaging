@@ -2,7 +2,46 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!--
+      Telephony is what the app is for, but it is not marked required: a tablet or ChromeOS
+      device can still install and browse history. Every send path checks at runtime.
+    -->
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
+
+    <!-- Messaging -->
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_MMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <!-- Legacy: the platform stopped granting WRITE_SMS at API 19, but carriers and OEM
+         builds still check for the declaration. -->
+    <uses-permission
+        android:name="android.permission.WRITE_SMS"
+        tools:ignore="SystemPermissionTypo" />
+    <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH" />
+
+    <!-- Contacts, for resolving addresses to names -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
+    <!-- MMS transfer happens over the carrier data connection -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Multi-SIM selection and the subscription a message travelled on -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
+
+    <!-- Notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Scheduled sends have to survive a reboot -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
+        android:name=".MessagingApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -10,19 +49,93 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MessagesTextMessaging">
+        android:theme="@style/Theme.Messaging">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.MessagesTextMessaging"
+            android:theme="@style/Theme.Messaging"
             android:windowSoftInputMode="adjustResize">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!--
+              Default-SMS-app requirement 1 of 4: handle SENDTO so the system can hand the app
+              a number to message.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.SENDTO" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="sms" />
+                <data android:scheme="smsto" />
+                <data android:scheme="mms" />
+                <data android:scheme="mmsto" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
         </activity>
+
+        <!--
+          Requirement 2 of 4: receive SMS_DELIVER. Only the default SMS app gets this broadcast,
+          and it alone is responsible for writing the message to the provider.
+        -->
+        <receiver
+            android:name=".data.receiver.SmsDeliverReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_DELIVER" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Requirement 3 of 4: receive WAP_PUSH_DELIVER for inbound MMS. -->
+        <receiver
+            android:name=".data.receiver.MmsWapPushReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_WAP_PUSH">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.WAP_PUSH_DELIVER" />
+                <data android:mimeType="application/vnd.wap.mms-message" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Result broadcasts for messages this app sent; not exported to other apps. -->
+        <receiver
+            android:name=".data.receiver.MessageSentReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".data.receiver.MessageDeliveredReceiver"
+            android:exported="false" />
+
+        <!--
+          Requirement 4 of 4: respond to a call declined with a canned reply. QUICK_RESPONSE is
+          the equivalent action older dialers send.
+        -->
+        <service
+            android:name=".service.QuickResponseService"
+            android:exported="true"
+            android:permission="android.permission.SEND_RESPOND_VIA_MESSAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.RESPOND_VIA_MESSAGE" />
+                <action android:name="android.intent.action.QUICK_RESPONSE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="sms" />
+                <data android:scheme="smsto" />
+                <data android:scheme="mms" />
+                <data android:scheme="mmsto" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.MessagesTextMessaging" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+      Only used for the window background before Compose takes over; the app's real theme is
+      MessagingTheme in ui/theme.
+    -->
+    <style name="Theme.Messaging" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

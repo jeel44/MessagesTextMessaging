@@ -1,0 +1,56 @@
+package text.message.sms.messaging.data.local.db
+
+import androidx.room.Database
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import text.message.sms.messaging.data.local.db.converter.MessagingConverters
+import text.message.sms.messaging.data.local.db.dao.AttachmentDao
+import text.message.sms.messaging.data.local.db.dao.BlockedNumberDao
+import text.message.sms.messaging.data.local.db.dao.ContactDao
+import text.message.sms.messaging.data.local.db.dao.ConversationDao
+import text.message.sms.messaging.data.local.db.dao.MessageDao
+import text.message.sms.messaging.data.local.db.entity.AttachmentEntity
+import text.message.sms.messaging.data.local.db.entity.BlockedNumberEntity
+import text.message.sms.messaging.data.local.db.entity.ContactEntity
+import text.message.sms.messaging.data.local.db.entity.ContactNumberEntity
+import text.message.sms.messaging.data.local.db.entity.ConversationEntity
+import text.message.sms.messaging.data.local.db.entity.MessageEntity
+import text.message.sms.messaging.data.local.db.entity.RecipientEntity
+
+/**
+ * Local cache of the system Telephony and Contacts providers, plus the app-only state
+ * (archive, pin, mute, block) that those providers have nowhere to store.
+ *
+ * The providers remain the source of truth; this database exists so the UI can observe
+ * messages as a [kotlinx.coroutines.flow.Flow] instead of polling a cursor.
+ */
+@Database(
+    entities = [
+        ConversationEntity::class,
+        RecipientEntity::class,
+        MessageEntity::class,
+        AttachmentEntity::class,
+        ContactEntity::class,
+        ContactNumberEntity::class,
+        BlockedNumberEntity::class,
+    ],
+    version = 1,
+    exportSchema = true,
+)
+@TypeConverters(MessagingConverters::class)
+abstract class MessagingDatabase : RoomDatabase() {
+
+    abstract fun conversationDao(): ConversationDao
+
+    abstract fun messageDao(): MessageDao
+
+    abstract fun attachmentDao(): AttachmentDao
+
+    abstract fun contactDao(): ContactDao
+
+    abstract fun blockedNumberDao(): BlockedNumberDao
+
+    companion object {
+        const val NAME: String = "messaging.db"
+    }
+}

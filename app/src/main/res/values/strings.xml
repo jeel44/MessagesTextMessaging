@@ -1,3 +1,25 @@
 <resources>
-    <string name="app_name">Messages Text Messaging</string>
+    <string name="app_name">Messages</string>
+
+    <!-- Screen titles -->
+    <string name="screen_conversations">Messages</string>
+    <string name="screen_chat">Conversation</string>
+    <string name="screen_new_message">New message</string>
+    <string name="screen_search">Search</string>
+
+    <!-- Actions -->
+    <string name="action_search">Search</string>
+    <string name="action_new_message">New message</string>
+    <string name="action_back">Back</string>
+    <string name="action_close">Close</string>
+
+    <!-- Scaffold placeholders, replaced as each screen is built out -->
+    <string name="placeholder_conversations">The thread list lands here.</string>
+    <string name="placeholder_chat">Thread %1$d. The timeline and composer land here.</string>
+    <string name="placeholder_new_message">The recipient picker lands here.</string>
+    <string name="placeholder_search">Search across threads and message bodies lands here.</string>
+
+    <!-- Notification channels -->
+    <string name="channel_incoming_messages">Incoming messages</string>
+    <string name="channel_send_failures">Send failures</string>
 </resources>
