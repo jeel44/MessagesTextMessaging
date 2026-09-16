@@ -6,6 +6,7 @@ import android.os.Build
 import android.telephony.SmsManager
 import android.telephony.SubscriptionManager
 import androidx.core.app.NotificationManagerCompat
+import androidx.work.WorkManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -45,4 +46,12 @@ object SystemServiceModule {
     fun provideNotificationManager(
         @ApplicationContext context: Context,
     ): NotificationManagerCompat = NotificationManagerCompat.from(context)
+
+    /** Safe to call before `WorkManager.initialize` runs: `getInstance` triggers on-demand
+     * initialization itself the first time it is asked for, using the `Configuration` the
+     * Application supplies via [androidx.work.Configuration.Provider]. */
+    @Provides
+    @Singleton
+    fun provideWorkManager(@ApplicationContext context: Context): WorkManager =
+        WorkManager.getInstance(context)
 }

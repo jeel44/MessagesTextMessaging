@@ -1,36 +1,57 @@
 package text.message.sms.messaging.data.local.provider
 
 import android.app.PendingIntent
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.telephony.SmsManager
+import androidx.core.net.toUri
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.first
+import text.message.sms.messaging.data.local.db.dao.ScheduledMessageDao
+import text.message.sms.messaging.data.local.db.entity.ScheduledMessageEntity
+import text.message.sms.messaging.data.local.provider.mms.MmsPart
+import text.message.sms.messaging.data.local.provider.mms.MmsPduEncoder
+import text.message.sms.messaging.data.local.provider.mms.MmsSendRequest
 import text.message.sms.messaging.data.receiver.MessageDeliveredReceiver
 import text.message.sms.messaging.data.receiver.MessageSentReceiver
+import text.message.sms.messaging.data.receiver.MmsSendResultReceiver
+import text.message.sms.messaging.data.work.ScheduledSendWorker
+import text.message.sms.messaging.domain.model.Attachment
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.model.MessageChannel
+import text.message.sms.messaging.domain.repository.MessageRepository
 import text.message.sms.messaging.domain.repository.MessageTransmitter
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Hands outgoing messages to the platform radio.
- *
- * Only the plain-text SMS path is wired up in this scaffold; MMS assembly and scheduled sending
- * arrive with the send pipeline.
- */
+/** Hands outgoing messages to the platform radio, and schedules delayed ones through
+ * WorkManager -- see [ScheduledSendWorker] for why WorkManager rather than `AlarmManager`. */
 @Singleton
 class TelephonyMessageTransmitter @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val defaultSmsManager: SmsManager,
+    private val mmsTransportGateway: MmsTransportGateway,
+    private val contentResolver: ContentResolver,
+    private val workManager: WorkManager,
+    private val scheduledMessageDao: ScheduledMessageDao,
+    private val messageRepository: MessageRepository,
 ) : MessageTransmitter {
 
     override suspend fun transmit(message: Message) {
-        require(message.channel == MessageChannel.SMS) {
-            "MMS sending is not wired up yet: message ${message.id}"
+        when (message.channel) {
+            MessageChannel.SMS -> transmitSms(message)
+            MessageChannel.MMS -> transmitMms(message)
         }
+    }
 
+    private fun transmitSms(message: Message) {
         val address = requireNotNull(message.address) { "Message ${message.id} has no recipient" }
         val smsManager = smsManagerFor(message.subscriptionId)
         val parts = smsManager.divideMessage(message.body)
@@ -44,25 +65,72 @@ class TelephonyMessageTransmitter @Inject constructor(
         )
     }
 
+    private suspend fun transmitMms(message: Message) {
+        val address = requireNotNull(message.address) { "Message ${message.id} has no recipient" }
+        val parts = buildList {
+            if (message.body.isNotBlank()) {
+                add(MmsPart("text/plain", name = null, contentId = null, data = message.body.toByteArray()))
+            }
+            message.attachments.forEach { add(it.toMmsPart(contentResolver)) }
+        }
+
+        val pdu = MmsPduEncoder.encodeSendRequest(MmsSendRequest(listOf(address), null, parts))
+        val sentIntent = broadcast(MmsSendResultReceiver::class.java, message.id, 0)
+        mmsTransportGateway.send(message.id, pdu, message.subscriptionId, sentIntent)
+    }
+
     override suspend fun cancelPending(messageId: Long) {
-        TODO("Send-delay cancellation arrives with the send pipeline")
+        workManager.cancelUniqueWork(workNameFor(messageId))
+        scheduledMessageDao.delete(messageId)
     }
 
-    override suspend fun schedule(
-        addresses: Set<String>,
-        body: String,
-        sendAtMillis: Long,
-        subscriptionId: Int,
-    ) {
-        TODO("Scheduled sending arrives with the send pipeline")
+    override suspend fun schedule(message: Message, sendAtMillis: Long) {
+        enqueue(message.id, sendAtMillis)
+        scheduledMessageDao.upsert(
+            ScheduledMessageEntity(
+                messageId = message.id,
+                sendAtMillis = sendAtMillis,
+                workName = workNameFor(message.id),
+            ),
+        )
     }
 
+    /** Safety net for anything WorkManager's own persistence didn't end up dispatching --
+     * normal operation never reaches here, see the class doc on [ScheduledSendWorker]. */
     override suspend fun dispatchDue(nowMillis: Long) {
-        TODO("Scheduled sending arrives with the send pipeline")
+        scheduledMessageDao.findDue(nowMillis).forEach { scheduled ->
+            workManager.cancelUniqueWork(scheduled.workName)
+            val message = messageRepository.findById(scheduled.messageId)
+            if (message != null) transmit(message)
+            scheduledMessageDao.delete(scheduled.messageId)
+        }
     }
 
     override suspend fun rearmAlarms() {
-        TODO("Scheduled sending arrives with the send pipeline")
+        scheduledMessageDao.findAll().forEach { scheduled ->
+            val hasLiveWork = workManager.getWorkInfosForUniqueWorkFlow(scheduled.workName)
+                .first()
+                .any { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING }
+            if (!hasLiveWork) enqueue(scheduled.messageId, scheduled.sendAtMillis)
+        }
+    }
+
+    private fun enqueue(messageId: Long, sendAtMillis: Long) {
+        val delay = (sendAtMillis - System.currentTimeMillis()).coerceAtLeast(0L)
+        val request = OneTimeWorkRequestBuilder<ScheduledSendWorker>()
+            .setInitialDelay(delay, java.util.concurrent.TimeUnit.MILLISECONDS)
+            .setInputData(workDataOf(ScheduledSendWorker.KEY_MESSAGE_ID to messageId))
+            .build()
+        workManager.enqueueUniqueWork(workNameFor(messageId), ExistingWorkPolicy.REPLACE, request)
+    }
+
+    private fun workNameFor(messageId: Long): String = "scheduled_send_$messageId"
+
+    private fun Attachment.toMmsPart(resolver: ContentResolver): MmsPart {
+        val data = text?.toByteArray()
+            ?: contentUri?.let { uri -> resolver.openInputStream(uri.toUri())?.use { it.readBytes() } }
+            ?: ByteArray(0)
+        return MmsPart(mimeType, fileName, contentId = null, data = data)
     }
 
     /** Android 12 moved SIM selection onto the instance; older releases use the static form. */
@@ -81,11 +149,7 @@ class TelephonyMessageTransmitter @Inject constructor(
     private fun deliveredIntent(messageId: Long, partIndex: Int): PendingIntent =
         broadcast(MessageDeliveredReceiver::class.java, messageId, partIndex)
 
-    private fun broadcast(
-        receiver: Class<*>,
-        messageId: Long,
-        partIndex: Int,
-    ): PendingIntent {
+    private fun broadcast(receiver: Class<*>, messageId: Long, partIndex: Int): PendingIntent {
         val intent = Intent(context, receiver).putExtra(EXTRA_MESSAGE_ID, messageId)
         return PendingIntent.getBroadcast(
             context,

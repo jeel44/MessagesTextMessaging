@@ -7,12 +7,15 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import text.message.sms.messaging.data.local.db.MIGRATION_1_2
 import text.message.sms.messaging.data.local.db.MessagingDatabase
 import text.message.sms.messaging.data.local.db.dao.AttachmentDao
 import text.message.sms.messaging.data.local.db.dao.BlockedNumberDao
 import text.message.sms.messaging.data.local.db.dao.ContactDao
 import text.message.sms.messaging.data.local.db.dao.ConversationDao
 import text.message.sms.messaging.data.local.db.dao.MessageDao
+import text.message.sms.messaging.data.local.db.dao.ScheduledMessageDao
+import text.message.sms.messaging.data.local.db.dao.SyncStateDao
 import javax.inject.Singleton
 
 @Module
@@ -24,6 +27,7 @@ object DatabaseModule {
     fun provideDatabase(@ApplicationContext context: Context): MessagingDatabase =
         Room.databaseBuilder(context, MessagingDatabase::class.java, MessagingDatabase.NAME)
             // Foreign keys drive the cascade from a deleted thread to its messages and parts.
+            .addMigrations(MIGRATION_1_2)
             .build()
 
     @Provides
@@ -42,4 +46,11 @@ object DatabaseModule {
     @Provides
     fun provideBlockedNumberDao(database: MessagingDatabase): BlockedNumberDao =
         database.blockedNumberDao()
+
+    @Provides
+    fun provideSyncStateDao(database: MessagingDatabase): SyncStateDao = database.syncStateDao()
+
+    @Provides
+    fun provideScheduledMessageDao(database: MessagingDatabase): ScheduledMessageDao =
+        database.scheduledMessageDao()
 }

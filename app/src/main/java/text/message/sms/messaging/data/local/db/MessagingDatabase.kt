@@ -9,6 +9,8 @@ import text.message.sms.messaging.data.local.db.dao.BlockedNumberDao
 import text.message.sms.messaging.data.local.db.dao.ContactDao
 import text.message.sms.messaging.data.local.db.dao.ConversationDao
 import text.message.sms.messaging.data.local.db.dao.MessageDao
+import text.message.sms.messaging.data.local.db.dao.ScheduledMessageDao
+import text.message.sms.messaging.data.local.db.dao.SyncStateDao
 import text.message.sms.messaging.data.local.db.entity.AttachmentEntity
 import text.message.sms.messaging.data.local.db.entity.BlockedNumberEntity
 import text.message.sms.messaging.data.local.db.entity.ContactEntity
@@ -16,6 +18,8 @@ import text.message.sms.messaging.data.local.db.entity.ContactNumberEntity
 import text.message.sms.messaging.data.local.db.entity.ConversationEntity
 import text.message.sms.messaging.data.local.db.entity.MessageEntity
 import text.message.sms.messaging.data.local.db.entity.RecipientEntity
+import text.message.sms.messaging.data.local.db.entity.ScheduledMessageEntity
+import text.message.sms.messaging.data.local.db.entity.SyncStateEntity
 
 /**
  * Local cache of the system Telephony and Contacts providers, plus the app-only state
@@ -33,8 +37,10 @@ import text.message.sms.messaging.data.local.db.entity.RecipientEntity
         ContactEntity::class,
         ContactNumberEntity::class,
         BlockedNumberEntity::class,
+        SyncStateEntity::class,
+        ScheduledMessageEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(MessagingConverters::class)
@@ -49,6 +55,10 @@ abstract class MessagingDatabase : RoomDatabase() {
     abstract fun contactDao(): ContactDao
 
     abstract fun blockedNumberDao(): BlockedNumberDao
+
+    abstract fun syncStateDao(): SyncStateDao
+
+    abstract fun scheduledMessageDao(): ScheduledMessageDao
 
     companion object {
         const val NAME: String = "messaging.db"

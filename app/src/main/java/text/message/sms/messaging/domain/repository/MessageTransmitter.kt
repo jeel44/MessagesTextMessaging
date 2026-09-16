@@ -8,23 +8,31 @@ import text.message.sms.messaging.domain.model.Message
  */
 interface MessageTransmitter {
 
-    /** Sends [message] now, splitting it into parts if the body exceeds a single SMS. */
+    /** Sends [message] now: SMS is split into parts if the body exceeds one segment, MMS is
+     * built into a PDU and handed to the carrier's MMSC via `SmsManager`. */
     suspend fun transmit(message: Message)
 
-    /** Drops a message that is still inside its send-delay window. */
+    /** Drops a message that is still waiting out its scheduled-send delay. */
     suspend fun cancelPending(messageId: Long)
 
-    /** Stores a message to be sent at [sendAtMillis] and registers the alarm for it. */
-    suspend fun schedule(
-        addresses: Set<String>,
-        body: String,
-        sendAtMillis: Long,
-        subscriptionId: Int,
-    )
+    /**
+     * Registers [message] (already persisted, folder [text.message.sms.messaging.domain.model.MessageFolder.QUEUED])
+     * to be handed to [transmit] at [sendAtMillis].
+     *
+     * Takes the already-created message rather than its raw fields (addresses/body/subscription)
+     * so the same id can later be passed to [cancelPending] -- the original `Unit`-returning
+     * signature gave a caller no way to reference a specific scheduled item afterwards, which
+     * is a genuine gap this replaces; see `domain.usecase.ScheduleMessage`.
+     */
+    suspend fun schedule(message: Message, sendAtMillis: Long)
 
-    /** Sends every scheduled message whose time has passed. */
+    /** Sends every scheduled message whose time has passed but that, for some reason, no
+     * scheduler job is going to pick up (e.g. app data was cleared and reinstalled). Under
+     * normal operation the scheduler drives this itself; see the WorkManager note on the
+     * implementation for why. */
     suspend fun dispatchDue(nowMillis: Long)
 
-    /** Re-registers scheduling alarms, which the platform drops on reboot. */
+    /** Re-verifies every still-pending scheduled send has a live scheduler job, re-registering
+     * one for any that don't. */
     suspend fun rearmAlarms()
 }

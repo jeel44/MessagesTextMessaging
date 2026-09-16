@@ -79,12 +79,18 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    // Background work -- scheduled sends
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+
     // Kotlin libraries
     implementation(libs.kotlinx.coroutines.android)
 
     // Unit tests
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.work.testing)
 
     // Instrumented tests
     androidTestImplementation(platform(libs.androidx.compose.bom))

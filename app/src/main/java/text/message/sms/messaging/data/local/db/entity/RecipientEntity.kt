@@ -18,7 +18,10 @@ import androidx.room.PrimaryKey
         ),
     ],
     indices = [
-        Index(value = ["thread_id"]),
+        // Composite and unique so re-resolving a thread's participants (every send and every
+        // receive calls this) never accumulates duplicate rows; its leading column also serves
+        // plain thread_id lookups.
+        Index(value = ["thread_id", "address"], unique = true),
         Index(value = ["address"]),
     ],
 )

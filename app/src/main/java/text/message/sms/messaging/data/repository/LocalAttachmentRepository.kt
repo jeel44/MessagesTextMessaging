@@ -1,8 +1,10 @@
 package text.message.sms.messaging.data.repository
 
+import androidx.core.net.toUri
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import text.message.sms.messaging.data.local.db.dao.AttachmentDao
+import text.message.sms.messaging.data.local.provider.MmsAttachmentStorage
 import text.message.sms.messaging.data.mapper.toDomain
 import text.message.sms.messaging.data.mapper.toEntity
 import text.message.sms.messaging.domain.model.Attachment
@@ -14,6 +16,7 @@ import javax.inject.Singleton
 @Singleton
 class LocalAttachmentRepository @Inject constructor(
     private val attachmentDao: AttachmentDao,
+    private val attachmentStorage: MmsAttachmentStorage,
 ) : AttachmentRepository {
 
     override fun observeForMessage(messageId: Long): Flow<List<Attachment>> =
@@ -27,7 +30,18 @@ class LocalAttachmentRepository @Inject constructor(
     }
 
     override suspend fun exportToGallery(attachment: Attachment): String {
-        TODO("Saving parts to shared storage arrives with the attachment pipeline")
+        val sourceUri = requireNotNull(attachment.contentUri) {
+            "Attachment ${attachment.id} has no file to export (it is inline text)"
+        }
+        val displayName = attachment.fileName ?: "attachment_${attachment.id}"
+        val exported = attachmentStorage.exportToMediaStore(
+            source = sourceUri.toUri(),
+            mimeType = attachment.mimeType,
+            displayName = displayName,
+        )
+        return requireNotNull(exported) {
+            "Export to shared storage needs Android 10 (API 29) or newer"
+        }.toString()
     }
 
     override suspend fun delete(attachmentIds: Collection<Long>) {

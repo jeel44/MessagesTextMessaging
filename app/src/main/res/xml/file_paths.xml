@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Downloaded/sent MMS parts, kept out of scoped-storage's shared collections until the
+         user explicitly exports one (see MmsAttachmentStorage, ExportAttachment). -->
+    <files-path name="mms_parts" path="mms/" />
+
+    <!-- Outgoing PDU bytes staged for SmsManager.sendMultimediaMessage / the MMS download
+         target for SmsManager.downloadMultimediaMessage; both need a content:// the phone
+         process can be granted read/write access to. -->
+    <cache-path name="mms_transport" path="mms_transport/" />
+</paths>

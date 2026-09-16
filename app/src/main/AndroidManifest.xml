@@ -118,6 +118,52 @@
             android:name=".data.receiver.MessageDeliveredReceiver"
             android:exported="false" />
 
+        <receiver
+            android:name=".data.receiver.MmsSendResultReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".data.receiver.MmsDownloadResultReceiver"
+            android:exported="false" />
+
+        <!-- WorkManager's own persisted jobs already survive a reboot; this only re-verifies
+             that survival, see the note on ScheduledSendWorker. BOOT_COMPLETED is a protected
+             broadcast the system alone can send, so exporting it is not a write surface. -->
+        <receiver
+            android:name=".data.receiver.BootCompletedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!--
+          This app supplies its own androidx.work.Configuration (see MessagingApplication) so
+          Hilt-injected Workers can be constructed; the default on-demand initializer would
+          build WorkManager with a plain factory instead and crash the first time a
+          @HiltWorker-annotated Worker is requested, so it is removed here.
+        -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
         <!--
           Requirement 4 of 4: respond to a call declined with a canned reply. QUICK_RESPONSE is
           the equivalent action older dialers send.
