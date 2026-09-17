@@ -58,32 +58,22 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.net.toUri
 import text.message.sms.messaging.R
+import text.message.sms.messaging.service.DefaultSmsAppGuard
 import text.message.sms.messaging.ui.theme.Pill
 
 // Placeholder URLs -- replace with the real hosted Terms & Conditions / Privacy Policy pages.
 private const val TERMS_AND_CONDITIONS_URL = "https://example.com/terms"
 private const val PRIVACY_POLICY_URL = "https://example.com/privacy"
 
-/** The SMS/MMS permissions the app cannot function without; everything else requested alongside
- * them is for secondary or upcoming features (contacts, dual-SIM, the call-end screen). */
-private val CoreSmsPermissions = listOf(
-    Manifest.permission.SEND_SMS,
-    Manifest.permission.RECEIVE_SMS,
-    Manifest.permission.READ_SMS,
-    Manifest.permission.RECEIVE_MMS,
-)
-
 private fun onboardingPermissions(): Array<String> {
-    val permissions = mutableListOf(
-        Manifest.permission.SEND_SMS,
-        Manifest.permission.RECEIVE_SMS,
-        Manifest.permission.READ_SMS,
-        Manifest.permission.RECEIVE_MMS,
-        Manifest.permission.READ_CONTACTS,
-        Manifest.permission.READ_PHONE_STATE,
-        Manifest.permission.READ_CALL_LOG,
-        Manifest.permission.CALL_PHONE,
-    )
+    val permissions = (
+        DefaultSmsAppGuard.CoreSmsPermissions + listOf(
+            Manifest.permission.READ_CONTACTS,
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.READ_CALL_LOG,
+            Manifest.permission.CALL_PHONE,
+        )
+        ).toMutableList()
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         permissions += Manifest.permission.POST_NOTIFICATIONS
     }
@@ -106,7 +96,8 @@ private data class WelcomeFeature(
  * First screen after Splash: sells the app's core value in four feature rows, collects
  * one-tap consent, then drives the real runtime permission dialogs.
  *
- * [onContinue] fires once the core SMS/MMS permissions ([CoreSmsPermissions]) are granted --
+ * [onContinue] fires once the core SMS/MMS permissions ([DefaultSmsAppGuard.CoreSmsPermissions])
+ * are granted --
  * SMS/MMS is this app's reason to exist, so Continue is gated on those alone. The rest of the
  * requested set (contacts, phone state, call log, call, notifications) back secondary or
  * not-yet-built features and are best-effort: a denial there degrades a feature later rather
@@ -122,13 +113,13 @@ fun WelcomeScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
     ) { results ->
-        val coreGranted = CoreSmsPermissions.all { results[it] == true }
+        val coreGranted = DefaultSmsAppGuard.CoreSmsPermissions.all { results[it] == true }
         promptState = when {
             coreGranted -> {
                 onContinue()
                 PermissionPromptState.Hidden
             }
-            activity != null && CoreSmsPermissions.any { permission ->
+            activity != null && DefaultSmsAppGuard.CoreSmsPermissions.any { permission ->
                 results[permission] == false &&
                     !ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)
             } -> PermissionPromptState.PermanentlyDenied

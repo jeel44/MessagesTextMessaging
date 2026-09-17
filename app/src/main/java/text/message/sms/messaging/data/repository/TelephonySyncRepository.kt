@@ -2,6 +2,7 @@ package text.message.sms.messaging.data.repository
 
 import android.util.Log
 import androidx.core.net.toUri
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,8 +52,11 @@ class TelephonySyncRepository @Inject constructor(
         // A non-default app can still read Telephony.Sms/Mms on many OS versions, but the read
         // can be partial or simply wrong (no guaranteed visibility into the full provider), and
         // writing sync-state/local-cache rows off that data would poison the cache once the role
-        // is actually granted. Bail out before touching either provider.
-        if (!defaultSmsAppGuard.isDefault) {
+        // is actually granted. Bail out before touching either provider. The role and the
+        // dangerous runtime permissions are separate Android systems -- isDefault can be true
+        // while READ_SMS etc. are still denied (e.g. right after role grant, before the
+        // permission dialog resolves), so both must hold before querying the provider.
+        if (!defaultSmsAppGuard.isDefault || !defaultSmsAppGuard.hasCoreSmsPermissions) {
             progress.value = SyncProgress.NotDefaultApp
             return@withContext
         }
@@ -96,6 +100,7 @@ class TelephonySyncRepository @Inject constructor(
                         newestSmsMillis = maxOf(newestSmsMillis, message.receivedAtMillis)
                     }
                 } catch (error: Exception) {
+                    if (error is CancellationException) throw error
                     failedCount++
                     smsWatermarkStalled = true
                     if (firstFailure == null) firstFailure = error
@@ -112,6 +117,7 @@ class TelephonySyncRepository @Inject constructor(
                         newestMmsSeconds = maxOf(newestMmsSeconds, receivedAtMillis / MILLIS_PER_SECOND)
                     }
                 } catch (error: Exception) {
+                    if (error is CancellationException) throw error
                     failedCount++
                     mmsWatermarkStalled = true
                     if (firstFailure == null) firstFailure = error
@@ -137,6 +143,7 @@ class TelephonySyncRepository @Inject constructor(
                 SyncProgress.Idle
             }
         } catch (error: Exception) {
+            if (error is CancellationException) throw error
             Log.w(TAG, "syncAll failed", error)
             progress.value = SyncProgress.Failed(error.describe())
         }
