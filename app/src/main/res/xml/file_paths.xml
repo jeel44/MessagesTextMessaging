@@ -8,4 +8,8 @@
          target for SmsManager.downloadMultimediaMessage; both need a content:// the phone
          process can be granted read/write access to. -->
     <cache-path name="mms_transport" path="mms_transport/" />
+
+    <!-- Camera capture target for the chat composer's attachment sheet: TakePicture() needs a
+         content:// Uri to write the photo into before it is attached to an outgoing message. -->
+    <cache-path name="camera_captures" path="camera/" />
 </paths>

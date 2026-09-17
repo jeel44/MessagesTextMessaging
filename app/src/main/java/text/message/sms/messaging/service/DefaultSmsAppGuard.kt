@@ -21,11 +21,16 @@ class DefaultSmsAppGuard @Inject constructor(
 ) {
 
     val isDefault: Boolean
-        get() = Telephony.Sms.getDefaultSmsPackage(context) == context.packageName
+        get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            context.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_SMS) == true
+        } else {
+            Telephony.Sms.getDefaultSmsPackage(context) == context.packageName
+        }
 
     /**
      * Builds the intent that asks the user to make this app the default SMS handler. Launch it
-     * with an activity result contract; the user may decline.
+     * with an activity result contract, then re-check [isDefault] rather than trusting the
+     * result code -- the user can back out of the system dialog without an explicit deny.
      *
      * Android 10 replaced the old change-default intent with the role request, so both paths
      * are kept.

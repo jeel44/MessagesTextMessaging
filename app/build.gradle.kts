@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.lottie.compose)
+    implementation(libs.coil.compose)
 
     // Dependency injection
     implementation(libs.hilt.android)
@@ -79,6 +80,10 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.datastore.preferences)
+
+    // Per-app language
+    implementation(libs.androidx.appcompat)
 
     // Background work -- scheduled sends
     implementation(libs.androidx.work.runtime.ktx)

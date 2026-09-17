@@ -9,9 +9,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import text.message.sms.messaging.ui.screens.chat.ChatScreen
+import text.message.sms.messaging.ui.screens.chat.MediaViewerScreen
 import text.message.sms.messaging.ui.screens.conversationlist.ConversationListScreen
 import text.message.sms.messaging.ui.screens.newmessage.NewMessageScreen
+import text.message.sms.messaging.ui.screens.onboarding.LanguageScreen
+import text.message.sms.messaging.ui.screens.onboarding.SetDefaultSmsScreen
 import text.message.sms.messaging.ui.screens.onboarding.SplashScreen
+import text.message.sms.messaging.ui.screens.onboarding.WelcomeScreen
 import text.message.sms.messaging.ui.screens.search.SearchScreen
 
 /** Wires every screen together. Screens receive plain lambdas, never the controller itself. */
@@ -27,8 +31,42 @@ fun MessagingNavHost(
     ) {
         composable(MessagingDestination.Splash.route) {
             SplashScreen(
-                onTimeout = {
-                    // TODO: replace with Welcome screen once built
+                onOnboardingComplete = {
+                    navController.navigate(MessagingDestination.ConversationList.route) {
+                        popUpTo(MessagingDestination.Splash.route) { inclusive = true }
+                    }
+                },
+                onOnboardingIncomplete = {
+                    navController.navigate(MessagingDestination.Welcome.route) {
+                        popUpTo(MessagingDestination.Splash.route) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(MessagingDestination.Welcome.route) {
+            WelcomeScreen(
+                onContinue = {
+                    navController.navigate(MessagingDestination.SetDefaultSms.route) {
+                        popUpTo(MessagingDestination.Welcome.route) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(MessagingDestination.SetDefaultSms.route) {
+            SetDefaultSmsScreen(
+                onDefaultSet = {
+                    navController.navigate(MessagingDestination.Language.route) {
+                        popUpTo(MessagingDestination.SetDefaultSms.route) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(MessagingDestination.Language.route) {
+            LanguageScreen(
+                onContinue = {
                     navController.navigate(MessagingDestination.ConversationList.route) {
                         popUpTo(MessagingDestination.Splash.route) { inclusive = true }
                     }
@@ -55,11 +93,24 @@ fun MessagingNavHost(
             arguments = listOf(
                 navArgument(MessagingDestination.ARG_THREAD_ID) { type = NavType.LongType },
             ),
-        ) { entry ->
+        ) {
             ChatScreen(
-                threadId = entry.arguments
-                    ?.getLong(MessagingDestination.ARG_THREAD_ID)
-                    ?: 0L,
+                onBack = navController::popBackStack,
+                onAttachmentClick = { contentUri ->
+                    navController.navigate(MessagingDestination.MediaViewer.routeFor(contentUri))
+                },
+            )
+        }
+
+        composable(
+            route = MessagingDestination.MediaViewer.route,
+            arguments = listOf(
+                navArgument(MessagingDestination.ARG_CONTENT_URI) { type = NavType.StringType },
+            ),
+        ) { entry ->
+            val encoded = entry.arguments?.getString(MessagingDestination.ARG_CONTENT_URI).orEmpty()
+            MediaViewerScreen(
+                contentUri = MessagingDestination.MediaViewer.decodeContentUri(encoded),
                 onBack = navController::popBackStack,
             )
         }

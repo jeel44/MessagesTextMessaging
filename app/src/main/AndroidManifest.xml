@@ -33,12 +33,25 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
 
+    <!-- Call-end screen (upcoming): number/call-type lookup after a call ends -->
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+
     <!-- Notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- Scheduled sends have to survive a reboot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Chat composer's Camera attachment action delegates to whatever camera app is
+         installed via ACTION_IMAGE_CAPTURE; package-visibility rules on API 30+ require it to
+         be declared here or resolution can silently fail on some OEM builds. -->
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+    </queries>
 
     <application
         android:name=".MessagingApplication"

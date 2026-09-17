@@ -42,12 +42,21 @@ interface ConversationDao {
     @Query("SELECT * FROM conversations WHERE thread_id = :threadId")
     suspend fun findByThreadId(threadId: Long): ConversationWithRecipients?
 
+    /**
+     * Matches a thread's last-message snippet, any participant's raw address, or -- via a left
+     * join to the contacts cache through [RecipientEntity.contactLookupKey] -- a saved contact's
+     * display name, so searching "Mom" finds her thread even though no message or address
+     * literally contains that text.
+     */
     @Transaction
     @Query(
         """
         SELECT DISTINCT c.* FROM conversations c
         INNER JOIN recipients r ON r.thread_id = c.thread_id
-        WHERE c.snippet LIKE '%' || :query || '%' OR r.address LIKE '%' || :query || '%'
+        LEFT JOIN contacts ct ON ct.lookup_key = r.contact_lookup_key
+        WHERE c.snippet LIKE '%' || :query || '%'
+           OR r.address LIKE '%' || :query || '%'
+           OR ct.display_name LIKE '%' || :query || '%'
         ORDER BY c.last_message_at DESC
         """
     )

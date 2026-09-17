@@ -23,21 +23,26 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import text.message.sms.messaging.R
+import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 
 /**
- * The app's first screen. Shows the brand mark for [SPLASH_DELAY_MILLIS], then hands off to
- * [onTimeout].
+ * The app's first screen. Shows the brand mark for at least [SPLASH_DELAY_MILLIS], then hands off
+ * to [onOnboardingComplete] if onboarding already finished on a previous launch, or
+ * [onOnboardingIncomplete] otherwise.
  *
  * The full-bleed background is [MaterialTheme.colorScheme.primary] rather than
  * `primaryContainer`: `primary`/`onPrimary` is the pairing Material 3 guarantees legible contrast
@@ -45,11 +50,14 @@ import text.message.sms.messaging.R
  * as a confident, branded splash the way `primaryContainer`'s deliberately muted tone would not.
  */
 @Composable
-fun SplashScreen(onTimeout: () -> Unit) {
+fun SplashScreen(onOnboardingComplete: () -> Unit, onOnboardingIncomplete: () -> Unit) {
+    val context = LocalContext.current
+    val onboardingPreferences = remember(context) { OnboardingPreferences(context.applicationContext) }
+
     LaunchedEffect(Unit) {
+        val isOnboardingComplete = onboardingPreferences.isOnboardingComplete.first()
         delay(SPLASH_DELAY_MILLIS)
-        // TODO: replace with Welcome screen once built
-        onTimeout()
+        if (isOnboardingComplete) onOnboardingComplete() else onOnboardingIncomplete()
     }
 
     Surface(

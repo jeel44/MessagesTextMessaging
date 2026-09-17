@@ -4,11 +4,49 @@
     <!-- Onboarding -->
     <string name="splash_tagline">Simple. Fast. Secure.</string>
 
+    <!-- Welcome -->
+    <string name="welcome_headline">Welcome to Messages</string>
+    <string name="welcome_feature_sms_title">Fast &amp; Reliable SMS</string>
+    <string name="welcome_feature_sms_desc">Send and receive messages quickly with a smooth texting experience.</string>
+    <string name="welcome_feature_notifications_title">Smart Notifications</string>
+    <string name="welcome_feature_notifications_desc">Stay updated with important messages and custom notifications.</string>
+    <string name="welcome_feature_privacy_title">Private &amp; Secure</string>
+    <string name="welcome_feature_privacy_desc">Your conversations stay protected and visible only to you.</string>
+    <string name="welcome_feature_search_title">Search &amp; Organize</string>
+    <string name="welcome_feature_search_desc">Find messages faster and keep your inbox neat and simple.</string>
+    <string name="welcome_consent_prefix">Help us improve with anonymous insights. Your data stays private and secure. I agree to the </string>
+    <string name="welcome_consent_terms">Terms &amp; Conditions</string>
+    <string name="welcome_consent_and"> and </string>
+    <string name="welcome_consent_privacy">Privacy Policy</string>
+    <string name="welcome_consent_suffix">.</string>
+    <string name="welcome_continue">Continue</string>
+    <string name="welcome_permission_denied_message">SMS permissions are required for Messages to send and receive texts. Tap Continue to try again.</string>
+    <string name="welcome_permission_settings_message">SMS permissions are required for Messages to work. Enable them in Settings to continue.</string>
+    <string name="welcome_open_settings">Open Settings</string>
+
+    <!-- Set default SMS -->
+    <string name="set_default_sms_placeholder_label">Lottie animation here</string>
+    <string name="set_default_sms_body">Set Messages as your default SMS app to start sending and receiving texts.</string>
+    <string name="set_default_sms_button">Set as Default</string>
+    <string name="set_default_sms_hint">Messages needs to be your default SMS app to send and receive texts. Tap the button whenever you are ready.</string>
+
+    <!-- Language -->
+    <string name="language_title">Select App Language</string>
+    <string name="language_continue">Continue</string>
+
     <!-- Screen titles -->
     <string name="screen_conversations">Messages</string>
-    <string name="screen_chat">Conversation</string>
     <string name="screen_new_message">New message</string>
     <string name="screen_search">Search</string>
+
+    <!-- Home (conversation list) -->
+    <string name="home_filter_all">All</string>
+    <string name="home_filter_unread">Unread</string>
+    <string name="home_filter_pinned">Pinned</string>
+    <string name="home_date_today">Today</string>
+    <string name="home_date_yesterday">Yesterday</string>
+    <string name="home_empty_title">No messages yet</string>
+    <string name="home_empty_message">Start a conversation and it will show up here.</string>
 
     <!-- Actions -->
     <string name="action_search">Search</string>
@@ -16,11 +54,44 @@
     <string name="action_back">Back</string>
     <string name="action_close">Close</string>
 
-    <!-- Scaffold placeholders, replaced as each screen is built out -->
-    <string name="placeholder_conversations">The thread list lands here.</string>
-    <string name="placeholder_chat">Thread %1$d. The timeline and composer land here.</string>
-    <string name="placeholder_new_message">The recipient picker lands here.</string>
-    <string name="placeholder_search">Search across threads and message bodies lands here.</string>
+    <!-- Chat -->
+    <string name="chat_call">Call</string>
+    <string name="chat_more_options">More options</string>
+    <string name="chat_composer_hint">Text message</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_add_attachment">Add attachment</string>
+    <string name="chat_remove_attachment">Remove attachment</string>
+    <string name="chat_status_sending">Sending…</string>
+    <string name="chat_status_sent">Sent</string>
+    <string name="chat_status_delivered">Delivered</string>
+    <string name="chat_status_failed">Failed</string>
+    <string name="chat_attachment_sheet_title">Add to your message</string>
+    <string name="chat_attachment_gallery">Gallery</string>
+    <string name="chat_attachment_camera">Camera</string>
+    <string name="chat_attachment_files">Files</string>
+    <string name="chat_attachment_location">Location</string>
+    <string name="chat_attachment_contact">Contact</string>
+    <string name="chat_attachment_schedule">Schedule</string>
+    <string name="chat_attachment_coming_soon">Coming soon</string>
+    <string name="chat_media_viewer_title">Photo</string>
+
+    <!-- New message -->
+    <string name="new_message_to_label">To</string>
+    <string name="new_message_to_hint">Name or phone number</string>
+    <string name="new_message_send_to">Send to \"%1$s\"</string>
+    <string name="new_message_contacts_permission_message">Allow contacts access in Settings to pick a recipient by name.</string>
+    <string name="new_message_no_contacts">No contacts found</string>
+
+    <!-- Search -->
+    <string name="search_hint">Search conversations</string>
+    <string name="search_clear">Clear search</string>
+    <string name="search_filter_all">All</string>
+    <string name="search_filter_people">People</string>
+    <string name="search_filter_messages">Messages</string>
+    <string name="search_recent_header">Recent searches</string>
+    <string name="search_section_people">People</string>
+    <string name="search_section_messages">Messages</string>
+    <string name="search_no_results">No results for \"%1$s\"</string>
 
     <!-- Notification channels -->
     <string name="channel_incoming_messages">Incoming messages</string>
