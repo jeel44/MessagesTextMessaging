@@ -3,6 +3,12 @@ package text.message.sms.messaging.ui.screens.conversationlist
 import android.text.format.DateFormat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -53,6 +59,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -166,7 +174,9 @@ fun ConversationListScreen(
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             ) {
                 if (conversations.isEmpty()) {
-                    if (isDefaultSmsApp) {
+                    if (syncProgress is SyncProgress.Running) {
+                        ShimmerConversationList()
+                    } else if (isDefaultSmsApp) {
                         EmptyInbox()
                     } else {
                         NotDefaultSmsAppEmptyState(
@@ -450,6 +460,98 @@ private fun ConversationAvatar(conversation: Conversation, modifier: Modifier = 
             )
         }
     }
+}
+
+/**
+ * 8 fixed skeleton rows shaped like [ConversationRow], shown in place of the conversation list
+ * while the first sync is still running and nothing has landed in `conversations` yet -- see the
+ * call site in [ConversationListScreen].
+ */
+@Composable
+private fun ShimmerConversationList(modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxSize()) {
+        repeat(8) {
+            ShimmerConversationRow()
+        }
+    }
+}
+
+@Composable
+private fun ShimmerConversationRow(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(CircleShape)
+                .background(shimmerBrush()),
+        )
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .width(120.dp)
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(shimmerBrush()),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(shimmerBrush()),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(shimmerBrush()),
+            )
+        }
+    }
+}
+
+/**
+ * A [Brush] that sweeps a lighter highlight across [MaterialTheme.colorScheme.surfaceVariant] on
+ * a loop, ~1200ms per pass -- the shimmering background behind each skeleton shape in
+ * [ShimmerConversationRow].
+ */
+@Composable
+private fun shimmerBrush(): Brush {
+    val color = MaterialTheme.colorScheme.surfaceVariant
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translate by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "shimmerTranslate",
+    )
+    return Brush.linearGradient(
+        colors = listOf(
+            color.copy(alpha = 0.6f),
+            color.copy(alpha = 1f),
+            color.copy(alpha = 0.6f),
+        ),
+        start = Offset(translate - 400f, translate - 400f),
+        end = Offset(translate, translate),
+    )
 }
 
 @Composable
