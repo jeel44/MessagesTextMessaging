@@ -1,5 +1,7 @@
 package text.message.sms.messaging.domain.usecase
 
+import androidx.room.withTransaction
+import text.message.sms.messaging.data.local.db.MessagingDatabase
 import text.message.sms.messaging.domain.repository.IncomingMessageSource
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.repository.BlockedNumberRepository
@@ -11,6 +13,7 @@ import javax.inject.Inject
  * parts into the Telephony provider; this pulls the resulting row into the local cache.
  */
 class ReceiveMms @Inject constructor(
+    private val database: MessagingDatabase,
     private val incomingMessageSource: IncomingMessageSource,
     private val messageRepository: MessageRepository,
     private val blockedNumberRepository: BlockedNumberRepository,
@@ -21,6 +24,8 @@ class ReceiveMms @Inject constructor(
         val sender = pending.address
         if (sender != null && blockedNumberRepository.isBlocked(sender)) return null
 
-        return messageRepository.insertIncoming(pending)
+        return database.withTransaction {
+            messageRepository.insertIncoming(pending)
+        }
     }
 }

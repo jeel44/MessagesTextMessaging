@@ -1,5 +1,7 @@
 package text.message.sms.messaging.domain.usecase
 
+import androidx.room.withTransaction
+import text.message.sms.messaging.data.local.db.MessagingDatabase
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.repository.BlockedNumberRepository
 import text.message.sms.messaging.domain.repository.ConversationRepository
@@ -11,6 +13,7 @@ import javax.inject.Inject
  * drops the message if the sender is blocked, and stores it locally.
  */
 class ReceiveSms @Inject constructor(
+    private val database: MessagingDatabase,
     private val conversationRepository: ConversationRepository,
     private val messageRepository: MessageRepository,
     private val blockedNumberRepository: BlockedNumberRepository,
@@ -19,9 +22,10 @@ class ReceiveSms @Inject constructor(
     suspend operator fun invoke(params: Params): Message? {
         if (blockedNumberRepository.isBlocked(params.address)) return null
 
-        val threadId = conversationRepository.resolveThreadId(setOf(params.address))
-        val stored = messageRepository.insertIncoming(params.toMessage(threadId))
-        return stored
+        return database.withTransaction {
+            val threadId = conversationRepository.resolveThreadId(setOf(params.address))
+            messageRepository.insertIncoming(params.toMessage(threadId))
+        }
     }
 
     data class Params(

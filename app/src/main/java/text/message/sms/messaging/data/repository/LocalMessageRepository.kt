@@ -3,10 +3,12 @@ package text.message.sms.messaging.data.repository
 import android.content.ContentResolver
 import android.provider.OpenableColumns
 import androidx.core.net.toUri
+import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import text.message.sms.messaging.data.local.db.MessagingDatabase
 import text.message.sms.messaging.data.local.db.dao.AttachmentDao
 import text.message.sms.messaging.data.local.db.dao.ConversationDao
 import text.message.sms.messaging.data.local.db.dao.MessageDao
@@ -34,6 +36,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class LocalMessageRepository @Inject constructor(
+    private val database: MessagingDatabase,
     private val messageDao: MessageDao,
     private val conversationDao: ConversationDao,
     private val attachmentDao: AttachmentDao,
@@ -126,27 +129,29 @@ class LocalMessageRepository @Inject constructor(
     }
 
     override suspend fun insertIncoming(message: Message, notifyConversation: Boolean): Message = withContext(Dispatchers.IO) {
-        var localId = messageDao.insert(message.toEntity())
-        if (localId == -1L) {
-            localId = messageDao.findByProviderId(message.providerId, message.channel)?.message?.id ?: localId
-        }
-        val providerId = message.providerId.takeIf { it != 0L }
-            ?: smsProviderGateway.insert(message.copy(id = localId))
-        messageDao.setProviderId(localId, providerId)
+        database.withTransaction {
+            var localId = messageDao.insert(message.toEntity())
+            if (localId == -1L) {
+                localId = messageDao.findByProviderId(message.providerId, message.channel)?.message?.id ?: localId
+            }
+            val providerId = message.providerId.takeIf { it != 0L }
+                ?: smsProviderGateway.insert(message.copy(id = localId))
+            messageDao.setProviderId(localId, providerId)
 
-        val attachments = if (message.attachments.isEmpty()) {
-            emptyList()
-        } else {
-            attachmentDao.upsertAll(
-                message.attachments.map { it.copy(messageId = localId).toEntity() },
-            )
-            attachmentDao.findForMessage(localId).map { it.toDomain() }
-        }
+            val attachments = if (message.attachments.isEmpty()) {
+                emptyList()
+            } else {
+                attachmentDao.upsertAll(
+                    message.attachments.map { it.copy(messageId = localId).toEntity() },
+                )
+                attachmentDao.findForMessage(localId).map { it.toDomain() }
+            }
 
-        if (notifyConversation) {
-            refreshConversationCounters(message.threadId, message.body, message.receivedAtMillis)
+            if (notifyConversation) {
+                refreshConversationCounters(message.threadId, message.body, message.receivedAtMillis)
+            }
+            message.copy(id = localId, providerId = providerId, attachments = attachments)
         }
-        message.copy(id = localId, providerId = providerId, attachments = attachments)
     }
 
     override suspend fun setDeliveryState(messageId: Long, state: DeliveryState, errorCode: Int) {
