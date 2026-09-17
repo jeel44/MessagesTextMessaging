@@ -7,6 +7,7 @@ import text.message.sms.messaging.data.local.db.converter.MessagingConverters
 import text.message.sms.messaging.data.local.db.dao.AttachmentDao
 import text.message.sms.messaging.data.local.db.dao.BlockedNumberDao
 import text.message.sms.messaging.data.local.db.dao.ContactDao
+import text.message.sms.messaging.data.local.db.dao.ContactGroupDao
 import text.message.sms.messaging.data.local.db.dao.ConversationDao
 import text.message.sms.messaging.data.local.db.dao.MessageDao
 import text.message.sms.messaging.data.local.db.dao.ScheduledMessageDao
@@ -14,6 +15,8 @@ import text.message.sms.messaging.data.local.db.dao.SyncStateDao
 import text.message.sms.messaging.data.local.db.entity.AttachmentEntity
 import text.message.sms.messaging.data.local.db.entity.BlockedNumberEntity
 import text.message.sms.messaging.data.local.db.entity.ContactEntity
+import text.message.sms.messaging.data.local.db.entity.ContactGroupEntity
+import text.message.sms.messaging.data.local.db.entity.ContactGroupMemberEntity
 import text.message.sms.messaging.data.local.db.entity.ContactNumberEntity
 import text.message.sms.messaging.data.local.db.entity.ConversationEntity
 import text.message.sms.messaging.data.local.db.entity.MessageEntity
@@ -36,11 +39,13 @@ import text.message.sms.messaging.data.local.db.entity.SyncStateEntity
         AttachmentEntity::class,
         ContactEntity::class,
         ContactNumberEntity::class,
+        ContactGroupEntity::class,
+        ContactGroupMemberEntity::class,
         BlockedNumberEntity::class,
         SyncStateEntity::class,
         ScheduledMessageEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(MessagingConverters::class)
@@ -53,6 +58,8 @@ abstract class MessagingDatabase : RoomDatabase() {
     abstract fun attachmentDao(): AttachmentDao
 
     abstract fun contactDao(): ContactDao
+
+    abstract fun contactGroupDao(): ContactGroupDao
 
     abstract fun blockedNumberDao(): BlockedNumberDao
 

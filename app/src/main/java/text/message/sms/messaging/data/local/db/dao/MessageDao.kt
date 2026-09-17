@@ -41,6 +41,12 @@ interface MessageDao {
     @Query("SELECT COUNT(*) FROM messages WHERE thread_id = :threadId AND is_read = 0")
     suspend fun countUnread(threadId: Long): Int
 
+    /** `EXISTS` rather than `COUNT(*)` so this can short-circuit on the very first row instead
+     * of scanning the whole table -- used only to distinguish "empty" from "not empty", never a
+     * real count. */
+    @Query("SELECT EXISTS(SELECT 1 FROM messages LIMIT 1)")
+    suspend fun hasAnyMessages(): Boolean
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(message: MessageEntity): Long
 

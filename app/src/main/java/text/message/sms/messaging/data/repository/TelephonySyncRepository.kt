@@ -62,7 +62,24 @@ class TelephonySyncRepository @Inject constructor(
         }
 
         try {
-            val state = syncStateDao.get() ?: SyncStateEntity()
+            val persistedState = syncStateDao.get() ?: SyncStateEntity()
+            // Normally sync_state and messages/conversations live in the same Room database and
+            // are always cleared together (an app-data clear, an uninstall) -- there is no
+            // ordinary path where the watermark survives but the cached messages don't. This
+            // guards the one abnormal path that could still produce that split (a corrupted
+            // table, a bug, or a future partial-wipe feature): if the cache is empty but the
+            // watermark isn't at its zero default, trusting the watermark would mean only pulling
+            // rows newer than it and silently never backfilling everything below it. Resetting to
+            // a fresh SyncStateEntity() here forces the full backfill a truly empty cache needs;
+            // an already-consistent empty-cache/zero-watermark state (a real first run) is a
+            // no-op through this branch.
+            val cacheIsEmpty = !messageRepository.hasAnyMessages()
+            val state = if (cacheIsEmpty && persistedState != SyncStateEntity()) {
+                Log.w(TAG, "Local message cache is empty but sync watermark is not -- resetting to full backfill")
+                SyncStateEntity()
+            } else {
+                persistedState
+            }
             val smsMessages = smsProviderGateway.querySince(state.lastSmsDateMillis)
             val mmsIds = mmsProviderGateway.queryIdsSince(state.lastMmsDateSeconds)
             val total = smsMessages.size + mmsIds.size

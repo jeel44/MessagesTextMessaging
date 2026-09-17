@@ -51,3 +51,42 @@ val MIGRATION_1_2: Migration = object : Migration(1, 2) {
         )
     }
 }
+
+/**
+ * v2 -> v3: adds the tables backing the contacts-groups mirror ("Family", "Work"), so group-MMS
+ * recipient pickers and thread labelling can use a saved group the same way QKSMS's contact
+ * picker does.
+ */
+val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `contact_groups` (
+                `id` INTEGER NOT NULL,
+                `title` TEXT NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent(),
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `contact_group_members` (
+                `group_id` INTEGER NOT NULL,
+                `contact_lookup_key` TEXT NOT NULL,
+                PRIMARY KEY(`group_id`, `contact_lookup_key`),
+                FOREIGN KEY(`group_id`) REFERENCES `contact_groups`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_contact_group_members_group_id` " +
+                "ON `contact_group_members` (`group_id`)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_contact_group_members_contact_lookup_key` " +
+                "ON `contact_group_members` (`contact_lookup_key`)",
+        )
+    }
+}

@@ -180,6 +180,8 @@ class LocalMessageRepository @Inject constructor(
     override fun search(query: String): Flow<List<Message>> =
         messageDao.search(query).map { rows -> rows.map { it.toDomain() } }
 
+    override suspend fun hasAnyMessages(): Boolean = messageDao.hasAnyMessages()
+
     private suspend fun persistPartsLocally(
         providerId: Long,
         localMessageId: Long,

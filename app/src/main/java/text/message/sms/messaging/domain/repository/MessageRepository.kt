@@ -52,4 +52,9 @@ interface MessageRepository {
     suspend fun deleteOlderThan(timestampMillis: Long)
 
     fun search(query: String): Flow<List<Message>>
+
+    /** True once at least one message has ever been cached locally. Used only to detect the
+     * cache-empty-but-watermark-advanced state a corrupted or partially cleared local database
+     * could leave behind -- see [text.message.sms.messaging.data.repository.TelephonySyncRepository.syncAll]. */
+    suspend fun hasAnyMessages(): Boolean
 }
