@@ -5,13 +5,15 @@ import text.message.sms.messaging.data.local.db.entity.ConversationWithRecipient
 import text.message.sms.messaging.domain.model.Contact
 import text.message.sms.messaging.domain.model.Conversation
 import text.message.sms.messaging.domain.model.Recipient
+import text.message.sms.messaging.util.PhoneNumbers
 
 /**
- * @param contactsByLookupKey resolved contacts, so recipient rows can show a name instead of a
- * bare number. Recipients with no match fall back to their address.
+ * @param contactsByNormalizedAddress resolved contacts keyed by normalized phone number, so
+ * recipient rows can show a name instead of a bare number. Recipients with no match fall back to
+ * their address.
  */
 fun ConversationWithRecipients.toDomain(
-    contactsByLookupKey: Map<String, Contact> = emptyMap(),
+    contactsByNormalizedAddress: Map<String, Contact> = emptyMap(),
 ): Conversation = Conversation(
     id = conversation.threadId,
     threadId = conversation.threadId,
@@ -19,7 +21,7 @@ fun ConversationWithRecipients.toDomain(
         Recipient(
             id = recipient.id,
             address = recipient.address,
-            contact = recipient.contactLookupKey?.let(contactsByLookupKey::get),
+            contact = contactsByNormalizedAddress[PhoneNumbers.normalize(recipient.address)],
         )
     },
     snippet = conversation.snippet,

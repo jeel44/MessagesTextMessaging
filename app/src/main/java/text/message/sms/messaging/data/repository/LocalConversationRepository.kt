@@ -14,6 +14,7 @@ import text.message.sms.messaging.data.mapper.toDomain
 import text.message.sms.messaging.domain.model.Contact
 import text.message.sms.messaging.domain.model.Conversation
 import text.message.sms.messaging.domain.repository.ConversationRepository
+import text.message.sms.messaging.util.PhoneNumbers
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,7 +36,7 @@ class LocalConversationRepository @Inject constructor(
     override fun observeConversation(threadId: Long): Flow<Conversation?> =
         combine(
             conversationDao.observeByThreadId(threadId),
-            contactsByLookupKey(),
+            contactsByNormalizedAddress(),
         ) { conversation, contacts -> conversation?.toDomain(contacts) }
 
     override suspend fun findByThreadId(threadId: Long): Conversation? =
@@ -90,12 +91,19 @@ class LocalConversationRepository @Inject constructor(
         conversationDao.search(query).withContacts()
 
     private fun Flow<List<ConversationWithRecipients>>.withContacts(): Flow<List<Conversation>> =
-        combine(contactsByLookupKey()) { conversations, contacts ->
+        combine(contactsByNormalizedAddress()) { conversations, contacts ->
             conversations.map { it.toDomain(contacts) }
         }
 
-    private fun contactsByLookupKey(): Flow<Map<String, Contact>> =
+    private fun contactsByNormalizedAddress(): Flow<Map<String, Contact>> =
         contactDao.observeAll().map { rows ->
-            rows.map { it.toDomain() }.associateBy { it.lookupKey }
+            val contacts = rows.map { it.toDomain() }
+            buildMap {
+                for (contact in contacts) {
+                    for (number in contact.numbers) {
+                        put(PhoneNumbers.normalize(number), contact)
+                    }
+                }
+            }
         }
 }
