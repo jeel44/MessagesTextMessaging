@@ -41,7 +41,7 @@ interface MessageDao {
     @Query("SELECT COUNT(*) FROM messages WHERE thread_id = :threadId AND is_read = 0")
     suspend fun countUnread(threadId: Long): Int
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(message: MessageEntity): Long
 
     @Upsert

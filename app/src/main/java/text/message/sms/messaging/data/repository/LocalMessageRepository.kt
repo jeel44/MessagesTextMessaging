@@ -126,7 +126,10 @@ class LocalMessageRepository @Inject constructor(
     }
 
     override suspend fun insertIncoming(message: Message): Message = withContext(Dispatchers.IO) {
-        val localId = messageDao.insert(message.toEntity())
+        var localId = messageDao.insert(message.toEntity())
+        if (localId == -1L) {
+            localId = messageDao.findByProviderId(message.providerId, message.channel)?.message?.id ?: localId
+        }
         val providerId = message.providerId.takeIf { it != 0L }
             ?: smsProviderGateway.insert(message.copy(id = localId))
         messageDao.setProviderId(localId, providerId)
