@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import text.message.sms.messaging.data.local.db.dao.ContactDao
 import text.message.sms.messaging.data.local.db.dao.ConversationDao
+import text.message.sms.messaging.data.local.db.dao.MessageDao
 import text.message.sms.messaging.data.local.db.entity.ConversationEntity
 import text.message.sms.messaging.data.local.db.entity.ConversationWithRecipients
 import text.message.sms.messaging.data.local.db.entity.RecipientEntity
@@ -22,6 +23,7 @@ class LocalConversationRepository @Inject constructor(
     private val conversationDao: ConversationDao,
     private val contactDao: ContactDao,
     private val threadResolver: TelephonyThreadResolver,
+    private val messageDao: MessageDao,
 ) : ConversationRepository {
 
     override fun observeInbox(): Flow<List<Conversation>> =
@@ -66,6 +68,17 @@ class LocalConversationRepository @Inject constructor(
 
     override suspend fun saveDraft(threadId: Long, draft: String?) {
         conversationDao.setDraft(threadId, draft)
+    }
+
+    override suspend fun refreshCounters(threadId: Long, snippet: String, lastMessageAtMillis: Long) {
+        val existing = conversationDao.findByThreadId(threadId)?.conversation ?: return
+        conversationDao.upsert(
+            existing.copy(
+                snippet = snippet,
+                lastMessageAtMillis = lastMessageAtMillis,
+                unreadCount = messageDao.countUnread(threadId),
+            ),
+        )
     }
 
     override suspend fun delete(threadIds: Collection<Long>) {

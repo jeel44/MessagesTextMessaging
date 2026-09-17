@@ -27,6 +27,13 @@ interface ConversationRepository {
 
     suspend fun saveDraft(threadId: Long, draft: String?)
 
+    /** Upserts [threadId]'s snippet, last-message time, and unread count together in one write --
+     * used by a caller doing a batched update across many messages at once (see
+     * [text.message.sms.messaging.data.repository.TelephonySyncRepository.syncAll]) so the
+     * conversation list's live Flow emits its final state once per batch instead of once per
+     * message. */
+    suspend fun refreshCounters(threadId: Long, snippet: String, lastMessageAtMillis: Long)
+
     suspend fun delete(threadIds: Collection<Long>)
 
     fun search(query: String): Flow<List<Conversation>>

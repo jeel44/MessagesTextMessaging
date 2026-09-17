@@ -92,10 +92,16 @@ class TelephonySyncRepository @Inject constructor(
             // are cheap no-ops (see syncSms/syncMms's own findByProviderId dedup check).
             var smsWatermarkStalled = false
             var mmsWatermarkStalled = false
+            // Per-thread snippet/last-message-time, tracking only the latest-received row per
+            // thread across the whole batch -- upserted once after both loops below finish
+            // instead of once per message, so the conversation list's live Flow re-sorts and
+            // re-renders once per sync pass rather than flickering through every intermediate
+            // state while a large catch-up sync is still running.
+            val conversationUpdates = mutableMapOf<Long, Message>()
 
             smsMessages.forEach { message ->
                 try {
-                    syncSms(message)
+                    syncSms(message)?.let { recordConversationUpdate(conversationUpdates, it) }
                     if (!smsWatermarkStalled) {
                         newestSmsMillis = maxOf(newestSmsMillis, message.receivedAtMillis)
                     }
@@ -112,9 +118,10 @@ class TelephonySyncRepository @Inject constructor(
 
             mmsIds.forEach { providerId ->
                 try {
-                    val receivedAtMillis = syncMms(providerId)
-                    if (receivedAtMillis != null && !mmsWatermarkStalled) {
-                        newestMmsSeconds = maxOf(newestMmsSeconds, receivedAtMillis / MILLIS_PER_SECOND)
+                    val result = syncMms(providerId)
+                    result.insertedMessage?.let { recordConversationUpdate(conversationUpdates, it) }
+                    if (result.receivedAtMillis != null && !mmsWatermarkStalled) {
+                        newestMmsSeconds = maxOf(newestMmsSeconds, result.receivedAtMillis / MILLIS_PER_SECOND)
                     }
                 } catch (error: Exception) {
                     if (error is CancellationException) throw error
@@ -125,6 +132,10 @@ class TelephonySyncRepository @Inject constructor(
                 }
                 completed++
                 progress.value = SyncProgress.Running(completed, total)
+            }
+
+            conversationUpdates.forEach { (threadId, message) ->
+                conversationRepository.refreshCounters(threadId, message.body, message.receivedAtMillis)
             }
 
             syncStateDao.upsert(
@@ -181,9 +192,9 @@ class TelephonySyncRepository @Inject constructor(
      * rewritten to carry the resolved id before insert -- otherwise `messages.thread_id`'s
      * foreign key has nothing to point at and every insert fails.
      */
-    private suspend fun syncSms(message: Message) {
-        if (messageRepository.findByProviderId(message.providerId, MessageChannel.SMS) != null) return
-        if (message.address != null && blockedNumberRepository.isBlocked(message.address)) return
+    private suspend fun syncSms(message: Message): Message? {
+        if (messageRepository.findByProviderId(message.providerId, MessageChannel.SMS) != null) return null
+        if (message.address != null && blockedNumberRepository.isBlocked(message.address)) return null
 
         val addresses = setOfNotNull(message.address)
         if (addresses.isEmpty()) {
@@ -192,36 +203,55 @@ class TelephonySyncRepository @Inject constructor(
             // through to insert with message's own (unresolved) threadId would hit the exact
             // foreign-key failure this fix exists to prevent.
             Log.w(TAG, "Skipping SMS provider id ${message.providerId}: no address, cannot resolve a thread")
-            return
+            return null
         }
 
         val resolvedThreadId = conversationRepository.resolveThreadId(addresses)
-        messageRepository.insertIncoming(message.copy(threadId = resolvedThreadId))
+        return messageRepository.insertIncoming(message.copy(threadId = resolvedThreadId), notifyConversation = false)
     }
 
     /**
-     * Returns the message's received timestamp (for the sync watermark) whether or not it was
-     * newly inserted, so an already-cached row still lets the watermark move past it. Applies the
-     * same resolved-thread-id rewrite as [syncSms], and for the same reason -- see its doc.
+     * [MmsSyncResult.receivedAtMillis] is the message's received timestamp (for the sync
+     * watermark) whether or not it was newly inserted, so an already-cached row still lets the
+     * watermark move past it. [MmsSyncResult.insertedMessage] is non-null only when a row was
+     * actually inserted, for the caller's batched conversation-counters update. Applies the same
+     * resolved-thread-id rewrite as [syncSms], and for the same reason -- see its doc.
      */
-    private suspend fun syncMms(providerId: Long): Long? {
-        val message = mmsProviderGateway.readMessage("content://mms/$providerId") ?: return null
+    private suspend fun syncMms(providerId: Long): MmsSyncResult {
+        val message = mmsProviderGateway.readMessage("content://mms/$providerId") ?: return MmsSyncResult(null, null)
         val alreadyCached = messageRepository.findByProviderId(providerId, MessageChannel.MMS) != null
 
+        var insertedMessage: Message? = null
         if (!alreadyCached) {
             val recipients = (listOfNotNull(message.address) + mmsProviderGateway.readRecipients(providerId)).toSet()
             if (recipients.isEmpty()) {
                 Log.w(TAG, "Skipping MMS provider id $providerId: no recipients, cannot resolve a thread")
-                return null
+                return MmsSyncResult(null, null)
             }
 
             val resolvedThreadId = conversationRepository.resolveThreadId(recipients)
             val blocked = message.address != null && blockedNumberRepository.isBlocked(message.address)
-            if (!blocked) messageRepository.insertIncoming(message.copy(threadId = resolvedThreadId))
+            if (!blocked) {
+                insertedMessage = messageRepository.insertIncoming(
+                    message.copy(threadId = resolvedThreadId),
+                    notifyConversation = false,
+                )
+            }
         }
 
-        return message.receivedAtMillis
+        return MmsSyncResult(message.receivedAtMillis, insertedMessage)
     }
+
+    /** Keeps only the latest-received row per thread, for the batched conversation-counters
+     * update at the end of [syncAll]. */
+    private fun recordConversationUpdate(updates: MutableMap<Long, Message>, message: Message) {
+        val current = updates[message.threadId]
+        if (current == null || message.receivedAtMillis >= current.receivedAtMillis) {
+            updates[message.threadId] = message
+        }
+    }
+
+    private data class MmsSyncResult(val receivedAtMillis: Long?, val insertedMessage: Message?)
 
     /**
      * The real exception, not a generic string -- this is what actually shows up in

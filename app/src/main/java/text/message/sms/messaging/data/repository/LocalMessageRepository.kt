@@ -125,7 +125,7 @@ class LocalMessageRepository @Inject constructor(
         draft.copy(id = localId, attachments = attachments)
     }
 
-    override suspend fun insertIncoming(message: Message): Message = withContext(Dispatchers.IO) {
+    override suspend fun insertIncoming(message: Message, notifyConversation: Boolean): Message = withContext(Dispatchers.IO) {
         var localId = messageDao.insert(message.toEntity())
         if (localId == -1L) {
             localId = messageDao.findByProviderId(message.providerId, message.channel)?.message?.id ?: localId
@@ -143,7 +143,9 @@ class LocalMessageRepository @Inject constructor(
             attachmentDao.findForMessage(localId).map { it.toDomain() }
         }
 
-        refreshConversationCounters(message.threadId, message.body, message.receivedAtMillis)
+        if (notifyConversation) {
+            refreshConversationCounters(message.threadId, message.body, message.receivedAtMillis)
+        }
         message.copy(id = localId, providerId = providerId, attachments = attachments)
     }
 

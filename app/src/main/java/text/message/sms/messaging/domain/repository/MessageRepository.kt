@@ -36,8 +36,10 @@ interface MessageRepository {
     ): Message
 
     /** Persists an inbound message, including any [Message.attachments] it already carries
-     * (remapped onto the row's real id), and returns the stored row. */
-    suspend fun insertIncoming(message: Message): Message
+     * (remapped onto the row's real id), and returns the stored row. [notifyConversation]
+     * controls whether the conversation's counters (snippet/last-message-time/unread-count) are
+     * updated as part of this call, or deferred to a caller doing a batched update. */
+    suspend fun insertIncoming(message: Message, notifyConversation: Boolean = true): Message
 
     suspend fun setDeliveryState(messageId: Long, state: DeliveryState, errorCode: Int = 0)
 
