@@ -49,6 +49,8 @@
     <string name="home_empty_message">Start a conversation and it will show up here.</string>
     <string name="home_not_default_title">Set Messages as your default SMS app</string>
     <string name="home_not_default_message">Messages needs to be your default SMS app to sync and show your conversations here.</string>
+    <string name="home_sync_failed_message">Some messages couldn\'t be loaded</string>
+    <string name="home_sync_retry">Retry</string>
 
     <!-- Actions -->
     <string name="action_search">Search</string>

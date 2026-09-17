@@ -22,7 +22,11 @@ interface SyncRepository {
 sealed interface SyncProgress {
     data object Idle : SyncProgress
     data class Running(val completed: Int, val total: Int) : SyncProgress
-    data class Failed(val message: String) : SyncProgress
+    /** [failedCount] is 0 for a total failure (the outer sync itself threw, e.g. the Telephony
+     * query call failed) and greater than 0 for a partial failure -- most rows synced fine, but
+     * this many individual rows were skipped. Either way the sync is visible as failed rather
+     * than silently looking like an empty inbox. */
+    data class Failed(val message: String, val failedCount: Int = 0) : SyncProgress
 
     /** [syncAll] was called without holding the default-SMS-app role, so it returned immediately
      * without querying the Telephony provider -- a non-default app's reads there can be partial

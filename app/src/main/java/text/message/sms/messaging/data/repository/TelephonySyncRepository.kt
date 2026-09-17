@@ -1,5 +1,6 @@
 package text.message.sms.messaging.data.repository
 
+import android.util.Log
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -70,20 +71,42 @@ class TelephonySyncRepository @Inject constructor(
 
             progress.value = SyncProgress.Running(0, total)
             var completed = 0
+            var failedCount = 0
             var newestSmsMillis = state.lastSmsDateMillis
             var newestMmsSeconds = state.lastMmsDateSeconds
+            // Once a row in a channel fails, that channel's watermark stops advancing -- even
+            // past later rows that succeed -- so the failed row (and everything after it) is
+            // included again on the next sync instead of being silently skipped forever once the
+            // watermark moves beyond its timestamp. Already-synced rows in that re-included range
+            // are cheap no-ops (see syncSms/syncMms's own findByProviderId dedup check).
+            var smsWatermarkStalled = false
+            var mmsWatermarkStalled = false
 
             smsMessages.forEach { message ->
-                syncSms(message)
-                newestSmsMillis = maxOf(newestSmsMillis, message.receivedAtMillis)
+                try {
+                    syncSms(message)
+                    if (!smsWatermarkStalled) {
+                        newestSmsMillis = maxOf(newestSmsMillis, message.receivedAtMillis)
+                    }
+                } catch (error: Exception) {
+                    failedCount++
+                    smsWatermarkStalled = true
+                    Log.w(TAG, "Skipping malformed SMS row (provider id ${message.providerId})", error)
+                }
                 completed++
                 progress.value = SyncProgress.Running(completed, total)
             }
 
             mmsIds.forEach { providerId ->
-                val receivedAtMillis = syncMms(providerId)
-                if (receivedAtMillis != null) {
-                    newestMmsSeconds = maxOf(newestMmsSeconds, receivedAtMillis / MILLIS_PER_SECOND)
+                try {
+                    val receivedAtMillis = syncMms(providerId)
+                    if (receivedAtMillis != null && !mmsWatermarkStalled) {
+                        newestMmsSeconds = maxOf(newestMmsSeconds, receivedAtMillis / MILLIS_PER_SECOND)
+                    }
+                } catch (error: Exception) {
+                    failedCount++
+                    mmsWatermarkStalled = true
+                    Log.w(TAG, "Skipping malformed MMS row (provider id $providerId)", error)
                 }
                 completed++
                 progress.value = SyncProgress.Running(completed, total)
@@ -96,7 +119,11 @@ class TelephonySyncRepository @Inject constructor(
                     lastFullSyncAtMillis = System.currentTimeMillis(),
                 ),
             )
-            progress.value = SyncProgress.Idle
+            progress.value = if (failedCount > 0) {
+                SyncProgress.Failed("$failedCount of $total message(s) failed to sync", failedCount)
+            } else {
+                SyncProgress.Idle
+            }
         } catch (error: Exception) {
             progress.value = SyncProgress.Failed(error.message ?: "Sync failed")
         }
@@ -148,6 +175,7 @@ class TelephonySyncRepository @Inject constructor(
     }
 
     private companion object {
+        const val TAG = "TelephonySyncRepository"
         const val MILLIS_PER_SECOND = 1_000L
     }
 }

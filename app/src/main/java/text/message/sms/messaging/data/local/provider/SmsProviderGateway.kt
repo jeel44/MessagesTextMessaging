@@ -2,7 +2,9 @@ package text.message.sms.messaging.data.local.provider
 
 import android.content.ContentResolver
 import android.content.ContentValues
+import android.database.Cursor
 import android.provider.Telephony
+import android.util.Log
 import text.message.sms.messaging.domain.model.DeliveryState
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.model.MessageChannel
@@ -84,10 +86,23 @@ class SmsProviderGateway @Inject constructor(
             "${Telephony.Sms.DATE} > ?",
             arrayOf(sinceDateMillis.toString()),
             "${Telephony.Sms.DATE} ASC",
-        )?.use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.toMessage()) } }.orEmpty()
+        )?.use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) {
+                    // One malformed row (e.g. a required column genuinely missing on some OEM
+                    // provider) must not abort every other row already walked in this cursor --
+                    // skip and keep going rather than losing the whole batch to one bad row.
+                    try {
+                        add(cursor.toMessage())
+                    } catch (error: Exception) {
+                        Log.w(TAG, "Skipping malformed SMS cursor row", error)
+                    }
+                }
+            }
+        }.orEmpty()
     }
 
-    private fun android.database.Cursor.toMessage(): Message {
+    private fun Cursor.toMessage(): Message {
         val dateSent = getLong(getColumnIndexOrThrow(Telephony.Sms.DATE_SENT))
         val dateReceived = getLong(getColumnIndexOrThrow(Telephony.Sms.DATE))
         return Message(
@@ -104,8 +119,30 @@ class SmsProviderGateway @Inject constructor(
             receivedAtMillis = dateReceived,
             isRead = getInt(getColumnIndexOrThrow(Telephony.Sms.READ)) == 1,
             isSeen = getInt(getColumnIndexOrThrow(Telephony.Sms.SEEN)) == 1,
-            subscriptionId = getInt(getColumnIndexOrThrow(Telephony.Sms.SUBSCRIPTION_ID)),
-            errorCode = getInt(getColumnIndexOrThrow(Telephony.Sms.ERROR_CODE)),
+            // SUBSCRIPTION_ID (dual-SIM) and ERROR_CODE are both known to be absent from the sms
+            // table entirely on some OEM/single-SIM Telephony providers, unlike the columns above
+            // -- getColumnIndexOrThrow would abort this whole row (and, without the per-row catch
+            // above, every row after it) over a column that is genuinely optional. Missing either
+            // falls back to this app's own "unknown"/"no error" sentinels, matching the defaults
+            // already used elsewhere (e.g. SendMessage.DEFAULT_SUBSCRIPTION_ID, MmsProviderGateway
+            // hardcoding errorCode = 0), rather than throwing.
+            subscriptionId = getIntOrDefault(Telephony.Sms.SUBSCRIPTION_ID, default = UNKNOWN_SUBSCRIPTION_ID),
+            errorCode = getIntOrDefault(Telephony.Sms.ERROR_CODE, default = NO_ERROR_CODE),
         )
+    }
+
+    private fun Cursor.getIntOrDefault(columnName: String, default: Int): Int {
+        val index = getColumnIndex(columnName)
+        return if (index >= 0) getInt(index) else default
+    }
+
+    private companion object {
+        const val TAG = "SmsProviderGateway"
+
+        /** Matches the "use whichever SIM the platform considers default" sentinel used
+         * throughout this app, e.g. [text.message.sms.messaging.domain.usecase.SendMessage.DEFAULT_SUBSCRIPTION_ID]. */
+        const val UNKNOWN_SUBSCRIPTION_ID = -1
+
+        const val NO_ERROR_CODE = 0
     }
 }

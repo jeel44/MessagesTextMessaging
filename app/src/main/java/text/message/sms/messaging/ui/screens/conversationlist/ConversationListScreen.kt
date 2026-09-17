@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
@@ -37,14 +38,18 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,6 +64,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import text.message.sms.messaging.R
 import text.message.sms.messaging.domain.model.Conversation
+import text.message.sms.messaging.domain.repository.SyncProgress
 import text.message.sms.messaging.ui.theme.Pill
 import java.time.Instant
 import java.time.LocalDate
@@ -83,6 +89,12 @@ fun ConversationListScreen(
     val conversations by viewModel.conversations.collectAsStateWithLifecycle()
     val filter by viewModel.filter.collectAsStateWithLifecycle()
     val isDefaultSmsApp by viewModel.isDefaultSmsApp.collectAsStateWithLifecycle()
+    val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
+
+    // Dismissing the failure banner only hides *this* failure -- remembering the exact instance
+    // (rather than a plain boolean) means a fresh failure from a later sync/retry, which is a
+    // different SyncProgress.Failed value, reappears instead of staying hidden forever.
+    var dismissedFailure by remember { mutableStateOf<SyncProgress.Failed?>(null) }
 
     // Catches both a return from the role request launched below and a default-SMS-app change
     // made outside the app entirely (system Settings) while this screen was backgrounded --
@@ -128,6 +140,18 @@ fun ConversationListScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
+            if (syncProgress is SyncProgress.Running) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+
+            val failure = syncProgress as? SyncProgress.Failed
+            if (failure != null && failure != dismissedFailure) {
+                SyncFailedBanner(
+                    onRetry = viewModel::retrySync,
+                    onDismiss = { dismissedFailure = failure },
+                )
+            }
+
             FilterChipRow(
                 selected = filter,
                 onSelect = viewModel::selectFilter,
@@ -177,6 +201,47 @@ private fun BrandMark(modifier: Modifier = Modifier) {
             tint = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.size(20.dp),
         )
+    }
+}
+
+/**
+ * Dismissible inline banner for [SyncProgress.Failed] -- a sync that fails (wholly or partially,
+ * see [SyncProgress.Failed.failedCount]) must not just look like an empty/stalled inbox with no
+ * explanation. [onRetry] re-runs the sync via [ConversationListViewModel.retrySync];
+ * [onDismiss] only hides this specific failure, see the call site.
+ */
+@Composable
+private fun SyncFailedBanner(onRetry: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.errorContainer,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.home_sync_failed_message),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onRetry) {
+                Text(
+                    text = stringResource(R.string.home_sync_retry),
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+        }
     }
 }
 

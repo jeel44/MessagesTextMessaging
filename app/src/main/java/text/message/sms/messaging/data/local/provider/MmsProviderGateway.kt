@@ -2,8 +2,10 @@ package text.message.sms.messaging.data.local.provider
 
 import android.content.ContentResolver
 import android.content.ContentValues
+import android.database.Cursor
 import android.net.Uri
 import android.provider.Telephony
+import android.util.Log
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -79,8 +81,12 @@ class MmsProviderGateway @Inject constructor(
                 receivedAtMillis = receivedSeconds * MILLIS_PER_SECOND,
                 isRead = cursor.getInt(cursor.getColumnIndexOrThrow(Telephony.Mms.READ)) == 1,
                 isSeen = cursor.getInt(cursor.getColumnIndexOrThrow(Telephony.Mms.SEEN)) == 1,
-                subscriptionId = cursor.getInt(
-                    cursor.getColumnIndexOrThrow(Telephony.Mms.SUBSCRIPTION_ID),
+                // Same dual-SIM gap as Telephony.Sms.SUBSCRIPTION_ID (see SmsProviderGateway):
+                // absent entirely from the mms table on some OEM providers, so this falls back to
+                // the app's "unknown subscription" sentinel instead of throwing.
+                subscriptionId = cursor.getIntOrDefault(
+                    Telephony.Mms.SUBSCRIPTION_ID,
+                    default = UNKNOWN_SUBSCRIPTION_ID,
                 ),
                 errorCode = 0,
             )
@@ -130,7 +136,10 @@ class MmsProviderGateway @Inject constructor(
             val idColumn = cursor.getColumnIndexOrThrow(Telephony.Mms.Part._ID)
             val typeColumn = cursor.getColumnIndexOrThrow(Telephony.Mms.Part.CONTENT_TYPE)
             val nameColumn = cursor.getColumnIndexOrThrow(Telephony.Mms.Part.NAME)
-            val fileNameColumn = cursor.getColumnIndexOrThrow(Telephony.Mms.Part.FILENAME)
+            // FILENAME is already only a fallback for a null NAME value below -- some OEM parts
+            // tables don't define the column at all, so resolving it must fall back the same way
+            // rather than throwing and losing every part in this message over an optional column.
+            val fileNameColumn = cursor.getColumnIndex(Telephony.Mms.Part.FILENAME)
             val textColumn = cursor.getColumnIndexOrThrow(Telephony.Mms.Part.TEXT)
 
             buildList {
@@ -139,7 +148,8 @@ class MmsProviderGateway @Inject constructor(
                         PartRow(
                             partId = cursor.getLong(idColumn),
                             contentType = cursor.getString(typeColumn) ?: "application/octet-stream",
-                            name = cursor.getString(nameColumn) ?: cursor.getString(fileNameColumn),
+                            name = cursor.getString(nameColumn)
+                                ?: fileNameColumn.takeIf { it >= 0 }?.let { cursor.getString(it) },
                             text = cursor.getString(textColumn),
                         ),
                     )
@@ -187,6 +197,11 @@ class MmsProviderGateway @Inject constructor(
     }
 
     private data class PartRow(val partId: Long, val contentType: String, val name: String?, val text: String?)
+
+    private fun Cursor.getIntOrDefault(columnName: String, default: Int): Int {
+        val index = getColumnIndex(columnName)
+        return if (index >= 0) getInt(index) else default
+    }
 
     /** Writes a downloaded [retrieved] message into the system provider and returns its
      * `content://mms/<id>` Uri, the same shape an incoming SMS gets from [SmsProviderGateway]. */
@@ -271,7 +286,17 @@ class MmsProviderGateway @Inject constructor(
             "${Telephony.Mms.DATE} ASC",
         )?.use { cursor ->
             val idColumn = cursor.getColumnIndexOrThrow(Telephony.Mms._ID)
-            buildList { while (cursor.moveToNext()) add(cursor.getLong(idColumn)) }
+            buildList {
+                while (cursor.moveToNext()) {
+                    // Mirrors SmsProviderGateway.querySince(): one bad row's cursor read must not
+                    // abort every id already collected from this cursor.
+                    try {
+                        add(cursor.getLong(idColumn))
+                    } catch (error: Exception) {
+                        Log.w(TAG, "Skipping malformed MMS id cursor row", error)
+                    }
+                }
+            }
         }.orEmpty()
     }
 
@@ -308,11 +333,17 @@ class MmsProviderGateway @Inject constructor(
     }
 
     private companion object {
+        const val TAG = "MmsProviderGateway"
+
         const val MILLIS_PER_SECOND = 1_000L
 
         // IANA MIBenum for UTF-8, the value Telephony.Mms.Addr.CHARSET expects.
         const val CHARSET_UTF_8 = 106
 
         val MMS_PART_CONTENT_URI: Uri = "content://mms/part".toUri()
+
+        /** Matches the "use whichever SIM the platform considers default" sentinel used
+         * throughout this app, e.g. [text.message.sms.messaging.domain.usecase.SendMessage.DEFAULT_SUBSCRIPTION_ID]. */
+        const val UNKNOWN_SUBSCRIPTION_ID = -1
     }
 }

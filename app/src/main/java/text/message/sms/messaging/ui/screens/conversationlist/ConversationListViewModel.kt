@@ -14,6 +14,8 @@ import kotlinx.coroutines.launch
 import text.message.sms.messaging.data.local.provider.ProviderChangeObserver
 import text.message.sms.messaging.domain.model.Conversation
 import text.message.sms.messaging.domain.repository.ConversationRepository
+import text.message.sms.messaging.domain.repository.SyncProgress
+import text.message.sms.messaging.domain.repository.SyncRepository
 import text.message.sms.messaging.domain.usecase.SyncMessages
 import text.message.sms.messaging.service.DefaultSmsAppGuard
 import javax.inject.Inject
@@ -36,10 +38,16 @@ internal enum class ConversationFilter { ALL, UNREAD, PINNED }
  * the two happens to run first. [ProviderChangeObserver.register] is a no-op if already
  * registered, so this never double-registers alongside [text.message.sms.messaging.MainActivity]
  * or [text.message.sms.messaging.MessagingApplication]'s own calls to it.
+ *
+ * [syncProgress] is a live view over [SyncRepository.observeProgress]: unlike the Language
+ * onboarding screen (which deliberately stays silent about sync), Home surfaces it -- a
+ * [SyncProgress.Running] first sync shouldn't look indistinguishable from a genuinely empty
+ * inbox, and a [SyncProgress.Failed] sync shouldn't be invisible.
  */
 @HiltViewModel
 class ConversationListViewModel @Inject constructor(
     conversationRepository: ConversationRepository,
+    syncRepository: SyncRepository,
     private val defaultSmsAppGuard: DefaultSmsAppGuard,
     private val syncMessages: SyncMessages,
     private val providerChangeObserver: ProviderChangeObserver,
@@ -50,6 +58,11 @@ class ConversationListViewModel @Inject constructor(
 
     private val _isDefaultSmsApp = MutableStateFlow(defaultSmsAppGuard.isDefault)
     internal val isDefaultSmsApp: StateFlow<Boolean> = _isDefaultSmsApp.asStateFlow()
+
+    /** So a sync failure (partial or total) or a long first sync is visible on this screen
+     * instead of just looking like an empty inbox -- see [ConversationListScreen]. */
+    internal val syncProgress: StateFlow<SyncProgress> = syncRepository.observeProgress()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SyncProgress.Idle)
 
     val conversations: StateFlow<List<Conversation>> = combine(
         conversationRepository.observeInbox(),
@@ -84,5 +97,10 @@ class ConversationListViewModel @Inject constructor(
             providerChangeObserver.register()
             viewModelScope.launch { syncMessages() }
         }
+    }
+
+    /** Backs the failed-sync banner's Retry button. */
+    internal fun retrySync() {
+        viewModelScope.launch { syncMessages() }
     }
 }
