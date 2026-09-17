@@ -18,7 +18,7 @@ interface ConversationDao {
     @Query(
         """
         SELECT * FROM conversations
-        WHERE is_archived = 0 AND is_blocked = 0
+        WHERE is_archived = 0 AND is_blocked = 0 AND last_message_at > 0
         ORDER BY is_pinned DESC, last_message_at DESC
         """
     )
