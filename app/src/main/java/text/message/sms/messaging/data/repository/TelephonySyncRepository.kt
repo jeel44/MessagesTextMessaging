@@ -72,6 +72,13 @@ class TelephonySyncRepository @Inject constructor(
             progress.value = SyncProgress.Running(0, total)
             var completed = 0
             var failedCount = 0
+            // The first row's exception, so the aggregate SyncProgress.Failed below can surface
+            // the real cause -- e.g. "IllegalArgumentException: column 'error_code' does not
+            // exist" -- rather than just a count. Later failures are still logged individually
+            // (below) with their own full stack trace; only the first is promoted to the visible
+            // progress state, since on real devices repeated failures in one sync are almost
+            // always the same root cause (e.g. one OEM-missing column hit by every row).
+            var firstFailure: Exception? = null
             var newestSmsMillis = state.lastSmsDateMillis
             var newestMmsSeconds = state.lastMmsDateSeconds
             // Once a row in a channel fails, that channel's watermark stops advancing -- even
@@ -91,6 +98,7 @@ class TelephonySyncRepository @Inject constructor(
                 } catch (error: Exception) {
                     failedCount++
                     smsWatermarkStalled = true
+                    if (firstFailure == null) firstFailure = error
                     Log.w(TAG, "Skipping malformed SMS row (provider id ${message.providerId})", error)
                 }
                 completed++
@@ -106,6 +114,7 @@ class TelephonySyncRepository @Inject constructor(
                 } catch (error: Exception) {
                     failedCount++
                     mmsWatermarkStalled = true
+                    if (firstFailure == null) firstFailure = error
                     Log.w(TAG, "Skipping malformed MMS row (provider id $providerId)", error)
                 }
                 completed++
@@ -120,12 +129,16 @@ class TelephonySyncRepository @Inject constructor(
                 ),
             )
             progress.value = if (failedCount > 0) {
-                SyncProgress.Failed("$failedCount of $total message(s) failed to sync", failedCount)
+                SyncProgress.Failed(
+                    "$failedCount of $total message(s) failed to sync: ${firstFailure.describe()}",
+                    failedCount,
+                )
             } else {
                 SyncProgress.Idle
             }
         } catch (error: Exception) {
-            progress.value = SyncProgress.Failed(error.message ?: "Sync failed")
+            Log.w(TAG, "syncAll failed", error)
+            progress.value = SyncProgress.Failed(error.describe())
         }
     }
 
@@ -148,31 +161,70 @@ class TelephonySyncRepository @Inject constructor(
 
     override suspend fun lastSyncAtMillis(): Long? = syncStateDao.get()?.lastFullSyncAtMillis
 
+    /**
+     * [message]'s own `threadId` is whatever raw value was already stamped on the Telephony
+     * cursor row -- assigned at some point in the past by whichever component wrote it (the
+     * platform itself, or a previous default SMS app), using its own address resolution at that
+     * time. [ConversationRepository.resolveThreadId] is a separate, independent lookup: it asks
+     * the platform "what thread do these addresses belong to *right now*" and upserts a
+     * [text.message.sms.messaging.data.local.db.entity.ConversationEntity] row keyed by
+     * *that* answer -- it is the only place a ConversationEntity ever gets created. Nothing
+     * guarantees the two agree (address formatting, or simply a thread that predates this app
+     * holding the default-SMS-app role, can resolve differently), so [message] must always be
+     * rewritten to carry the resolved id before insert -- otherwise `messages.thread_id`'s
+     * foreign key has nothing to point at and every insert fails.
+     */
     private suspend fun syncSms(message: Message) {
         if (messageRepository.findByProviderId(message.providerId, MessageChannel.SMS) != null) return
         if (message.address != null && blockedNumberRepository.isBlocked(message.address)) return
 
         val addresses = setOfNotNull(message.address)
-        if (addresses.isNotEmpty()) conversationRepository.resolveThreadId(addresses)
-        messageRepository.insertIncoming(message)
+        if (addresses.isEmpty()) {
+            // No address means there is nothing to resolve a thread from, and therefore no
+            // ConversationEntity to insert this row against -- see the class doc above. Falling
+            // through to insert with message's own (unresolved) threadId would hit the exact
+            // foreign-key failure this fix exists to prevent.
+            Log.w(TAG, "Skipping SMS provider id ${message.providerId}: no address, cannot resolve a thread")
+            return
+        }
+
+        val resolvedThreadId = conversationRepository.resolveThreadId(addresses)
+        messageRepository.insertIncoming(message.copy(threadId = resolvedThreadId))
     }
 
-    /** Returns the message's received timestamp (for the sync watermark) whether or not it was
-     * newly inserted, so an already-cached row still lets the watermark move past it. */
+    /**
+     * Returns the message's received timestamp (for the sync watermark) whether or not it was
+     * newly inserted, so an already-cached row still lets the watermark move past it. Applies the
+     * same resolved-thread-id rewrite as [syncSms], and for the same reason -- see its doc.
+     */
     private suspend fun syncMms(providerId: Long): Long? {
         val message = mmsProviderGateway.readMessage("content://mms/$providerId") ?: return null
         val alreadyCached = messageRepository.findByProviderId(providerId, MessageChannel.MMS) != null
 
         if (!alreadyCached) {
             val recipients = (listOfNotNull(message.address) + mmsProviderGateway.readRecipients(providerId)).toSet()
-            if (recipients.isNotEmpty()) conversationRepository.resolveThreadId(recipients)
+            if (recipients.isEmpty()) {
+                Log.w(TAG, "Skipping MMS provider id $providerId: no recipients, cannot resolve a thread")
+                return null
+            }
 
+            val resolvedThreadId = conversationRepository.resolveThreadId(recipients)
             val blocked = message.address != null && blockedNumberRepository.isBlocked(message.address)
-            if (!blocked) messageRepository.insertIncoming(message)
+            if (!blocked) messageRepository.insertIncoming(message.copy(threadId = resolvedThreadId))
         }
 
         return message.receivedAtMillis
     }
+
+    /**
+     * The real exception, not a generic string -- this is what actually shows up in
+     * [SyncProgress.Failed.message] and thus the on-device failure banner, precisely so a real
+     * device failure (e.g. an OEM Telephony provider quirk this app's fixed test devices never
+     * hit) is diagnosable from the banner or a bug report alone, without needing a debugger
+     * attached. [Log.w] above already logs the full stack trace separately for `adb logcat`.
+     */
+    private fun Throwable?.describe(): String =
+        this?.let { "${it::class.simpleName}: ${it.message}" } ?: "unknown error"
 
     private companion object {
         const val TAG = "TelephonySyncRepository"
