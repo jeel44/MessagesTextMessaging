@@ -98,10 +98,14 @@ class TelephonySyncRepository @Inject constructor(
             // re-renders once per sync pass rather than flickering through every intermediate
             // state while a large catch-up sync is still running.
             val conversationUpdates = mutableMapOf<Long, Message>()
+            // Telephony.Threads.getOrCreateThreadId is a real ContentResolver round-trip, not a
+            // local lookup -- caching it per address set for the duration of this one sync pass
+            // avoids repeating that call for every message in a thread that has many.
+            val threadIdCache = mutableMapOf<Set<String>, Long>()
 
             smsMessages.forEach { message ->
                 try {
-                    syncSms(message)?.let { recordConversationUpdate(conversationUpdates, it) }
+                    syncSms(message, threadIdCache)?.let { recordConversationUpdate(conversationUpdates, it) }
                     if (!smsWatermarkStalled) {
                         newestSmsMillis = maxOf(newestSmsMillis, message.receivedAtMillis)
                     }
@@ -118,7 +122,7 @@ class TelephonySyncRepository @Inject constructor(
 
             mmsIds.forEach { providerId ->
                 try {
-                    val result = syncMms(providerId)
+                    val result = syncMms(providerId, threadIdCache)
                     result.insertedMessage?.let { recordConversationUpdate(conversationUpdates, it) }
                     if (result.receivedAtMillis != null && !mmsWatermarkStalled) {
                         newestMmsSeconds = maxOf(newestMmsSeconds, result.receivedAtMillis / MILLIS_PER_SECOND)
@@ -161,18 +165,21 @@ class TelephonySyncRepository @Inject constructor(
     }
 
     override suspend fun syncMessage(providerUri: String): Unit = withContext(Dispatchers.IO) {
+        // A single-row pull, so there's no batch to amortize a cache over -- an empty map here
+        // just means the one resolveThreadId call below always misses, same as before.
+        val threadIdCache = mutableMapOf<Set<String>, Long>()
         val uri = providerUri.toUri()
         when (uri.authority) {
             "sms" -> {
                 val providerId = uri.lastPathSegment?.toLongOrNull() ?: return@withContext
                 smsProviderGateway.querySince(0L)
                     .lastOrNull { it.providerId == providerId }
-                    ?.let { syncSms(it) }
+                    ?.let { syncSms(it, threadIdCache) }
             }
 
             "mms" -> {
                 val providerId = uri.lastPathSegment?.toLongOrNull() ?: return@withContext
-                syncMms(providerId)
+                syncMms(providerId, threadIdCache)
             }
         }
     }
@@ -192,7 +199,7 @@ class TelephonySyncRepository @Inject constructor(
      * rewritten to carry the resolved id before insert -- otherwise `messages.thread_id`'s
      * foreign key has nothing to point at and every insert fails.
      */
-    private suspend fun syncSms(message: Message): Message? {
+    private suspend fun syncSms(message: Message, threadIdCache: MutableMap<Set<String>, Long>): Message? {
         if (messageRepository.findByProviderId(message.providerId, MessageChannel.SMS) != null) return null
         if (message.address != null && blockedNumberRepository.isBlocked(message.address)) return null
 
@@ -206,7 +213,7 @@ class TelephonySyncRepository @Inject constructor(
             return null
         }
 
-        val resolvedThreadId = conversationRepository.resolveThreadId(addresses)
+        val resolvedThreadId = resolveThreadIdCached(threadIdCache, addresses)
         return messageRepository.insertIncoming(message.copy(threadId = resolvedThreadId), notifyConversation = false)
     }
 
@@ -217,7 +224,7 @@ class TelephonySyncRepository @Inject constructor(
      * actually inserted, for the caller's batched conversation-counters update. Applies the same
      * resolved-thread-id rewrite as [syncSms], and for the same reason -- see its doc.
      */
-    private suspend fun syncMms(providerId: Long): MmsSyncResult {
+    private suspend fun syncMms(providerId: Long, threadIdCache: MutableMap<Set<String>, Long>): MmsSyncResult {
         val message = mmsProviderGateway.readMessage("content://mms/$providerId") ?: return MmsSyncResult(null, null)
         val alreadyCached = messageRepository.findByProviderId(providerId, MessageChannel.MMS) != null
 
@@ -229,7 +236,7 @@ class TelephonySyncRepository @Inject constructor(
                 return MmsSyncResult(null, null)
             }
 
-            val resolvedThreadId = conversationRepository.resolveThreadId(recipients)
+            val resolvedThreadId = resolveThreadIdCached(threadIdCache, recipients)
             val blocked = message.address != null && blockedNumberRepository.isBlocked(message.address)
             if (!blocked) {
                 insertedMessage = messageRepository.insertIncoming(
@@ -250,6 +257,12 @@ class TelephonySyncRepository @Inject constructor(
             updates[message.threadId] = message
         }
     }
+
+    /** [ConversationRepository.resolveThreadId] is a real ContentResolver round-trip -- [cache]
+     * is scoped to a single caller (one sync pass, or one [syncMessage] call), never persisted or
+     * shared, since a longer-lived cache could go stale between syncs. */
+    private suspend fun resolveThreadIdCached(cache: MutableMap<Set<String>, Long>, addresses: Set<String>): Long =
+        cache.getOrPut(addresses) { conversationRepository.resolveThreadId(addresses) }
 
     private data class MmsSyncResult(val receivedAtMillis: Long?, val insertedMessage: Message?)
 

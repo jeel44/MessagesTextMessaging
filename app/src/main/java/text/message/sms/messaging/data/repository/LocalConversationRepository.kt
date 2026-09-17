@@ -72,10 +72,11 @@ class LocalConversationRepository @Inject constructor(
 
     override suspend fun refreshCounters(threadId: Long, snippet: String, lastMessageAtMillis: Long) {
         val existing = conversationDao.findByThreadId(threadId)?.conversation ?: return
+        val isNewer = lastMessageAtMillis >= existing.lastMessageAtMillis
         conversationDao.upsert(
             existing.copy(
-                snippet = snippet,
-                lastMessageAtMillis = lastMessageAtMillis,
+                snippet = if (isNewer) snippet else existing.snippet,
+                lastMessageAtMillis = if (isNewer) lastMessageAtMillis else existing.lastMessageAtMillis,
                 unreadCount = messageDao.countUnread(threadId),
             ),
         )

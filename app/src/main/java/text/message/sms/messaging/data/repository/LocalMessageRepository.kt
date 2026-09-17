@@ -227,10 +227,11 @@ class LocalMessageRepository @Inject constructor(
         timestampMillis: Long,
     ) {
         val existing = conversationDao.findByThreadId(threadId)?.conversation ?: return
+        val isNewer = timestampMillis >= existing.lastMessageAtMillis
         conversationDao.upsert(
             existing.copy(
-                snippet = snippet,
-                lastMessageAtMillis = timestampMillis,
+                snippet = if (isNewer) snippet else existing.snippet,
+                lastMessageAtMillis = if (isNewer) timestampMillis else existing.lastMessageAtMillis,
                 unreadCount = messageDao.countUnread(threadId),
             ),
         )
