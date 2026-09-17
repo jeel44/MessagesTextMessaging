@@ -9,15 +9,54 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import text.message.sms.messaging.data.local.provider.ProviderChangeObserver
+import text.message.sms.messaging.di.ApplicationScope
+import text.message.sms.messaging.domain.usecase.SyncMessages
+import text.message.sms.messaging.service.DefaultSmsAppGuard
 import text.message.sms.messaging.ui.navigation.MessagingNavHost
 import text.message.sms.messaging.ui.theme.AppTheme
+import javax.inject.Inject
 
-/** The app's only activity; every screen is a Compose destination inside [MessagingNavHost]. */
+/**
+ * The app's only activity; every screen is a Compose destination inside [MessagingNavHost].
+ *
+ * Also the catch-all for the default-SMS-app role changing while this app was not driving the
+ * change itself -- e.g. the user backgrounds the app, flips the default SMS app in system
+ * Settings, then returns. [onResume] re-checks [DefaultSmsAppGuard.isDefault] against the value
+ * last observed and, only on a false-to-true transition, starts a catch-up sync and registers
+ * [ProviderChangeObserver] (a no-op if [MessagingApplication.onCreate] already registered it at
+ * launch -- the observer guards its own double-registration). In-app grants (onboarding's
+ * [text.message.sms.messaging.ui.screens.onboarding.SetDefaultSmsScreen], Home's own empty-state
+ * prompt) also trigger their own immediate sync and registration, so this is a safety net for the
+ * outside-the-app path, not the only path -- both are safe to run together since
+ * [text.message.sms.messaging.data.repository.TelephonySyncRepository.syncAll] is idempotent and
+ * [ProviderChangeObserver.register] is a no-op once already registered.
+ */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    @Inject
+    lateinit var defaultSmsAppGuard: DefaultSmsAppGuard
+
+    @Inject
+    lateinit var syncMessages: SyncMessages
+
+    @Inject
+    lateinit var providerChangeObserver: ProviderChangeObserver
+
+    @Inject
+    @ApplicationScope
+    lateinit var applicationScope: CoroutineScope
+
+    private var wasDefaultSmsApp = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Seeded here, before the onCreate-following onResume ever runs, so that first onResume
+        // never mistakes an already-granted role for a fresh grant and fires a redundant sync.
+        wasDefaultSmsApp = defaultSmsAppGuard.isDefault
         enableEdgeToEdge()
         setContent {
             AppTheme {
@@ -29,5 +68,15 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val isDefaultNow = defaultSmsAppGuard.isDefault
+        if (isDefaultNow && !wasDefaultSmsApp) {
+            providerChangeObserver.register()
+            applicationScope.launch { syncMessages() }
+        }
+        wasDefaultSmsApp = isDefaultNow
     }
 }

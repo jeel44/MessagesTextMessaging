@@ -17,6 +17,7 @@ import text.message.sms.messaging.domain.repository.ConversationRepository
 import text.message.sms.messaging.domain.repository.MessageRepository
 import text.message.sms.messaging.domain.repository.SyncProgress
 import text.message.sms.messaging.domain.repository.SyncRepository
+import text.message.sms.messaging.service.DefaultSmsAppGuard
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -38,6 +39,7 @@ class TelephonySyncRepository @Inject constructor(
     private val conversationRepository: ConversationRepository,
     private val blockedNumberRepository: BlockedNumberRepository,
     private val syncStateDao: SyncStateDao,
+    private val defaultSmsAppGuard: DefaultSmsAppGuard,
 ) : SyncRepository {
 
     private val progress = MutableStateFlow<SyncProgress>(SyncProgress.Idle)
@@ -45,6 +47,15 @@ class TelephonySyncRepository @Inject constructor(
     override fun observeProgress(): Flow<SyncProgress> = progress.asStateFlow()
 
     override suspend fun syncAll(): Unit = withContext(Dispatchers.IO) {
+        // A non-default app can still read Telephony.Sms/Mms on many OS versions, but the read
+        // can be partial or simply wrong (no guaranteed visibility into the full provider), and
+        // writing sync-state/local-cache rows off that data would poison the cache once the role
+        // is actually granted. Bail out before touching either provider.
+        if (!defaultSmsAppGuard.isDefault) {
+            progress.value = SyncProgress.NotDefaultApp
+            return@withContext
+        }
+
         try {
             val state = syncStateDao.get() ?: SyncStateEntity()
             val smsMessages = smsProviderGateway.querySince(state.lastSmsDateMillis)

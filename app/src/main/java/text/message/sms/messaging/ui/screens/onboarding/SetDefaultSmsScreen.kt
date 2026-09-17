@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import text.message.sms.messaging.R
 import text.message.sms.messaging.service.DefaultSmsAppGuard
 import text.message.sms.messaging.ui.theme.Pill
@@ -48,10 +49,16 @@ import text.message.sms.messaging.ui.theme.Pill
  *
  * [onDefaultSet] fires once [DefaultSmsAppGuard.isDefault] is actually true after the request
  * flow returns -- never from the activity result code alone, since the user can back out of the
- * system dialog without an explicit deny and still get a "success-looking" result.
+ * system dialog without an explicit deny and still get a "success-looking" result. That same
+ * moment also calls [SetDefaultSmsViewModel.onDefaultSmsAppGranted], so a catch-up sync starts
+ * right away instead of waiting for the next app launch.
  */
 @Composable
-fun SetDefaultSmsScreen(onDefaultSet: () -> Unit, modifier: Modifier = Modifier) {
+fun SetDefaultSmsScreen(
+    onDefaultSet: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: SetDefaultSmsViewModel = hiltViewModel(),
+) {
     val context = LocalContext.current
     val guard = remember(context) { DefaultSmsAppGuard(context.applicationContext) }
 
@@ -61,6 +68,7 @@ fun SetDefaultSmsScreen(onDefaultSet: () -> Unit, modifier: Modifier = Modifier)
         contract = ActivityResultContracts.StartActivityForResult(),
     ) {
         if (guard.isDefault) {
+            viewModel.onDefaultSmsAppGranted()
             onDefaultSet()
         } else {
             showDeclinedHint = true

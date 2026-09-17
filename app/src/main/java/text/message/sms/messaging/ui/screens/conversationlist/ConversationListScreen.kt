@@ -1,6 +1,8 @@
 package text.message.sms.messaging.ui.screens.conversationlist
 
 import android.text.format.DateFormat
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -28,6 +30,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.MarkChatUnread
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -51,9 +55,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import text.message.sms.messaging.R
 import text.message.sms.messaging.domain.model.Conversation
+import text.message.sms.messaging.ui.theme.Pill
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -76,6 +82,21 @@ fun ConversationListScreen(
 ) {
     val conversations by viewModel.conversations.collectAsStateWithLifecycle()
     val filter by viewModel.filter.collectAsStateWithLifecycle()
+    val isDefaultSmsApp by viewModel.isDefaultSmsApp.collectAsStateWithLifecycle()
+
+    // Catches both a return from the role request launched below and a default-SMS-app change
+    // made outside the app entirely (system Settings) while this screen was backgrounded --
+    // either way, the screen is visible again exactly when this fires.
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshDefaultSmsAppStatus()
+        onPauseOrDispose {}
+    }
+
+    val roleRequestLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+    ) {
+        viewModel.refreshDefaultSmsAppStatus()
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -121,7 +142,15 @@ fun ConversationListScreen(
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             ) {
                 if (conversations.isEmpty()) {
-                    EmptyInbox()
+                    if (isDefaultSmsApp) {
+                        EmptyInbox()
+                    } else {
+                        NotDefaultSmsAppEmptyState(
+                            onRequestDefault = {
+                                roleRequestLauncher.launch(viewModel.defaultSmsAppRoleRequestIntent())
+                            },
+                        )
+                    }
                 } else {
                     ConversationList(
                         conversations = conversations,
@@ -408,5 +437,63 @@ private fun EmptyInbox(modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+    }
+}
+
+/**
+ * Shown instead of [EmptyInbox] when the inbox is empty *and* this app does not currently hold
+ * the default-SMS-app role -- the accurate reason nothing has synced yet, rather than a generic
+ * "no messages" state that looks like a bug. [onRequestDefault] reuses
+ * [text.message.sms.messaging.service.DefaultSmsAppGuard]'s own role-request intent directly from
+ * here, so granting it doesn't require backing out to onboarding.
+ */
+@Composable
+private fun NotDefaultSmsAppEmptyState(onRequestDefault: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(96.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.MarkChatUnread,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(48.dp),
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = stringResource(R.string.home_not_default_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = stringResource(R.string.home_not_default_message),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Button(onClick = onRequestDefault, shape = Pill) {
+            Text(stringResource(R.string.set_default_sms_button))
+        }
     }
 }

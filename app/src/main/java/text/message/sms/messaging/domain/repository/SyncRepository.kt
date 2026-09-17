@@ -23,4 +23,10 @@ sealed interface SyncProgress {
     data object Idle : SyncProgress
     data class Running(val completed: Int, val total: Int) : SyncProgress
     data class Failed(val message: String) : SyncProgress
+
+    /** [syncAll] was called without holding the default-SMS-app role, so it returned immediately
+     * without querying the Telephony provider -- a non-default app's reads there can be partial
+     * or plain wrong. Distinct from [Idle] so a caller can tell "nothing to do" apart from
+     * "blocked pending the role" if it ever needs to. */
+    data object NotDefaultApp : SyncProgress
 }
