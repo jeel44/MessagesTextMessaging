@@ -84,4 +84,109 @@ class SwipeableConversationRowTest {
 
         assertEquals(1, archiveCount)
     }
+
+    /** Regression coverage for the "far too sensitive" bug: a slight/partial drag, released at a
+     * realistic swipe speed (well within the library's own fling-velocity commit path, not an
+     * artificially slow drag) -- must spring back without deleting anything. 20% of the row's
+     * width, in 400ms, previously still fired the action even after raising positionalThreshold
+     * alone, because AnchoredDraggableState's internal ~125dp/s fling-velocity path ignores
+     * positionalThreshold entirely and commits on velocity alone; the confirmValueChange distance
+     * re-check exists specifically to close that gap. */
+    @Test
+    fun partialSwipeLeft_underThreshold_doesNotFireDelete() {
+        var deleteCount = 0
+
+        composeRule.setContent {
+            SwipeableConversationRow(
+                conversation = conversation,
+                swipeActionPreference = SwipeActionPreference(),
+                onClick = {},
+                onSwipeAction = {},
+                onDeleteRequested = { deleteCount++ },
+            )
+        }
+
+        composeRule.onRoot().performTouchInput {
+            swipeLeft(startX = right, endX = right - width * 0.2f, durationMillis = 400)
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(0, deleteCount)
+    }
+
+    /** Same partial-swipe guard for the archive direction, at the same realistic (not
+     * artificially slowed) swipe speed. */
+    @Test
+    fun partialSwipeRight_underThreshold_doesNotFireArchive() {
+        var archiveCount = 0
+
+        composeRule.setContent {
+            SwipeableConversationRow(
+                conversation = conversation,
+                swipeActionPreference = SwipeActionPreference(),
+                onClick = {},
+                onSwipeAction = { action -> if (action == SwipeAction.ARCHIVE) archiveCount++ },
+                onDeleteRequested = {},
+            )
+        }
+
+        composeRule.onRoot().performTouchInput {
+            swipeRight(startX = left, endX = left + width * 0.2f, durationMillis = 400)
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(0, archiveCount)
+    }
+
+    /** Even a fast, short flick -- high velocity, short distance -- must not commit. This is the
+     * exact case positionalThreshold alone cannot cover (the library's fling path ignores it once
+     * velocity crosses its internal, unconfigurable threshold), and is what motivated the
+     * confirmValueChange distance re-check. */
+    @Test
+    fun fastShortFlickLeft_doesNotFireDelete() {
+        var deleteCount = 0
+
+        composeRule.setContent {
+            SwipeableConversationRow(
+                conversation = conversation,
+                swipeActionPreference = SwipeActionPreference(),
+                onClick = {},
+                onSwipeAction = {},
+                onDeleteRequested = { deleteCount++ },
+            )
+        }
+
+        composeRule.onRoot().performTouchInput {
+            swipeLeft(startX = right, endX = right - width * 0.15f, durationMillis = 80)
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(0, deleteCount)
+    }
+
+    /** A full, deliberate swipe (most of the row's width, released slowly so this is genuinely a
+     * distance-driven commit rather than a fast-flick one) must still fire exactly once -- the
+     * higher commit threshold must not accidentally make a real full swipe unreliable, and must
+     * not reintroduce the 471ac5c duplicate-firing bug either. */
+    @Test
+    fun slowFullSwipeLeft_stillFiresDeleteExactlyOnce() {
+        var deleteCount = 0
+
+        composeRule.setContent {
+            SwipeableConversationRow(
+                conversation = conversation,
+                swipeActionPreference = SwipeActionPreference(),
+                onClick = {},
+                onSwipeAction = {},
+                onDeleteRequested = { deleteCount++ },
+            )
+        }
+
+        composeRule.onRoot().performTouchInput {
+            swipeLeft(startX = right, endX = left, durationMillis = 600)
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(1, deleteCount)
+    }
 }

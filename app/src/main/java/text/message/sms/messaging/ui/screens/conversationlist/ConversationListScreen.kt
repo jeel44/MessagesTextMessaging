@@ -56,6 +56,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -64,6 +65,7 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -72,6 +74,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -93,6 +98,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Date
+import kotlin.math.abs
 
 /**
  * Inbox. A single rounded-top-corner surface holding every conversation, fed live from
@@ -500,6 +506,12 @@ private fun ConversationList(
  * restore, so a row that reappears -- from Undo or any other data change -- always reappears
  * looking normal.
  */
+/** Fraction of the row's width the drag must cross before a swipe commits its action -- see
+ * [SwipeableConversationRow]'s doc comment for why this needs to be a large fraction rather than
+ * [androidx.compose.material3.SwipeToDismissBoxDefaults]' own default (a fixed 56.dp, a small
+ * sliver of any real row width, which is what made a slight/partial swipe commit instantly). */
+private const val SwipeCommitThresholdFraction = 0.6f
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SwipeableConversationRow(
@@ -527,6 +539,28 @@ internal fun SwipeableConversationRow(
     // animates straight back to Settled without ever invoking confirmValueChange(Settled).
     var actionFired by remember { mutableStateOf(false) }
 
+    // Measured directly via onSizeChanged below (not derived from positionalThreshold's own
+    // totalDistance argument) because positionalThreshold is only consulted lazily, the first
+    // time AnchoredDraggableState actually needs to decide a release/fling target -- which can be
+    // *after* a raw held-drag has already crossed the anchor's hardcoded 50% midpoint and invoked
+    // confirmValueChange once already. Measuring the row's width up front at layout time, well
+    // before any drag is possible, means the confirmValueChange distance re-check below always has
+    // a real width to compare against, even on a row's very first swipe.
+    var rowWidthPx by remember { mutableFloatStateOf(0f) }
+
+    // AnchoredDraggableState's own commit decision isn't purely distance-based: a quick short
+    // flick crosses its internal (fixed, not publicly configurable) ~125dp/s velocity threshold
+    // and commits regardless of positionalThreshold or how little of the row was actually dragged
+    // -- confirmed by hand and by test (a 10%-of-width/400ms drag still fired). Since a "slight"
+    // swipe is very often exactly that -- a short, quick nudge -- positionalThreshold alone can't
+    // guarantee a full swipe is required. dismissStateRef lets confirmValueChange re-derive the
+    // actual instantaneous drag distance itself and veto on distance alone, ignoring whatever
+    // velocity/fling reasoning the library used to decide to call it in the first place. It's
+    // assigned right after construction below, before this composition can yield control back to
+    // the caller -- confirmValueChange itself is never invoked synchronously during composition,
+    // only later in response to a real drag, so it is always non-null by the time it's read.
+    var dismissStateRef by remember { mutableStateOf<SwipeToDismissBoxState?>(null) }
+
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             val action = when (value) {
@@ -534,7 +568,9 @@ internal fun SwipeableConversationRow(
                 SwipeToDismissBoxValue.EndToStart -> swipeActionPreference.endToStart
                 SwipeToDismissBoxValue.Settled -> return@rememberSwipeToDismissBoxState true
             }
-            if (!actionFired) {
+            val draggedFarEnough = rowWidthPx > 0f &&
+                abs(dismissStateRef?.requireOffset() ?: 0f) >= rowWidthPx * SwipeCommitThresholdFraction
+            if (draggedFarEnough && !actionFired) {
                 actionFired = true
                 when (action) {
                     SwipeAction.NONE -> Unit
@@ -544,7 +580,17 @@ internal fun SwipeableConversationRow(
             }
             false
         },
+        // Raised well past SwipeToDismissBoxDefaults' fixed 56.dp default -- 60% of the row's own
+        // width, so a slight nudge can no longer read as a "full" swipe just because 56.dp happens
+        // to be a small fraction of a wide row. This governs the slow-drag-then-release case (no
+        // meaningful fling velocity); the draggedFarEnough re-check above covers the fast-flick
+        // case this alone can't, and AnchoredDraggableState's own drag-follow logic separately
+        // (and unavoidably, it's not configurable) commits a *held* drag once it physically crosses
+        // the anchor's own 50%-of-width midpoint, which is already a deliberate, most-of-the-row
+        // gesture on its own.
+        positionalThreshold = { totalDistance -> totalDistance * SwipeCommitThresholdFraction },
     )
+    dismissStateRef = dismissState
 
     LaunchedEffect(dismissState.targetValue) {
         if (dismissState.targetValue == SwipeToDismissBoxValue.Settled) {
@@ -554,32 +600,59 @@ internal fun SwipeableConversationRow(
 
     SwipeToDismissBox(
         state = dismissState,
-        modifier = modifier,
+        modifier = modifier.onSizeChanged { rowWidthPx = it.width.toFloat() },
         enableDismissFromStartToEnd = swipeActionPreference.startToEnd != SwipeAction.NONE,
         enableDismissFromEndToStart = swipeActionPreference.endToStart != SwipeAction.NONE,
         backgroundContent = {
-            val action = when (dismissState.targetValue) {
+            // dismissDirection (unlike targetValue, which only flips once the drag crosses the
+            // anchor's 50% midpoint) reacts to any nonzero drag offset, so the correct color/icon
+            // appears from the very first pixel of the drag -- the user can see and predict the
+            // action long before it's anywhere near committing.
+            val action = when (dismissState.dismissDirection) {
                 SwipeToDismissBoxValue.StartToEnd -> swipeActionPreference.startToEnd
                 SwipeToDismissBoxValue.EndToStart -> swipeActionPreference.endToStart
                 SwipeToDismissBoxValue.Settled -> SwipeAction.NONE
             }
-            val alignment = if (dismissState.targetValue == SwipeToDismissBoxValue.StartToEnd) {
+            val alignment = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) {
                 Alignment.CenterStart
             } else {
                 Alignment.CenterEnd
             }
-            SwipeActionBackground(action = action, alignment = alignment)
+            val rawOffset = try {
+                dismissState.requireOffset()
+            } catch (error: IllegalStateException) {
+                0f
+            }
+            val commitDistancePx = rowWidthPx * SwipeCommitThresholdFraction
+            val dragProgress = if (commitDistancePx > 0f) {
+                (abs(rawOffset) / commitDistancePx).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
+            SwipeActionBackground(action = action, alignment = alignment, progress = dragProgress)
         },
     ) {
         ConversationRow(conversation = conversation, onClick = onClick)
     }
 }
 
+/** Fixed, theme-independent colors -- unlike the app's other swipe actions, archive/delete must
+ * always read as blue/red respectively (the universal email-app convention this screen matches),
+ * regardless of whichever accent color the user has picked in Settings or dynamic color has
+ * derived from their wallpaper. */
+private val SwipeArchiveBlue = Color(0xFF1A73E8)
+private val SwipeDeleteRed = Color(0xFFD93025)
+
 @Composable
-private fun SwipeActionBackground(action: SwipeAction, alignment: Alignment, modifier: Modifier = Modifier) {
+private fun SwipeActionBackground(
+    action: SwipeAction,
+    alignment: Alignment,
+    progress: Float,
+    modifier: Modifier = Modifier,
+) {
     val (container, onContainer) = when (action) {
-        SwipeAction.ARCHIVE -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-        SwipeAction.DELETE -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        SwipeAction.ARCHIVE -> SwipeArchiveBlue to Color.White
+        SwipeAction.DELETE -> SwipeDeleteRed to Color.White
         SwipeAction.TOGGLE_READ -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
         SwipeAction.CALL -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
         SwipeAction.NONE -> MaterialTheme.colorScheme.surfaceContainer to MaterialTheme.colorScheme.surfaceContainer
@@ -592,7 +665,21 @@ private fun SwipeActionBackground(action: SwipeAction, alignment: Alignment, mod
         contentAlignment = alignment,
     ) {
         action.icon()?.let { icon ->
-            Icon(imageVector = icon, contentDescription = null, tint = onContainer)
+            // Grows and fades in as the drag approaches the commit threshold (see
+            // SwipeableConversationRow's dragProgress), rather than popping in at full size the
+            // instant the direction is decided -- the same progressive reveal the color/icon
+            // choice above already gives the *direction*, extended to how close to committing.
+            val scale = 0.6f + 0.4f * progress
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = onContainer,
+                modifier = Modifier.graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    alpha = 0.4f + 0.6f * progress
+                },
+            )
         }
     }
 }
