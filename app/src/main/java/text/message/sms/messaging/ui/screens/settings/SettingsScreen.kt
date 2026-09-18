@@ -21,24 +21,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.annotation.DrawableRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Backup
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.FormatSize
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.PrivacyTip
-import androidx.compose.material.icons.filled.Sms
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.SwipeRight
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -63,6 +52,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -136,7 +126,7 @@ fun SettingsScreen(
             title = stringResource(R.string.settings_section_appearance),
             rows = listOf(
                 SettingsRow(
-                    icon = Icons.Filled.Palette,
+                    icon = SettingsIcon.Drawable(R.drawable.ic_theme),
                     title = stringResource(R.string.settings_theme_title),
                     summary = stringResource(
                         R.string.settings_theme_summary,
@@ -153,7 +143,7 @@ fun SettingsScreen(
                     onClick = { showThemePicker = true },
                 ),
                 SettingsRow(
-                    icon = Icons.Filled.FormatSize,
+                    icon = SettingsIcon.Vector(Icons.Filled.FormatSize),
                     title = stringResource(R.string.settings_text_size_title),
                     trailing = SettingsTrailing.Value(stringResource(R.string.settings_text_size_value)),
                 ),
@@ -163,18 +153,18 @@ fun SettingsScreen(
             title = stringResource(R.string.settings_section_general),
             rows = listOf(
                 SettingsRow(
-                    icon = Icons.Filled.Sms,
+                    icon = SettingsIcon.Drawable(R.drawable.ic_default_sms),
                     title = stringResource(R.string.settings_default_app_title),
                     summary = stringResource(R.string.settings_default_app_summary),
                 ),
                 SettingsRow(
-                    icon = Icons.Filled.Language,
+                    icon = SettingsIcon.Drawable(R.drawable.ic_language),
                     title = stringResource(R.string.settings_language_title),
                     summary = languageSummary(),
                     onClick = onLanguageClick,
                 ),
                 SettingsRow(
-                    icon = Icons.Filled.SwipeRight,
+                    icon = SettingsIcon.Drawable(R.drawable.ic_swipe_actions),
                     title = stringResource(R.string.settings_swipe_actions_title),
                     summary = stringResource(
                         R.string.settings_swipe_actions_summary,
@@ -184,19 +174,19 @@ fun SettingsScreen(
                     onClick = { showSwipeActionPicker = true },
                 ),
                 SettingsRow(
-                    icon = Icons.Filled.Notifications,
+                    icon = SettingsIcon.Drawable(R.drawable.ic_notifications),
                     title = stringResource(R.string.settings_notifications_title),
                     summary = stringResource(R.string.settings_notifications_summary),
                     trailing = SettingsTrailing.Toggle(notificationsEnabled) { notificationsEnabled = it },
                 ),
                 SettingsRow(
-                    icon = Icons.Filled.DoneAll,
+                    icon = SettingsIcon.Vector(Icons.Filled.DoneAll),
                     title = stringResource(R.string.settings_delivery_reports_title),
                     summary = stringResource(R.string.settings_delivery_reports_summary),
                     trailing = SettingsTrailing.Toggle(deliveryReportsEnabled) { deliveryReportsEnabled = it },
                 ),
                 SettingsRow(
-                    icon = Icons.AutoMirrored.Filled.Reply,
+                    icon = SettingsIcon.Vector(Icons.AutoMirrored.Filled.Reply),
                     title = stringResource(R.string.settings_quick_reply_title),
                     summary = stringResource(R.string.settings_quick_reply_summary),
                     trailing = SettingsTrailing.Toggle(quickReplyEnabled) { quickReplyEnabled = it },
@@ -207,13 +197,13 @@ fun SettingsScreen(
             title = stringResource(R.string.settings_section_backup_sync),
             rows = listOf(
                 SettingsRow(
-                    icon = Icons.Filled.Backup,
+                    icon = SettingsIcon.Vector(Icons.Filled.Backup),
                     title = stringResource(R.string.settings_auto_backup_title),
                     summary = stringResource(R.string.settings_auto_backup_summary),
                     trailing = SettingsTrailing.Toggle(autoBackupEnabled) { autoBackupEnabled = it },
                 ),
                 SettingsRow(
-                    icon = Icons.Filled.CloudUpload,
+                    icon = SettingsIcon.Drawable(R.drawable.ic_backup),
                     title = stringResource(R.string.settings_backup_now_title),
                     summary = lastBackupAtMillis?.let { stringResource(R.string.settings_last_backup_at, formatBackupTimestamp(it)) }
                         ?: stringResource(R.string.settings_last_backup_never),
@@ -221,14 +211,14 @@ fun SettingsScreen(
                     onClick = { exportLauncher.launch(defaultBackupFileName()) },
                 ),
                 SettingsRow(
-                    icon = Icons.Filled.CloudDownload,
+                    icon = SettingsIcon.Drawable(R.drawable.ic_restore),
                     title = stringResource(R.string.settings_restore_title),
                     summary = stringResource(R.string.settings_restore_summary),
                     enabled = !backupBusy,
                     onClick = { importLauncher.launch(arrayOf("*/*")) },
                 ),
                 SettingsRow(
-                    icon = Icons.Filled.Wifi,
+                    icon = SettingsIcon.Vector(Icons.Filled.Wifi),
                     title = stringResource(R.string.settings_wifi_only_title),
                     trailing = SettingsTrailing.Toggle(wifiOnlyBackupEnabled) { wifiOnlyBackupEnabled = it },
                 ),
@@ -238,24 +228,24 @@ fun SettingsScreen(
             title = stringResource(R.string.settings_section_about),
             rows = listOf(
                 SettingsRow(
-                    icon = Icons.Filled.Info,
+                    icon = SettingsIcon.Drawable(R.drawable.ic_info),
                     title = stringResource(R.string.settings_app_version_title),
                     trailing = SettingsTrailing.Value(rememberAppVersionName()),
                 ),
                 SettingsRow(
-                    icon = Icons.Filled.Star,
+                    icon = SettingsIcon.Drawable(R.drawable.ic_rate),
                     title = stringResource(R.string.settings_rate_app_title),
                 ),
                 SettingsRow(
-                    icon = Icons.Filled.PrivacyTip,
+                    icon = SettingsIcon.Drawable(R.drawable.ic_privacy),
                     title = stringResource(R.string.settings_privacy_policy_title),
                 ),
                 SettingsRow(
-                    icon = Icons.Filled.Description,
+                    icon = SettingsIcon.Vector(Icons.Filled.Description),
                     title = stringResource(R.string.settings_licenses_title),
                 ),
                 SettingsRow(
-                    icon = Icons.AutoMirrored.Filled.HelpOutline,
+                    icon = SettingsIcon.Drawable(R.drawable.ic_feedback),
                     title = stringResource(R.string.settings_help_feedback_title),
                 ),
             ),
@@ -270,7 +260,7 @@ fun SettingsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            painter = painterResource(R.drawable.ic_arrow_back),
                             contentDescription = stringResource(R.string.action_back),
                         )
                     }
@@ -332,13 +322,21 @@ private fun languageSummary(): String = currentLanguageOption().displayName
 private data class SettingsSection(val title: String, val rows: List<SettingsRow>)
 
 private data class SettingsRow(
-    val icon: ImageVector,
+    val icon: SettingsIcon,
     val title: String,
     val summary: String? = null,
     val trailing: SettingsTrailing = SettingsTrailing.None,
     val enabled: Boolean = true,
     val onClick: (() -> Unit)? = null,
 )
+
+/** Row icons are a mix of Material [ImageVector]s (rows not covered by the Flaticon set yet) and
+ * raster [Drawable] icons ([DrawableRes] webp assets) -- the latter need [Icon]'s `painter`
+ * overload instead of `imageVector` so the same tint logic still applies to both. */
+private sealed interface SettingsIcon {
+    data class Vector(val imageVector: ImageVector) : SettingsIcon
+    data class Drawable(@DrawableRes val resId: Int) : SettingsIcon
+}
 
 private sealed interface SettingsTrailing {
     data object None : SettingsTrailing
@@ -395,12 +393,21 @@ private fun SettingsRowItem(row: SettingsRow, modifier: Modifier = Modifier) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = row.icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
-            modifier = Modifier.size(24.dp),
-        )
+        val iconTint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha)
+        when (val icon = row.icon) {
+            is SettingsIcon.Vector -> Icon(
+                imageVector = icon.imageVector,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(24.dp),
+            )
+            is SettingsIcon.Drawable -> Icon(
+                painter = painterResource(icon.resId),
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(24.dp),
+            )
+        }
 
         Spacer(modifier = Modifier.width(24.dp))
 
