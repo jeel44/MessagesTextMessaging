@@ -15,6 +15,7 @@ import text.message.sms.messaging.data.local.provider.SmsProviderGateway
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.model.MessageChannel
 import text.message.sms.messaging.domain.repository.BlockedNumberRepository
+import text.message.sms.messaging.domain.repository.ConversationCounterUpdate
 import text.message.sms.messaging.domain.repository.ConversationRepository
 import text.message.sms.messaging.domain.repository.MessageRepository
 import text.message.sms.messaging.domain.repository.SyncProgress
@@ -156,9 +157,11 @@ class TelephonySyncRepository @Inject constructor(
                 progress.value = SyncProgress.Running(completed, total)
             }
 
-            conversationUpdates.forEach { (threadId, message) ->
-                conversationRepository.refreshCounters(threadId, message.body, message.receivedAtMillis)
-            }
+            conversationRepository.refreshCountersBatch(
+                conversationUpdates.mapValues { (_, message) ->
+                    ConversationCounterUpdate(message.body, message.receivedAtMillis)
+                },
+            )
 
             syncStateDao.upsert(
                 SyncStateEntity(

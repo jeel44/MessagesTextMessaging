@@ -1,8 +1,10 @@
 package text.message.sms.messaging.data.repository
 
+import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import text.message.sms.messaging.data.local.db.MessagingDatabase
 import text.message.sms.messaging.data.local.db.dao.ContactDao
 import text.message.sms.messaging.data.local.db.dao.ConversationDao
 import text.message.sms.messaging.data.local.db.dao.MessageDao
@@ -13,6 +15,7 @@ import text.message.sms.messaging.data.local.provider.TelephonyThreadResolver
 import text.message.sms.messaging.data.mapper.toDomain
 import text.message.sms.messaging.domain.model.Contact
 import text.message.sms.messaging.domain.model.Conversation
+import text.message.sms.messaging.domain.repository.ConversationCounterUpdate
 import text.message.sms.messaging.domain.repository.ConversationRepository
 import text.message.sms.messaging.util.PhoneNumbers
 import javax.inject.Inject
@@ -21,6 +24,7 @@ import javax.inject.Singleton
 /** Room-backed [ConversationRepository]; thread identity still comes from the platform. */
 @Singleton
 class LocalConversationRepository @Inject constructor(
+    private val database: MessagingDatabase,
     private val conversationDao: ConversationDao,
     private val contactDao: ContactDao,
     private val threadResolver: TelephonyThreadResolver,
@@ -85,16 +89,20 @@ class LocalConversationRepository @Inject constructor(
         conversationDao.setDraft(threadId, draft)
     }
 
-    override suspend fun refreshCounters(threadId: Long, snippet: String, lastMessageAtMillis: Long) {
-        val existing = conversationDao.findByThreadId(threadId)?.conversation ?: return
-        val isNewer = lastMessageAtMillis >= existing.lastMessageAtMillis
-        conversationDao.upsert(
-            existing.copy(
-                snippet = if (isNewer) snippet else existing.snippet,
-                lastMessageAtMillis = if (isNewer) lastMessageAtMillis else existing.lastMessageAtMillis,
-                unreadCount = messageDao.countUnread(threadId),
-            ),
-        )
+    override suspend fun refreshCountersBatch(updates: Map<Long, ConversationCounterUpdate>) {
+        if (updates.isEmpty()) return
+        database.withTransaction {
+            val entities = updates.mapNotNull { (threadId, update) ->
+                val existing = conversationDao.findByThreadId(threadId)?.conversation ?: return@mapNotNull null
+                val isNewer = update.lastMessageAtMillis >= existing.lastMessageAtMillis
+                existing.copy(
+                    snippet = if (isNewer) update.snippet else existing.snippet,
+                    lastMessageAtMillis = if (isNewer) update.lastMessageAtMillis else existing.lastMessageAtMillis,
+                    unreadCount = messageDao.countUnread(threadId),
+                )
+            }
+            conversationDao.upsertAll(entities)
+        }
     }
 
     override suspend fun delete(threadIds: Collection<Long>) {

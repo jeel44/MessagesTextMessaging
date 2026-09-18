@@ -27,14 +27,19 @@ interface ConversationRepository {
 
     suspend fun saveDraft(threadId: Long, draft: String?)
 
-    /** Upserts [threadId]'s snippet, last-message time, and unread count together in one write --
-     * used by a caller doing a batched update across many messages at once (see
-     * [text.message.sms.messaging.data.repository.TelephonySyncRepository.syncAll]) so the
-     * conversation list's live Flow emits its final state once per batch instead of once per
-     * message. */
-    suspend fun refreshCounters(threadId: Long, snippet: String, lastMessageAtMillis: Long)
+    /** Upserts every thread in [updates]' snippet, last-message time, and unread count inside a
+     * single database transaction -- used by [text.message.sms.messaging.data.repository
+     * .TelephonySyncRepository.syncAll], which tracks one [ConversationCounterUpdate] per thread
+     * across the whole sync batch. A single transaction means [observeInbox]'s live Flow emits
+     * its final, fully-settled, correctly-ordered state exactly once per sync pass -- previously
+     * each thread was upserted in its own separate write, so a large catch-up sync produced one
+     * Flow emission per thread, and the inbox visibly re-sorted itself thread-by-thread instead
+     * of jumping straight to the final order. */
+    suspend fun refreshCountersBatch(updates: Map<Long, ConversationCounterUpdate>)
 
     suspend fun delete(threadIds: Collection<Long>)
 
     fun search(query: String): Flow<List<Conversation>>
 }
+
+data class ConversationCounterUpdate(val snippet: String, val lastMessageAtMillis: Long)

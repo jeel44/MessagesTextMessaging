@@ -82,6 +82,7 @@ class ConversationListViewModelTest {
             override fun resolve(addresses: Set<String>): Long = threadId
         }
         conversationRepository = LocalConversationRepository(
+            database = database,
             conversationDao = database.conversationDao(),
             contactDao = database.contactDao(),
             threadResolver = fakeThreadResolver,
