@@ -10,6 +10,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import text.message.sms.messaging.ui.screens.chat.ChatScreen
 import text.message.sms.messaging.ui.screens.chat.MediaViewerScreen
+import text.message.sms.messaging.ui.screens.conversationinfo.ConversationInfoScreen
 import text.message.sms.messaging.ui.screens.conversationlist.ConversationListScreen
 import text.message.sms.messaging.ui.screens.newmessage.NewMessageScreen
 import text.message.sms.messaging.ui.screens.onboarding.LanguageScreen
@@ -97,10 +98,28 @@ fun MessagingNavHost(
             arguments = listOf(
                 navArgument(MessagingDestination.ARG_THREAD_ID) { type = NavType.LongType },
             ),
-        ) {
+        ) { entry ->
+            val threadId = entry.arguments?.getLong(MessagingDestination.ARG_THREAD_ID) ?: 0L
             ChatScreen(
                 onBack = navController::popBackStack,
                 onAttachmentClick = { contentUri ->
+                    navController.navigate(MessagingDestination.MediaViewer.routeFor(contentUri))
+                },
+                onConversationInfoClick = {
+                    navController.navigate(MessagingDestination.ConversationInfo.routeFor(threadId))
+                },
+            )
+        }
+
+        composable(
+            route = MessagingDestination.ConversationInfo.route,
+            arguments = listOf(
+                navArgument(MessagingDestination.ARG_THREAD_ID) { type = NavType.LongType },
+            ),
+        ) {
+            ConversationInfoScreen(
+                onBack = navController::popBackStack,
+                onMediaClick = { contentUri ->
                     navController.navigate(MessagingDestination.MediaViewer.routeFor(contentUri))
                 },
             )

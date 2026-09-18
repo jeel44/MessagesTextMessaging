@@ -25,6 +25,9 @@ class LocalAttachmentRepository @Inject constructor(
     override suspend fun findForMessage(messageId: Long): List<Attachment> =
         attachmentDao.findForMessage(messageId).map { it.toDomain() }
 
+    override fun observeMediaForThread(threadId: Long): Flow<List<Attachment>> =
+        attachmentDao.observeMediaForThread(threadId).map { rows -> rows.map { it.toDomain() } }
+
     override suspend fun insertAll(attachments: List<Attachment>) {
         attachmentDao.upsertAll(attachments.map { it.toEntity() })
     }

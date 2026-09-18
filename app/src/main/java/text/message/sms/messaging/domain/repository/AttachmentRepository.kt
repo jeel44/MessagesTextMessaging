@@ -10,6 +10,10 @@ interface AttachmentRepository {
 
     suspend fun findForMessage(messageId: Long): List<Attachment>
 
+    /** Every image/video ever sent or received in [threadId], newest first -- backs the shared
+     * media grid on the conversation info screen. */
+    fun observeMediaForThread(threadId: Long): Flow<List<Attachment>>
+
     suspend fun insertAll(attachments: List<Attachment>)
 
     /** Copies [attachment] into shared storage and returns the resulting uri. */

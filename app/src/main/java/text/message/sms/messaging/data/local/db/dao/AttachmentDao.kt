@@ -15,6 +15,18 @@ interface AttachmentDao {
     @Query("SELECT * FROM attachments WHERE message_id = :messageId ORDER BY id ASC")
     suspend fun findForMessage(messageId: Long): List<AttachmentEntity>
 
+    /** Every image/video part ever sent or received in [threadId], newest first -- the shared
+     * media grid on the conversation info screen. */
+    @Query(
+        """
+        SELECT a.* FROM attachments a
+        INNER JOIN messages m ON m.id = a.message_id
+        WHERE m.thread_id = :threadId AND (a.mime_type LIKE 'image/%' OR a.mime_type LIKE 'video/%')
+        ORDER BY m.received_at DESC
+        """
+    )
+    fun observeMediaForThread(threadId: Long): Flow<List<AttachmentEntity>>
+
     @Upsert
     suspend fun upsertAll(attachments: List<AttachmentEntity>)
 

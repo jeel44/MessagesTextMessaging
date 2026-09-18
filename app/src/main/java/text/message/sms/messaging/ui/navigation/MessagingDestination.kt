@@ -29,6 +29,10 @@ sealed class MessagingDestination(val route: String) {
         fun routeFor(threadId: Long): String = "conversations/$threadId"
     }
 
+    data object ConversationInfo : MessagingDestination("conversations/{$ARG_THREAD_ID}/info") {
+        fun routeFor(threadId: Long): String = "conversations/$threadId/info"
+    }
+
     data object MediaViewer : MessagingDestination("conversations/media/{$ARG_CONTENT_URI}") {
         fun routeFor(contentUri: String): String =
             "conversations/media/${URLEncoder.encode(contentUri, "UTF-8")}"

@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -107,6 +108,7 @@ import java.util.Date
 fun ChatScreen(
     onBack: () -> Unit,
     onAttachmentClick: (contentUri: String) -> Unit,
+    onConversationInfoClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
@@ -157,7 +159,13 @@ fun ChatScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { ChatTopBar(conversation = conversation, onBack = onBack) },
+        topBar = {
+            ChatTopBar(
+                conversation = conversation,
+                onBack = onBack,
+                onInfoClick = onConversationInfoClick,
+            )
+        },
         bottomBar = {
             ChatComposer(
                 text = messageText,
@@ -226,6 +234,7 @@ fun ChatScreen(
 private fun ChatTopBar(
     conversation: Conversation?,
     onBack: () -> Unit,
+    onInfoClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -242,7 +251,12 @@ private fun ChatTopBar(
             }
         },
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(Pill)
+                    .clickable(onClick = onInfoClick),
+            ) {
                 ChatPeerAvatar(conversation)
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(

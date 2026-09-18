@@ -59,6 +59,7 @@
     <string name="action_settings">Settings</string>
     <string name="action_back">Back</string>
     <string name="action_close">Close</string>
+    <string name="action_cancel">Cancel</string>
 
     <!-- Chat -->
     <string name="chat_call">Call</string>
@@ -80,6 +81,27 @@
     <string name="chat_attachment_schedule">Schedule</string>
     <string name="chat_attachment_coming_soon">Coming soon</string>
     <string name="chat_media_viewer_title">Photo</string>
+
+    <!-- Conversation info -->
+    <string name="conversation_info_title">Conversation info</string>
+    <string name="conversation_info_group_subtitle">%1$d people</string>
+    <string name="conversation_info_notifications_title">Notifications</string>
+    <string name="conversation_info_notifications_muted_summary">Muted</string>
+    <string name="conversation_info_notifications_on_summary">On</string>
+    <string name="conversation_info_participants_header">%1$d participants</string>
+    <string name="conversation_info_view_contact_not_available">No contacts app found</string>
+    <string name="conversation_info_media_header">Shared media</string>
+    <string name="conversation_info_media_empty">No photos or videos yet</string>
+    <string name="conversation_info_video_content_description">Video</string>
+    <string name="conversation_info_archive">Archive</string>
+    <string name="conversation_info_unarchive">Unarchive</string>
+    <string name="conversation_info_block">Block number</string>
+    <string name="conversation_info_unblock">Unblock number</string>
+    <string name="conversation_info_delete">Delete conversation</string>
+    <string name="conversation_info_block_confirm_title">Block this conversation?</string>
+    <string name="conversation_info_block_confirm_message">You won\'t receive messages or calls from this number. You can unblock it later from here.</string>
+    <string name="conversation_info_delete_confirm_title">Delete this conversation?</string>
+    <string name="conversation_info_delete_confirm_message">This deletes every message in this conversation. This can\'t be undone.</string>
 
     <!-- New message -->
     <string name="new_message_to_label">To</string>
