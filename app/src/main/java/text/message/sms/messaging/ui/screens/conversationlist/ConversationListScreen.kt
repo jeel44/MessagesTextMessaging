@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.MarkChatUnread
@@ -200,11 +201,12 @@ fun ConversationListScreen(
                         Icon(
                             painter = painterResource(R.drawable.ic_search),
                             contentDescription = stringResource(R.string.action_search),
+                            modifier = Modifier.size(24.dp),
                         )
                     }
                     IconButton(onClick = onSettingsClick) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_settings),
+                            imageVector = Icons.Filled.Settings,
                             contentDescription = stringResource(R.string.action_settings),
                         )
                     }
@@ -218,6 +220,7 @@ fun ConversationListScreen(
                     Icon(
                         painter = painterResource(R.drawable.ic_compose),
                         contentDescription = null,
+                        modifier = Modifier.size(24.dp),
                     )
                 },
                 text = { Text(stringResource(R.string.home_new_chat_label)) },
