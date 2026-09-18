@@ -33,11 +33,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.MarkChatUnread
@@ -78,6 +75,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -194,13 +192,13 @@ fun ConversationListScreen(
                 actions = {
                     IconButton(onClick = onSearchClick) {
                         Icon(
-                            imageVector = Icons.Default.Search,
+                            painter = painterResource(R.drawable.ic_search),
                             contentDescription = stringResource(R.string.action_search),
                         )
                     }
                     IconButton(onClick = onSettingsClick) {
                         Icon(
-                            imageVector = Icons.Default.Settings,
+                            painter = painterResource(R.drawable.ic_settings),
                             contentDescription = stringResource(R.string.action_settings),
                         )
                     }
@@ -210,7 +208,7 @@ fun ConversationListScreen(
         floatingActionButton = {
             FloatingActionButton(onClick = onNewMessageClick) {
                 Icon(
-                    imageVector = Icons.Default.Edit,
+                    painter = painterResource(R.drawable.ic_compose),
                     contentDescription = stringResource(R.string.action_new_message),
                 )
             }
