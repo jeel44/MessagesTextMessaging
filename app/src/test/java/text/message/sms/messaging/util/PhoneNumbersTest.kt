@@ -50,4 +50,14 @@ class PhoneNumbersTest {
             PhoneNumbers.normalize("+1 555 010 1234") != PhoneNumbers.normalize("5550101234"),
         )
     }
+
+    @Test
+    fun `comparableSuffix of a digit-free string is empty`() {
+        // A promotional/bank alphanumeric sender id has no digits at all, so it comparableSuffix-
+        // es to "" -- callers building a suffix-keyed lookup map must skip empty suffixes (see
+        // LocalConversationRepository.contactsByComparableSuffix's guard) or two unrelated
+        // digit-free strings would collide on the same "" key.
+        assertEquals("", PhoneNumbers.comparableSuffix("JD-SBIBNK-S"))
+        assertEquals("", PhoneNumbers.comparableSuffix(""))
+    }
 }

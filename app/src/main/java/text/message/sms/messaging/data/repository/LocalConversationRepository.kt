@@ -96,17 +96,27 @@ class LocalConversationRepository @Inject constructor(
         }
 
     /**
-     * Contacts keyed by [PhoneNumbers.comparableSuffix], not [PhoneNumbers.normalize] -- a
-     * [RecipientEntity.address] and a [Contact]'s own saved number can come from entirely
-     * different sources (the system Telephony provider for an address synced from an incoming
-     * message, versus [text.message.sms.messaging.data.local.provider.ContactProviderGateway] for
-     * one picked from Contacts when starting a new outgoing thread) and legitimately differ in
-     * whether a country code is present even though they reach the same handset. An exact-string
-     * lookup keyed by [PhoneNumbers.normalize] alone would miss that pairing -- e.g. a contact
-     * saved as "5550101234" never matching a recipient row stored as "+15550101234" -- which is
-     * exactly why a newly-created outgoing thread (recipient address fresh from Contacts) could
-     * fail to resolve a name that an existing, previously-synced-from-Telephony thread for the
-     * same contact happened to already show correctly.
+     * Contacts keyed by [PhoneNumbers.comparableSuffix], not [PhoneNumbers.normalize].
+     *
+     * A [RecipientEntity.address] is *never* copied from a [Contact]'s own saved number except
+     * the one time a brand-new thread is created by picking a contact in
+     * [text.message.sms.messaging.ui.screens.newmessage.NewMessageScreen] -- and even then it's
+     * the exact same string both sides of the lookup would use, so that path alone could never
+     * mismatch. Every other recipient row -- which is to say, the address on any thread that has
+     * ever received a message, i.e. nearly every real two-way personal conversation -- comes from
+     * [text.message.sms.messaging.data.repository.TelephonySyncRepository] reading
+     * `Telephony.Sms.ADDRESS` / the MMS addr table, a format entirely under the carrier/OEM
+     * telephony stack's control and never reconciled against Contacts afterward (
+     * [text.message.sms.messaging.domain.usecase.SyncContacts] only ever touches the `contacts`/
+     * `contact_numbers` tables, never `recipients`). Two independent systems -- the carrier's
+     * delivery report and whatever the user (or their account's contacts sync adapter) typed into
+     * Contacts -- routinely disagree on whether a country code is present, so an exact-string
+     * lookup keyed by [PhoneNumbers.normalize] alone regularly misses a real match: e.g. a contact
+     * saved as "9876543210" never matching a recipient row Telephony reported as "919876543210" or
+     * "+919876543210" for an incoming message from that same person. This can only ever affect a
+     * real phone-number address -- a promotional/bank alphanumeric sender id is never a contact
+     * match candidate in the first place -- so in practice it is specifically personal,
+     * person-to-person conversations that silently fall back to showing a bare number.
      */
     private fun contactsByComparableSuffix(): Flow<Map<String, Contact>> =
         contactDao.observeAll().map { rows ->
@@ -114,7 +124,15 @@ class LocalConversationRepository @Inject constructor(
             buildMap {
                 for (contact in contacts) {
                     for (number in contact.numbers) {
-                        put(PhoneNumbers.comparableSuffix(number), contact)
+                        // A digit-free "number" (blank, or someone stored junk) would produce an
+                        // empty comparableSuffix -- skip it rather than let it become a key, since
+                        // an unrelated alphanumeric sender id (which also comparableSuffix-es to
+                        // "", having no digits at all) would then incorrectly resolve to this
+                        // contact. PhoneNumbers.areEquivalent already guards the same case (see
+                        // its "rejects two blank addresses" test); this mirrors that guard for a
+                        // map key instead of a pairwise comparison.
+                        val suffix = PhoneNumbers.comparableSuffix(number)
+                        if (suffix.isNotEmpty()) put(suffix, contact)
                     }
                 }
             }
