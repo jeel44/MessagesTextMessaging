@@ -29,7 +29,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
@@ -48,11 +50,19 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,9 +82,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import text.message.sms.messaging.R
+import text.message.sms.messaging.data.local.datastore.SwipeAction
+import text.message.sms.messaging.data.local.datastore.SwipeActionPreference
 import text.message.sms.messaging.domain.model.Conversation
 import text.message.sms.messaging.domain.repository.SyncProgress
+import text.message.sms.messaging.ui.components.icon
 import text.message.sms.messaging.ui.theme.Pill
+import text.message.sms.messaging.util.placeCall
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -93,6 +107,7 @@ fun ConversationListScreen(
     onNewMessageClick: () -> Unit,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onArchivedClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ConversationListViewModel = hiltViewModel(),
 ) {
@@ -100,6 +115,48 @@ fun ConversationListScreen(
     val filter by viewModel.filter.collectAsStateWithLifecycle()
     val isDefaultSmsApp by viewModel.isDefaultSmsApp.collectAsStateWithLifecycle()
     val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
+    val swipeActionPreference by viewModel.swipeActionPreference.collectAsStateWithLifecycle()
+    val archivedCount by viewModel.archivedCount.collectAsStateWithLifecycle()
+
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val archivedLabel = stringResource(R.string.home_archived_snackbar)
+    val deletedLabel = stringResource(R.string.home_deleted_snackbar)
+    val undoLabel = stringResource(R.string.action_undo)
+
+    // Each swipe emits exactly one event, resolved here by awaiting the snackbar's result before
+    // the next is processed -- SnackbarHostState already queues concurrent callers, so a rapid
+    // string of swipes just shows one undo-able snackbar after another rather than clobbering
+    // each other. See ConversationListViewModel.ConversationListEvent for what each branch means.
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is ConversationListEvent.Archived -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = archivedLabel,
+                        actionLabel = undoLabel,
+                        duration = SnackbarDuration.Short,
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.undoArchive(event.conversation.threadId)
+                    }
+                }
+
+                is ConversationListEvent.PendingDelete -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = deletedLabel,
+                        actionLabel = undoLabel,
+                        duration = SnackbarDuration.Short,
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.cancelPendingDelete(event.conversation.threadId)
+                    } else {
+                        viewModel.confirmPendingDelete(event.conversation.threadId)
+                    }
+                }
+            }
+        }
+    }
 
     // Dismissing the failure banner only hides *this* failure -- remembering the exact instance
     // (rather than a plain boolean) means a fresh failure from a later sync/retry, which is a
@@ -150,6 +207,7 @@ fun ConversationListScreen(
                 )
             }
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -174,6 +232,10 @@ fun ConversationListScreen(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             )
 
+            if (archivedCount > 0) {
+                ArchivedSummaryRow(count = archivedCount, onClick = onArchivedClick)
+            }
+
             Surface(
                 modifier = Modifier
                     .weight(1f)
@@ -196,11 +258,65 @@ fun ConversationListScreen(
                 } else {
                     ConversationList(
                         conversations = conversations,
+                        swipeActionPreference = swipeActionPreference,
                         onConversationClick = onConversationClick,
+                        onSwipeAction = { action, conversation ->
+                            when (action) {
+                                SwipeAction.ARCHIVE -> viewModel.archiveConversation(conversation)
+                                SwipeAction.TOGGLE_READ -> viewModel.toggleRead(conversation)
+                                SwipeAction.CALL ->
+                                    conversation.recipients.firstOrNull()?.address?.let { placeCall(context, it) }
+                                SwipeAction.DELETE, SwipeAction.NONE -> Unit
+                            }
+                        },
+                        onDeleteRequested = { conversation -> viewModel.requestDelete(conversation) },
                     )
                 }
             }
         }
+    }
+}
+
+/**
+ * Entry point into the archived-conversations list ([text.message.sms.messaging.ui.screens.archived.ArchivedScreen])
+ * -- shown above the inbox whenever [count] is positive, hidden entirely otherwise, matching
+ * QKSMS's own "only show it if there's something behind it" pattern.
+ */
+@Composable
+private fun ArchivedSummaryRow(count: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Archive,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = stringResource(R.string.home_archived_row_title),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -289,8 +405,9 @@ private fun FilterChipRow(
 }
 
 /** One [Conversation] row, or a date-section label standing in front of a run of rows that
- * share a day -- see [groupedByDate]. */
-private sealed interface ConversationListItem {
+ * share a day -- see [groupedByDate]. `internal` so
+ * [text.message.sms.messaging.ui.screens.archived.ArchivedScreen] can reuse the same grouping. */
+internal sealed interface ConversationListItem {
     data class SectionHeader(val date: LocalDate) : ConversationListItem
     data class Row(val conversation: Conversation) : ConversationListItem
 }
@@ -302,7 +419,7 @@ private sealed interface ConversationListItem {
  * unpinned ones -- an accepted trade-off for keeping the repository's pinned-first ordering
  * intact rather than re-sorting purely by date.
  */
-private fun groupedByDate(conversations: List<Conversation>, zone: ZoneId): List<ConversationListItem> {
+internal fun groupedByDate(conversations: List<Conversation>, zone: ZoneId): List<ConversationListItem> {
     val items = mutableListOf<ConversationListItem>()
     var lastDate: LocalDate? = null
     for (conversation in conversations) {
@@ -319,7 +436,10 @@ private fun groupedByDate(conversations: List<Conversation>, zone: ZoneId): List
 @Composable
 private fun ConversationList(
     conversations: List<Conversation>,
+    swipeActionPreference: SwipeActionPreference,
     onConversationClick: (threadId: Long) -> Unit,
+    onSwipeAction: (SwipeAction, Conversation) -> Unit,
+    onDeleteRequested: (Conversation) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val zone = remember { ZoneId.systemDefault() }
@@ -340,17 +460,116 @@ private fun ConversationList(
         ) { item ->
             when (item) {
                 is ConversationListItem.SectionHeader -> DateSectionHeader(item.date)
-                is ConversationListItem.Row -> ConversationRow(
+                is ConversationListItem.Row -> SwipeableConversationRow(
                     conversation = item.conversation,
+                    swipeActionPreference = swipeActionPreference,
                     onClick = { onConversationClick(item.conversation.threadId) },
+                    onSwipeAction = { action -> onSwipeAction(action, item.conversation) },
+                    onDeleteRequested = { onDeleteRequested(item.conversation) },
                 )
             }
         }
     }
 }
 
+/**
+ * Wraps [ConversationRow] in a [SwipeToDismissBox] whose two directions perform whatever
+ * [swipeActionPreference] configures (Settings' "Swipe actions" row) -- QKSMS-style archive-right
+ * /delete-left are just the defaults. [SwipeAction.ARCHIVE] and [SwipeAction.DELETE] both let the
+ * swipe commit (`true`) -- the row leaves the list right away either way, matching QKSMS's
+ * undo-after (not confirm-before) pattern for both: archiving already happened (it's a cheap,
+ * reversible write) and the caller's snackbar offers Undo; deleting is only *requested* --
+ * [text.message.sms.messaging.ui.screens.conversationlist.ConversationListViewModel.requestDelete]
+ * hides the thread without actually calling [text.message.sms.messaging.domain.usecase.DeleteConversation]
+ * yet, so there's nothing irreversible to undo *from*. Every other action performs immediately and
+ * springs back (`false`) rather than removing the row. A direction configured to
+ * [SwipeAction.NONE] is disabled outright rather than merely a no-op, so it doesn't intercept the
+ * gesture at all.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DateSectionHeader(date: LocalDate, modifier: Modifier = Modifier) {
+private fun SwipeableConversationRow(
+    conversation: Conversation,
+    swipeActionPreference: SwipeActionPreference,
+    onClick: () -> Unit,
+    onSwipeAction: (SwipeAction) -> Unit,
+    onDeleteRequested: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            val action = when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> swipeActionPreference.startToEnd
+                SwipeToDismissBoxValue.EndToStart -> swipeActionPreference.endToStart
+                SwipeToDismissBoxValue.Settled -> return@rememberSwipeToDismissBoxState true
+            }
+            when (action) {
+                SwipeAction.NONE -> false
+                SwipeAction.DELETE -> {
+                    onDeleteRequested()
+                    true
+                }
+                SwipeAction.ARCHIVE -> {
+                    onSwipeAction(action)
+                    true
+                }
+                SwipeAction.TOGGLE_READ, SwipeAction.CALL -> {
+                    onSwipeAction(action)
+                    false
+                }
+            }
+        },
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        modifier = modifier,
+        enableDismissFromStartToEnd = swipeActionPreference.startToEnd != SwipeAction.NONE,
+        enableDismissFromEndToStart = swipeActionPreference.endToStart != SwipeAction.NONE,
+        backgroundContent = {
+            val action = when (dismissState.targetValue) {
+                SwipeToDismissBoxValue.StartToEnd -> swipeActionPreference.startToEnd
+                SwipeToDismissBoxValue.EndToStart -> swipeActionPreference.endToStart
+                SwipeToDismissBoxValue.Settled -> SwipeAction.NONE
+            }
+            val alignment = if (dismissState.targetValue == SwipeToDismissBoxValue.StartToEnd) {
+                Alignment.CenterStart
+            } else {
+                Alignment.CenterEnd
+            }
+            SwipeActionBackground(action = action, alignment = alignment)
+        },
+    ) {
+        ConversationRow(conversation = conversation, onClick = onClick)
+    }
+}
+
+@Composable
+private fun SwipeActionBackground(action: SwipeAction, alignment: Alignment, modifier: Modifier = Modifier) {
+    val (container, onContainer) = when (action) {
+        SwipeAction.ARCHIVE -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        SwipeAction.DELETE -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        SwipeAction.TOGGLE_READ -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+        SwipeAction.CALL -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+        SwipeAction.NONE -> MaterialTheme.colorScheme.surfaceContainer to MaterialTheme.colorScheme.surfaceContainer
+    }
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(container)
+            .padding(horizontal = 24.dp),
+        contentAlignment = alignment,
+    ) {
+        action.icon()?.let { icon ->
+            Icon(imageVector = icon, contentDescription = null, tint = onContainer)
+        }
+    }
+}
+
+/** `internal` so [text.message.sms.messaging.ui.screens.archived.ArchivedScreen] can reuse it
+ * for its own date-grouped list. */
+@Composable
+internal fun DateSectionHeader(date: LocalDate, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val today = remember { LocalDate.now() }
     val label = when (date) {
@@ -370,9 +589,11 @@ private fun DateSectionHeader(date: LocalDate, modifier: Modifier = Modifier) {
     )
 }
 
+/** `internal` so [text.message.sms.messaging.ui.screens.archived.ArchivedScreen] can reuse the
+ * same row rendering rather than duplicating it. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ConversationRow(
+internal fun ConversationRow(
     conversation: Conversation,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,

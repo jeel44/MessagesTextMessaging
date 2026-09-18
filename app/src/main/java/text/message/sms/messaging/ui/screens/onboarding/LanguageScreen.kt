@@ -15,12 +15,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -40,13 +46,22 @@ import text.message.sms.messaging.R
 import text.message.sms.messaging.ui.theme.Pill
 
 /**
- * Third onboarding screen: the user picks a language while [LanguageViewModel] silently syncs
- * the message cache in the background (see its `init` block). Continue never waits on that sync
- * -- Home's own Flow-backed repository query picks up any rows that land after navigation.
+ * The language picker, reused for two different entry points -- exactly one of [onContinue] /
+ * [onBack] is non-null and picks which:
+ *
+ * - Onboarding's third step (`onContinue` set, `onBack` null): a bottom "Continue" bar that also
+ *   marks onboarding complete, no top bar. [LanguageViewModel] silently syncs the message cache
+ *   in the background while this is up (see its `init` block); Continue never waits on that sync
+ *   -- Home's own Flow-backed repository query picks up any rows that land after navigation.
+ * - Settings' "Language" row (`onBack` set, `onContinue` null): a plain top bar with a back
+ *   arrow, no bottom bar -- picking a row applies immediately (see
+ *   [LanguageViewModel.selectLanguage]), so there's nothing to "continue" to.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LanguageScreen(
-    onContinue: () -> Unit,
+    onContinue: (() -> Unit)? = null,
+    onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     viewModel: LanguageViewModel = hiltViewModel(),
 ) {
@@ -54,20 +69,37 @@ fun LanguageScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        bottomBar = {
-            Surface(color = MaterialTheme.colorScheme.surface) {
-                Button(
-                    onClick = {
-                        viewModel.completeOnboarding()
-                        onContinue()
+        topBar = {
+            if (onBack != null) {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.settings_language_title)) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.action_back),
+                            )
+                        }
                     },
-                    shape = Pill,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 16.dp)
-                        .height(52.dp),
-                ) {
-                    Text(stringResource(R.string.language_continue))
+                )
+            }
+        },
+        bottomBar = {
+            if (onContinue != null) {
+                Surface(color = MaterialTheme.colorScheme.surface) {
+                    Button(
+                        onClick = {
+                            viewModel.completeOnboarding()
+                            onContinue()
+                        },
+                        shape = Pill,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 16.dp)
+                            .height(52.dp),
+                    ) {
+                        Text(stringResource(R.string.language_continue))
+                    }
                 }
             }
         },

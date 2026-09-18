@@ -1,5 +1,7 @@
 package text.message.sms.messaging.ui.screens.onboarding
 
+import androidx.appcompat.app.AppCompatDelegate
+
 /**
  * One row in the language picker.
  *
@@ -31,3 +33,14 @@ internal val LanguageOptions = listOf(
     LanguageOption("ko", "Korean", "한국어", "한", "ko"),
     LanguageOption("sv", "Swedish", "Svenska", "S", "sv"),
 )
+
+/**
+ * The [LanguageOption] actually in effect right now, read from
+ * [AppCompatDelegate.getApplicationLocales] -- the same call [LanguageScreen]'s selection writes
+ * to, and the authoritative source regardless of which screen last set it (onboarding's, or
+ * Settings'). Falls back to [LanguageOptions.first] ("System Default") when nothing has been set.
+ */
+internal fun currentLanguageOption(): LanguageOption {
+    val currentTag = AppCompatDelegate.getApplicationLocales().toLanguageTags().takeIf { it.isNotBlank() }
+    return LanguageOptions.firstOrNull { it.languageTag == currentTag } ?: LanguageOptions.first()
+}

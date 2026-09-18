@@ -14,9 +14,13 @@ import text.message.sms.messaging.domain.usecase.SyncMessages
 import javax.inject.Inject
 
 /**
- * Backs [LanguageScreen]. Also owns the moment the post-onboarding sync starts: the instant this
- * ViewModel is created (i.e. the instant the screen is first composed), on [viewModelScope] so
- * the sync keeps running even if the user continues on to Home before it finishes.
+ * Backs [LanguageScreen], reached both from onboarding (a one-time step) and from Settings (to
+ * change the language later) -- see [LanguageScreen]'s doc for how it tells the two apart.
+ *
+ * Also owns the moment the post-onboarding sync starts: the instant this ViewModel is created
+ * (i.e. the instant the screen is first composed), on [viewModelScope] so the sync keeps running
+ * even if the user continues on to Home before it finishes. Reached from Settings, this sync is
+ * already long done and [SyncMessages] is idempotent, so it's harmless there too.
  */
 @HiltViewModel
 class LanguageViewModel @Inject constructor(
@@ -24,7 +28,10 @@ class LanguageViewModel @Inject constructor(
     private val onboardingPreferences: OnboardingPreferences,
 ) : ViewModel() {
 
-    private val _selectedLanguage = MutableStateFlow(LanguageOptions.first())
+    // Seeded from AppCompatDelegate's own state, not always LanguageOptions.first() -- reopening
+    // this screen from Settings after a language was already picked must show *that* language
+    // selected, not silently reset the radio group back to "System Default" every time.
+    private val _selectedLanguage = MutableStateFlow(currentLanguageOption())
     internal val selectedLanguage: StateFlow<LanguageOption> = _selectedLanguage.asStateFlow()
 
     init {

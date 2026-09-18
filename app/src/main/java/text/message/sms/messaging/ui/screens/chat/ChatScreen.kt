@@ -1,9 +1,7 @@
 package text.message.sms.messaging.ui.screens.chat
 
-import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.text.format.DateFormat
 import android.widget.Toast
@@ -80,9 +78,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -92,6 +88,7 @@ import text.message.sms.messaging.domain.model.Conversation
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.ui.components.MessageBubble
 import text.message.sms.messaging.ui.theme.Pill
+import text.message.sms.messaging.util.placeCall
 import java.io.File
 import java.time.Instant
 import java.time.LocalDate
@@ -588,16 +585,6 @@ private fun AttachmentOption(spec: AttachmentOptionSpec, modifier: Modifier = Mo
             )
         }
     }
-}
-
-private fun placeCall(context: Context, address: String) {
-    val hasCallPermission = ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.CALL_PHONE,
-    ) == PackageManager.PERMISSION_GRANTED
-
-    val action = if (hasCallPermission) Intent.ACTION_CALL else Intent.ACTION_DIAL
-    context.startActivity(Intent(action, "tel:$address".toUri()))
 }
 
 /** Creates a `content://` target for [ActivityResultContracts.TakePicture] to write into,

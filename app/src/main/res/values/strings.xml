@@ -39,6 +39,7 @@
     <string name="screen_new_message">New message</string>
     <string name="screen_search">Search</string>
     <string name="screen_settings">Settings</string>
+    <string name="screen_archived">Archived</string>
 
     <!-- Home (conversation list) -->
     <string name="home_filter_all">All</string>
@@ -52,6 +53,14 @@
     <string name="home_not_default_message">Messages needs to be your default SMS app to sync and show your conversations here.</string>
     <string name="home_sync_failed_message">Some messages couldn\'t be loaded</string>
     <string name="home_sync_retry">Retry</string>
+    <string name="home_archived_row_title">Archived</string>
+    <string name="home_archived_snackbar">Archived</string>
+    <string name="home_deleted_snackbar">Deleted</string>
+
+    <!-- Archived -->
+    <string name="archived_unarchive">Unarchive</string>
+    <string name="archived_empty_title">No archived conversations</string>
+    <string name="archived_empty_message">Conversations you archive show up here.</string>
 
     <!-- Actions -->
     <string name="action_search">Search</string>
@@ -60,6 +69,14 @@
     <string name="action_back">Back</string>
     <string name="action_close">Close</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_undo">Undo</string>
+
+    <!-- Swipe actions (conversation list + Settings picker) -->
+    <string name="swipe_action_none">None</string>
+    <string name="swipe_action_archive">Archive</string>
+    <string name="swipe_action_delete">Delete</string>
+    <string name="swipe_action_toggle_read">Mark read/unread</string>
+    <string name="swipe_action_call">Call</string>
 
     <!-- Chat -->
     <string name="chat_call">Call</string>
@@ -152,12 +169,17 @@
 
     <string name="settings_default_app_title">Default SMS app</string>
     <string name="settings_default_app_summary">Set Messages as your default SMS app</string>
+    <string name="settings_language_title">Language</string>
     <string name="settings_notifications_title">Notifications</string>
     <string name="settings_notifications_summary">Show a notification for new messages</string>
     <string name="settings_delivery_reports_title">Delivery reports</string>
     <string name="settings_delivery_reports_summary">Get notified when a message is delivered</string>
     <string name="settings_quick_reply_title">Quick reply</string>
     <string name="settings_quick_reply_summary">Reply to messages from the notification shade</string>
+    <string name="settings_swipe_actions_title">Swipe actions</string>
+    <string name="settings_swipe_actions_summary">%1$s · %2$s</string>
+    <string name="settings_swipe_right_header">Swipe right</string>
+    <string name="settings_swipe_left_header">Swipe left</string>
 
     <string name="settings_auto_backup_title">Auto backup</string>
     <string name="settings_auto_backup_summary">Back up messages automatically</string>

@@ -32,11 +32,13 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.SwipeRight
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -66,7 +68,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import text.message.sms.messaging.R
+import text.message.sms.messaging.data.local.datastore.SwipeAction
 import text.message.sms.messaging.data.local.datastore.ThemeMode
+import text.message.sms.messaging.ui.components.labelRes
+import text.message.sms.messaging.ui.screens.onboarding.currentLanguageOption
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -83,6 +88,7 @@ import java.util.Locale
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onLanguageClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -92,12 +98,14 @@ fun SettingsScreen(
     var autoBackupEnabled by rememberSaveable { mutableStateOf(false) }
     var wifiOnlyBackupEnabled by rememberSaveable { mutableStateOf(true) }
     var showThemePicker by remember { mutableStateOf(false) }
+    var showSwipeActionPicker by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val operation by viewModel.operation.collectAsStateWithLifecycle()
     val event by viewModel.event.collectAsStateWithLifecycle()
     val lastBackupAtMillis by viewModel.lastBackupAtMillis.collectAsStateWithLifecycle()
     val themePreference by viewModel.themePreference.collectAsStateWithLifecycle()
+    val swipeActionPreference by viewModel.swipeActionPreference.collectAsStateWithLifecycle()
     val backupBusy = operation != BackupOperation.IDLE
 
     val exportLauncher = rememberLauncherForActivityResult(
@@ -158,6 +166,22 @@ fun SettingsScreen(
                     icon = Icons.Filled.Sms,
                     title = stringResource(R.string.settings_default_app_title),
                     summary = stringResource(R.string.settings_default_app_summary),
+                ),
+                SettingsRow(
+                    icon = Icons.Filled.Language,
+                    title = stringResource(R.string.settings_language_title),
+                    summary = languageSummary(),
+                    onClick = onLanguageClick,
+                ),
+                SettingsRow(
+                    icon = Icons.Filled.SwipeRight,
+                    title = stringResource(R.string.settings_swipe_actions_title),
+                    summary = stringResource(
+                        R.string.settings_swipe_actions_summary,
+                        stringResource(swipeActionPreference.startToEnd.labelRes()),
+                        stringResource(swipeActionPreference.endToStart.labelRes()),
+                    ),
+                    onClick = { showSwipeActionPicker = true },
                 ),
                 SettingsRow(
                     icon = Icons.Filled.Notifications,
@@ -287,7 +311,23 @@ fun SettingsScreen(
             onDismiss = { showThemePicker = false },
         )
     }
+
+    if (showSwipeActionPicker) {
+        SwipeActionPickerDialog(
+            preference = swipeActionPreference,
+            onStartToEndSelected = viewModel::setSwipeStartToEnd,
+            onEndToStartSelected = viewModel::setSwipeEndToStart,
+            onDismiss = { showSwipeActionPicker = false },
+        )
+    }
 }
+
+/** Not reactive -- [text.message.sms.messaging.ui.screens.onboarding.currentLanguageOption] is a
+ * plain synchronous read of [androidx.appcompat.app.AppCompatDelegate]'s own state, not a Flow.
+ * That's fine here: navigating to the Language screen and back already recomposes this screen
+ * fresh, so the summary is correct by the time it's visible again. */
+@Composable
+private fun languageSummary(): String = currentLanguageOption().displayName
 
 private data class SettingsSection(val title: String, val rows: List<SettingsRow>)
 

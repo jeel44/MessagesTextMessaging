@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.data.local.datastore.BackupPreferences
+import text.message.sms.messaging.data.local.datastore.SwipeAction
+import text.message.sms.messaging.data.local.datastore.SwipeActionPreference
+import text.message.sms.messaging.data.local.datastore.SwipeActionPreferences
 import text.message.sms.messaging.data.local.datastore.ThemeMode
 import text.message.sms.messaging.data.local.datastore.ThemePreference
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
@@ -43,6 +46,7 @@ class SettingsViewModel @Inject constructor(
     private val importBackupUseCase: ImportBackup,
     private val backupPreferences: BackupPreferences,
     private val themePreferences: ThemePreferences,
+    private val swipeActionPreferences: SwipeActionPreferences,
 ) : ViewModel() {
 
     private val _operation = MutableStateFlow(BackupOperation.IDLE)
@@ -63,6 +67,17 @@ class SettingsViewModel @Inject constructor(
 
     internal fun setAccentColor(color: Color?) {
         viewModelScope.launch { themePreferences.setAccentColor(color) }
+    }
+
+    internal val swipeActionPreference: StateFlow<SwipeActionPreference> = swipeActionPreferences.swipeActionPreference
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SwipeActionPreference())
+
+    internal fun setSwipeStartToEnd(action: SwipeAction) {
+        viewModelScope.launch { swipeActionPreferences.setStartToEnd(action) }
+    }
+
+    internal fun setSwipeEndToStart(action: SwipeAction) {
+        viewModelScope.launch { swipeActionPreferences.setEndToStart(action) }
     }
 
     internal fun exportBackup(destinationUri: String) {

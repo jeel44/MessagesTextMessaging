@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import text.message.sms.messaging.ui.screens.archived.ArchivedScreen
 import text.message.sms.messaging.ui.screens.chat.ChatScreen
 import text.message.sms.messaging.ui.screens.chat.MediaViewerScreen
 import text.message.sms.messaging.ui.screens.conversationinfo.ConversationInfoScreen
@@ -90,6 +91,18 @@ fun MessagingNavHost(
                 onSettingsClick = {
                     navController.navigate(MessagingDestination.Settings.route)
                 },
+                onArchivedClick = {
+                    navController.navigate(MessagingDestination.Archived.route)
+                },
+            )
+        }
+
+        composable(MessagingDestination.Archived.route) {
+            ArchivedScreen(
+                onBack = navController::popBackStack,
+                onConversationClick = { threadId ->
+                    navController.navigate(MessagingDestination.Chat.routeFor(threadId))
+                },
             )
         }
 
@@ -160,6 +173,15 @@ fun MessagingNavHost(
 
         composable(MessagingDestination.Settings.route) {
             SettingsScreen(
+                onBack = navController::popBackStack,
+                onLanguageClick = {
+                    navController.navigate(MessagingDestination.LanguageSettings.route)
+                },
+            )
+        }
+
+        composable(MessagingDestination.LanguageSettings.route) {
+            LanguageScreen(
                 onBack = navController::popBackStack,
             )
         }
