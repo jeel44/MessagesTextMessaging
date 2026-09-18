@@ -831,9 +831,9 @@ private fun OtpQuickCopyChip(code: String, modifier: Modifier = Modifier) {
  * which accent the Theme picker has set, the same reasoning as [UnreadBadgeGray] above. */
 private val AvatarPalette = listOf(
     Color(0xFFE53935), // red
-    Color(0xFF1E88E5), // blue
+    Color(0xFF3B7DED), // blue
     Color(0xFFFB8C00), // orange
-    Color(0xFFD81B60), // pink
+    Color(0xFFEC407A), // pink
     Color(0xFF8E24AA), // purple
 )
 

@@ -19,19 +19,20 @@ import androidx.compose.ui.platform.LocalContext
  * can force either mode regardless of the system setting.
  *
  * [accentColor] is the user's picked accent from the theme picker, `null` meaning "use the
- * default coloring". When set, it takes over from Material You entirely -- see
- * [accentColorScheme] -- since a color the user explicitly picked should win over whatever the
- * wallpaper-derived palette would have been. With no accent picked, color follows the device
- * wallpaper (Material You) from Android 12 (API 31) on, via
- * [dynamicLightColorScheme]/[dynamicDarkColorScheme]; older releases -- and this app, since
- * `dynamicColor` defaults to `true` here but callers may turn it off -- fall back to the
- * hand-authored blue schemes in [LightColors]/[DarkColors].
+ * default coloring" -- which is the hand-authored blue schemes in [LightColors]/[DarkColors],
+ * matching Google Messages' own default accent.
+ * [dynamicColor] (Material-You, wallpaper-derived colors via [dynamicLightColorScheme]/
+ * [dynamicDarkColorScheme] on Android 12+) defaults to `false` since there is no theme-picker
+ * option that opts into it yet -- turning it on unconditionally made every screen's background
+ * silently follow the device wallpaper's tint (e.g. a lavender cast from a purple-leaning
+ * wallpaper) instead of the app's own designed near-white background, with no way for the user
+ * to tell why. Pass `true` explicitly once a picker option exists for it.
  */
 @Composable
 fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     accentColor: Color? = null,
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current

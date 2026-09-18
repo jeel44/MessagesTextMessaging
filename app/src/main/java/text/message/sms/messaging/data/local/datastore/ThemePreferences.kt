@@ -25,8 +25,7 @@ private val Context.themeDataStore: DataStore<Preferences> by preferencesDataSto
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 /** The user's whole theme choice: [mode] plus an optional [accentColor] override. A `null`
- * [accentColor] keeps the app's default coloring (Material You dynamic color on API 31+, the
- * hand-authored blue fallback below it) -- see
+ * [accentColor] keeps the app's default coloring, the hand-authored blue scheme -- see
  * [text.message.sms.messaging.ui.theme.AppTheme]. */
 data class ThemePreference(val mode: ThemeMode = ThemeMode.SYSTEM, val accentColor: Color? = null)
 
