@@ -55,6 +55,9 @@
     <string name="home_sync_retry">Retry</string>
     <string name="home_archived_row_title">Archived</string>
     <string name="home_archived_snackbar">Archived</string>
+    <string name="home_new_chat_label">New Chat</string>
+    <string name="home_otp_copied_toast">Code copied</string>
+    <string name="home_otp_copy_content_description">Copy verification code</string>
     <string name="home_deleted_snackbar">Deleted</string>
 
     <!-- Archived -->

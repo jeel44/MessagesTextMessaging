@@ -1,6 +1,7 @@
 package text.message.sms.messaging.ui.screens.conversationlist
 
 import android.text.format.DateFormat
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
@@ -11,6 +12,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,7 +28,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,15 +35,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.MarkChatUnread
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -73,17 +74,22 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import text.message.sms.messaging.R
 import text.message.sms.messaging.data.local.datastore.SwipeAction
 import text.message.sms.messaging.data.local.datastore.SwipeActionPreference
@@ -91,6 +97,7 @@ import text.message.sms.messaging.domain.model.Conversation
 import text.message.sms.messaging.domain.repository.SyncProgress
 import text.message.sms.messaging.ui.components.icon
 import text.message.sms.messaging.ui.theme.Pill
+import text.message.sms.messaging.util.OtpDetector
 import text.message.sms.messaging.util.placeCall
 import java.time.Instant
 import java.time.LocalDate
@@ -116,7 +123,6 @@ fun ConversationListScreen(
     viewModel: ConversationListViewModel = hiltViewModel(),
 ) {
     val conversations by viewModel.conversations.collectAsStateWithLifecycle()
-    val filter by viewModel.filter.collectAsStateWithLifecycle()
     val isDefaultSmsApp by viewModel.isDefaultSmsApp.collectAsStateWithLifecycle()
     val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
     val swipeActionPreference by viewModel.swipeActionPreference.collectAsStateWithLifecycle()
@@ -206,12 +212,16 @@ fun ConversationListScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onNewMessageClick) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_compose),
-                    contentDescription = stringResource(R.string.action_new_message),
-                )
-            }
+            ExtendedFloatingActionButton(
+                onClick = onNewMessageClick,
+                icon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_compose),
+                        contentDescription = null,
+                    )
+                },
+                text = { Text(stringResource(R.string.home_new_chat_label)) },
+            )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
@@ -231,12 +241,6 @@ fun ConversationListScreen(
                     onDismiss = { dismissedFailure = failure },
                 )
             }
-
-            FilterChipRow(
-                selected = filter,
-                onSelect = viewModel::selectFilter,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            )
 
             if (archivedCount > 0) {
                 ArchivedSummaryRow(count = archivedCount, onClick = onArchivedClick)
@@ -381,31 +385,6 @@ private fun SyncFailedBanner(onRetry: () -> Unit, onDismiss: () -> Unit, modifie
                     tint = MaterialTheme.colorScheme.onErrorContainer,
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun FilterChipRow(
-    selected: ConversationFilter,
-    onSelect: (ConversationFilter) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val chips = listOf(
-        ConversationFilter.ALL to stringResource(R.string.home_filter_all),
-        ConversationFilter.UNREAD to stringResource(R.string.home_filter_unread),
-        ConversationFilter.PINNED to stringResource(R.string.home_filter_pinned),
-    )
-    LazyRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        items(chips, key = { it.first }) { (chipFilter, label) ->
-            FilterChip(
-                selected = chipFilter == selected,
-                onClick = { onSelect(chipFilter) },
-                label = { Text(label) },
-            )
         }
     }
 }
@@ -734,22 +713,13 @@ internal fun ConversationRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = conversation.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (conversation.hasUnread) FontWeight.Bold else FontWeight.Normal,
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
+                    fontWeight = if (conversation.hasUnread) FontWeight.Bold else FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                if (conversation.hasUnread) {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                    )
-                }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = formatMessageTime(conversation.lastMessageAtMillis),
@@ -764,26 +734,142 @@ internal fun ConversationRow(
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            Text(
-                text = conversation.snippet,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = conversation.snippet,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                if (conversation.hasUnread) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    UnreadCountBadge(count = conversation.unreadCount)
+                }
+            }
+
+            val otpCode = remember(conversation.snippet) { OtpDetector.extractCode(conversation.snippet) }
+            if (otpCode != null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                OtpQuickCopyChip(code = otpCode)
+            }
         }
     }
 }
 
+/** Neutral, theme-independent gray -- the badge must read the same "unread count" regardless of
+ * whichever accent color the Theme picker has set, the same reasoning behind [SwipeArchiveBlue]/
+ * [SwipeDeleteRed] above. */
+private val UnreadBadgeGray = Color(0xFF757575)
+
+@Composable
+private fun UnreadCountBadge(count: Int, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
+            .clip(CircleShape)
+            .background(UnreadBadgeGray)
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = if (count > 99) "99+" else count.toString(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+        )
+    }
+}
+
+/**
+ * Bordered, accent-colored chip offering to copy [code] straight from the inbox, without opening
+ * the conversation -- [Modifier.clickable] here consumes the tap itself, so it never also fires
+ * [ConversationRow]'s own [combinedClickable] underneath it. [code] comes from [OtpDetector],
+ * shared with nothing else yet: there's no equivalent affordance inside the Chat screen today.
+ */
+@Composable
+private fun OtpQuickCopyChip(code: String, modifier: Modifier = Modifier) {
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
+    val copiedMessage = stringResource(R.string.home_otp_copied_toast)
+    val copyDescription = stringResource(R.string.home_otp_copy_content_description)
+
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+            .clickable {
+                clipboardManager.setText(AnnotatedString(code))
+                Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
+            }
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = code,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Icon(
+            imageVector = Icons.Filled.ContentCopy,
+            contentDescription = copyDescription,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(14.dp),
+        )
+    }
+}
+
+/** Fixed palette an unresolved sender's (or photo-less contact's) avatar color is hashed from --
+ * deliberately not theme-derived, so a sender's color stays recognizable and stable regardless of
+ * which accent the Theme picker has set, the same reasoning as [UnreadBadgeGray] above. */
+private val AvatarPalette = listOf(
+    Color(0xFFE53935), // red
+    Color(0xFF1E88E5), // blue
+    Color(0xFFFB8C00), // orange
+    Color(0xFFD81B60), // pink
+    Color(0xFF8E24AA), // purple
+)
+
+/** Same [key] (a contact's stable [text.message.sms.messaging.domain.model.Contact.lookupKey], or
+ * a raw address for an unresolved sender) always lands on the same palette entry -- avoids
+ * [Math.abs] overflowing on [Int.MIN_VALUE] by folding the modulo back into range with `+ size`
+ * before taking it again. */
+private fun colorForAvatarKey(key: String): Color {
+    val index = ((key.hashCode() % AvatarPalette.size) + AvatarPalette.size) % AvatarPalette.size
+    return AvatarPalette[index]
+}
+
+/** Initials for a raw sender address (a bank/OTP/business sender ID, not a saved contact) --
+ * [text.message.sms.messaging.domain.model.Contact.initials] only makes sense for a real display
+ * name, so an unresolved sender needs its own fallback: the address's own letters if it has any
+ * (e.g. "HDFCBK" -> "HD"), else its first digit, else "#". */
+private fun initialsForAddress(address: String): String {
+    val letters = address.filter { it.isLetter() }
+    if (letters.isNotEmpty()) return letters.take(2).uppercase()
+    val digits = address.filter { it.isDigit() }
+    return digits.take(1).ifEmpty { "#" }
+}
+
 @Composable
 private fun ConversationAvatar(conversation: Conversation, modifier: Modifier = Modifier) {
-    val contact = conversation.recipients.firstOrNull()?.contact
+    val recipient = conversation.recipients.firstOrNull()
+    val contact = recipient?.contact
+    val hasPhoto = !contact?.photoUri.isNullOrBlank()
+    val backgroundColor = if (conversation.isGroup) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        colorForAvatarKey(contact?.lookupKey ?: recipient?.address.orEmpty())
+    }
 
     Box(
         modifier = modifier
             .size(56.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer),
+            .background(backgroundColor),
         contentAlignment = Alignment.Center,
     ) {
         when {
@@ -793,15 +879,26 @@ private fun ConversationAvatar(conversation: Conversation, modifier: Modifier = 
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             contact != null -> Text(
-                text = contact.initials,
+                text = contact.initials.ifBlank { "?" },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = Color.White,
             )
-            else -> Icon(
-                imageVector = Icons.Filled.Person,
+            else -> Text(
+                text = initialsForAddress(recipient?.address.orEmpty()),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+            )
+        }
+        if (hasPhoto) {
+            AsyncImage(
+                model = contact?.photoUri,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(CircleShape),
             )
         }
     }
