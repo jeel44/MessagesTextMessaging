@@ -60,6 +60,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -196,6 +197,10 @@ fun ConversationListScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.screen_conversations)) },
                 navigationIcon = { BrandMark() },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.background,
+                ),
                 actions = {
                     IconButton(onClick = onSearchClick) {
                         Icon(
@@ -802,7 +807,7 @@ private fun OtpQuickCopyChip(code: String, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(50))
-            .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+            .border(1.dp, AccentBlue, RoundedCornerShape(50))
             .clickable {
                 clipboardManager.setText(AnnotatedString(code))
                 Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
@@ -814,24 +819,31 @@ private fun OtpQuickCopyChip(code: String, modifier: Modifier = Modifier) {
             text = code,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
+            color = AccentBlue,
         )
         Spacer(modifier = Modifier.width(4.dp))
         Icon(
             imageVector = Icons.Filled.ContentCopy,
             contentDescription = copyDescription,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = AccentBlue,
             modifier = Modifier.size(14.dp),
         )
     }
 }
+
+/** The saturated blue used for both the OTP chip above and [AvatarPalette]'s blue swatch below --
+ * pulled out to a shared constant so the two can never drift apart again. Deliberately not
+ * [MaterialTheme.colorScheme.primary]: that token is themeable (custom accent / dynamic color) and
+ * measurably less saturated than this hue, which is what caused the chip to visibly mismatch the
+ * avatar it sits next to. */
+private val AccentBlue = Color(0xFF3B7DED)
 
 /** Fixed palette an unresolved sender's (or photo-less contact's) avatar color is hashed from --
  * deliberately not theme-derived, so a sender's color stays recognizable and stable regardless of
  * which accent the Theme picker has set, the same reasoning as [UnreadBadgeGray] above. */
 private val AvatarPalette = listOf(
     Color(0xFFE53935), // red
-    Color(0xFF3B7DED), // blue
+    AccentBlue, // blue
     Color(0xFFFB8C00), // orange
     Color(0xFFEC407A), // pink
     Color(0xFF8E24AA), // purple
