@@ -7,12 +7,14 @@ import dagger.hilt.components.SingletonComponent
 import text.message.sms.messaging.data.local.provider.MmsProviderGateway
 import text.message.sms.messaging.data.local.provider.TelephonyMessageTransmitter
 import text.message.sms.messaging.data.repository.LocalAttachmentRepository
+import text.message.sms.messaging.data.repository.LocalBackupRepository
 import text.message.sms.messaging.data.repository.LocalBlockedNumberRepository
 import text.message.sms.messaging.data.repository.LocalContactRepository
 import text.message.sms.messaging.data.repository.LocalConversationRepository
 import text.message.sms.messaging.data.repository.LocalMessageRepository
 import text.message.sms.messaging.data.repository.TelephonySyncRepository
 import text.message.sms.messaging.domain.repository.AttachmentRepository
+import text.message.sms.messaging.domain.repository.BackupRepository
 import text.message.sms.messaging.domain.repository.BlockedNumberRepository
 import text.message.sms.messaging.domain.repository.ContactRepository
 import text.message.sms.messaging.domain.repository.ConversationRepository
@@ -62,4 +64,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindIncomingMessageSource(impl: MmsProviderGateway): IncomingMessageSource
+
+    @Binds
+    @Singleton
+    abstract fun bindBackupRepository(impl: LocalBackupRepository): BackupRepository
 }

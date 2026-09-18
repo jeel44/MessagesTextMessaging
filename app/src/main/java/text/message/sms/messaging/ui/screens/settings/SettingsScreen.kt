@@ -1,6 +1,11 @@
 package text.message.sms.messaging.ui.screens.settings
 
 import android.content.pm.PackageManager
+import android.text.format.DateFormat
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,12 +39,14 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,7 +58,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import text.message.sms.messaging.R
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * App settings, laid out the way QKSMS does it: a flat scrollable list of rows grouped under
@@ -66,6 +78,7 @@ import text.message.sms.messaging.R
 fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     var darkModeEnabled by rememberSaveable { mutableStateOf(false) }
     var notificationsEnabled by rememberSaveable { mutableStateOf(true) }
@@ -73,6 +86,35 @@ fun SettingsScreen(
     var quickReplyEnabled by rememberSaveable { mutableStateOf(true) }
     var autoBackupEnabled by rememberSaveable { mutableStateOf(false) }
     var wifiOnlyBackupEnabled by rememberSaveable { mutableStateOf(true) }
+
+    val context = LocalContext.current
+    val operation by viewModel.operation.collectAsStateWithLifecycle()
+    val event by viewModel.event.collectAsStateWithLifecycle()
+    val lastBackupAtMillis by viewModel.lastBackupAtMillis.collectAsStateWithLifecycle()
+    val backupBusy = operation != BackupOperation.IDLE
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri -> uri?.let { viewModel.exportBackup(it.toString()) } }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri -> uri?.let { viewModel.importBackup(it.toString()) } }
+
+    LaunchedEffect(event) {
+        val current = event ?: return@LaunchedEffect
+        val message = when (current) {
+            is BackupEvent.ExportSucceeded ->
+                context.getString(R.string.settings_backup_export_success, current.messageCount)
+            is BackupEvent.ImportSucceeded ->
+                context.getString(R.string.settings_backup_import_success, current.messageCount)
+            BackupEvent.NotDefaultSmsApp -> context.getString(R.string.settings_backup_not_default_app)
+            BackupEvent.DestinationUnavailable -> context.getString(R.string.settings_backup_destination_unavailable)
+            is BackupEvent.Error -> context.getString(R.string.settings_backup_error, current.message)
+        }
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        viewModel.consumeBackupEvent()
+    }
 
     val sections = listOf(
         SettingsSection(
@@ -137,12 +179,17 @@ fun SettingsScreen(
                 SettingsRow(
                     icon = Icons.Filled.CloudUpload,
                     title = stringResource(R.string.settings_backup_now_title),
-                    summary = stringResource(R.string.settings_backup_now_summary),
+                    summary = lastBackupAtMillis?.let { stringResource(R.string.settings_last_backup_at, formatBackupTimestamp(it)) }
+                        ?: stringResource(R.string.settings_last_backup_never),
+                    enabled = !backupBusy,
+                    onClick = { exportLauncher.launch(defaultBackupFileName()) },
                 ),
                 SettingsRow(
                     icon = Icons.Filled.CloudDownload,
                     title = stringResource(R.string.settings_restore_title),
                     summary = stringResource(R.string.settings_restore_summary),
+                    enabled = !backupBusy,
+                    onClick = { importLauncher.launch(arrayOf("*/*")) },
                 ),
                 SettingsRow(
                     icon = Icons.Filled.Wifi,
@@ -195,12 +242,28 @@ fun SettingsScreen(
             )
         },
     ) { innerPadding ->
-        SettingsList(
-            sections = sections,
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-        )
+        ) {
+            if (backupBusy) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Text(
+                    text = stringResource(
+                        if (operation == BackupOperation.EXPORTING) {
+                            R.string.settings_backup_exporting
+                        } else {
+                            R.string.settings_backup_importing
+                        },
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
+            SettingsList(sections = sections, modifier = Modifier.fillMaxSize())
+        }
     }
 }
 
@@ -211,6 +274,8 @@ private data class SettingsRow(
     val title: String,
     val summary: String? = null,
     val trailing: SettingsTrailing = SettingsTrailing.None,
+    val enabled: Boolean = true,
+    val onClick: (() -> Unit)? = null,
 )
 
 private sealed interface SettingsTrailing {
@@ -253,16 +318,24 @@ private fun SettingsSectionHeader(title: String, modifier: Modifier = Modifier) 
 
 @Composable
 private fun SettingsRowItem(row: SettingsRow, modifier: Modifier = Modifier) {
+    val contentAlpha = if (row.enabled) 1f else 0.38f
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .let { rowModifier ->
+                if (row.onClick != null) {
+                    rowModifier.clickable(enabled = row.enabled, onClick = row.onClick)
+                } else {
+                    rowModifier
+                }
+            }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = row.icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
             modifier = Modifier.size(24.dp),
         )
 
@@ -272,7 +345,7 @@ private fun SettingsRowItem(row: SettingsRow, modifier: Modifier = Modifier) {
             Text(
                 text = row.title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
             )
             if (row.summary != null) {
                 Spacer(modifier = Modifier.height(2.dp))
@@ -312,4 +385,20 @@ private fun rememberAppVersionName(): String {
             ""
         }
     }
+}
+
+@Composable
+private fun formatBackupTimestamp(timestampMillis: Long): String {
+    val context = LocalContext.current
+    return remember(timestampMillis) {
+        val date = Date(timestampMillis)
+        "${DateFormat.getMediumDateFormat(context).format(date)} ${DateFormat.getTimeFormat(context).format(date)}"
+    }
+}
+
+/** Suggested name for [androidx.activity.result.contract.ActivityResultContracts.CreateDocument]
+ * -- timestamped so repeated backups don't collide in whatever folder the user picks. */
+private fun defaultBackupFileName(): String {
+    val timestamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+    return "messages_backup_$timestamp.json"
 }

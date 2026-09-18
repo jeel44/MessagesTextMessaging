@@ -14,6 +14,13 @@ interface SyncRepository {
     /** Pulls a single provider row into the cache, e.g. after a broadcast. */
     suspend fun syncMessage(providerUri: String)
 
+    /** Clears the incremental-sync watermark so the next [syncAll] walks the entire system
+     * provider again instead of only rows newer than what was already pulled -- needed after
+     * [text.message.sms.messaging.domain.repository.BackupRepository.import] writes historical
+     * rows into the provider that would otherwise be older than the watermark and silently
+     * skipped. */
+    suspend fun resetSyncWatermark()
+
     /** Timestamp of the last successful full sync, or `null` if it never ran. */
     suspend fun lastSyncAtMillis(): Long?
 }

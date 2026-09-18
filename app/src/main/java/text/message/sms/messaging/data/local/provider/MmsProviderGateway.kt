@@ -261,6 +261,46 @@ class MmsProviderGateway @Inject constructor(
         return providerId
     }
 
+    /**
+     * Writes a message from a previously exported backup back into the system provider,
+     * preserving its original folder, timestamps and read/seen state -- unlike [insertRetrieved],
+     * which always lands a freshly-downloaded message in INBOX as unread, and
+     * [insertOutgoingDraft], which always lands in OUTBOX. Returns the new provider row id.
+     */
+    fun insertForRestore(
+        threadId: Long,
+        folder: MessageFolder,
+        fromAddress: String?,
+        toAddresses: List<String>,
+        subject: String?,
+        dateEpochSeconds: Long,
+        isRead: Boolean,
+        isSeen: Boolean,
+        subscriptionId: Int,
+        parts: List<MmsPart>,
+    ): Long {
+        val values = ContentValues().apply {
+            put(Telephony.Mms.THREAD_ID, threadId)
+            put(Telephony.Mms.DATE, dateEpochSeconds)
+            put(Telephony.Mms.DATE_SENT, dateEpochSeconds)
+            put(Telephony.Mms.MESSAGE_BOX, folder.providerValue)
+            put(Telephony.Mms.READ, if (isRead) 1 else 0)
+            put(Telephony.Mms.SEEN, if (isSeen) 1 else 0)
+            put(Telephony.Mms.SUBJECT, subject)
+            put(Telephony.Mms.SUBSCRIPTION_ID, subscriptionId)
+            put(Telephony.Mms.CONTENT_TYPE, "application/vnd.wap.multipart.related")
+        }
+
+        val mmsUri = contentResolver.insert(Telephony.Mms.CONTENT_URI, values) ?: return 0L
+        val providerId = mmsUri.lastPathSegment?.toLongOrNull() ?: return 0L
+
+        fromAddress?.let { insertAddr(providerId, it, MmsFieldCode.FROM) }
+        toAddresses.forEach { insertAddr(providerId, it, MmsFieldCode.TO) }
+        parts.forEachIndexed { index, part -> insertPart(providerId, index, part) }
+
+        return providerId
+    }
+
     fun updateMessageBox(providerId: Long, folder: MessageFolder) {
         val values = ContentValues().apply { put(Telephony.Mms.MESSAGE_BOX, folder.providerValue) }
         contentResolver.update(

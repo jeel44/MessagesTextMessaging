@@ -38,6 +38,13 @@ interface MessageDao {
     )
     fun search(query: String): Flow<List<MessageWithAttachments>>
 
+    /** Every message, oldest-thread-first then oldest-message-first, joined with its attachments
+     * -- the full-history read [text.message.sms.messaging.data.repository.LocalBackupRepository]
+     * streams out to a backup file. */
+    @Transaction
+    @Query("SELECT * FROM messages ORDER BY thread_id ASC, received_at ASC")
+    suspend fun getAllForBackup(): List<MessageWithAttachments>
+
     @Query("SELECT COUNT(*) FROM messages WHERE thread_id = :threadId AND is_read = 0")
     suspend fun countUnread(threadId: Long): Int
 

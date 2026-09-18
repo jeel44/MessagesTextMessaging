@@ -42,6 +42,14 @@ interface ConversationDao {
     @Query("SELECT * FROM conversations WHERE thread_id = :threadId")
     suspend fun findByThreadId(threadId: Long): ConversationWithRecipients?
 
+    /** Every thread with its participants, regardless of archived/blocked/pinned state -- unlike
+     * [observeInbox]/[observeArchived], which filter for the UI. Used by
+     * [text.message.sms.messaging.data.repository.LocalBackupRepository] to recover each
+     * message's thread addresses for a backup. */
+    @Transaction
+    @Query("SELECT * FROM conversations")
+    suspend fun getAllWithRecipients(): List<ConversationWithRecipients>
+
     /**
      * Matches a thread's last-message snippet, any participant's raw address, or -- via a left
      * join to the contacts cache through [RecipientEntity.contactLookupKey] -- a saved contact's

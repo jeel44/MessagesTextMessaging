@@ -129,10 +129,19 @@
     <string name="settings_auto_backup_title">Auto backup</string>
     <string name="settings_auto_backup_summary">Back up messages automatically</string>
     <string name="settings_backup_now_title">Backup now</string>
-    <string name="settings_backup_now_summary">Last backup: Never</string>
+    <string name="settings_last_backup_never">Last backup: Never</string>
+    <string name="settings_last_backup_at">Last backup: %1$s</string>
     <string name="settings_restore_title">Restore</string>
     <string name="settings_restore_summary">Restore from a previous backup</string>
     <string name="settings_wifi_only_title">Wi-Fi only</string>
+
+    <string name="settings_backup_exporting">Backing up messages…</string>
+    <string name="settings_backup_importing">Restoring messages…</string>
+    <string name="settings_backup_export_success">Backed up %1$d message(s)</string>
+    <string name="settings_backup_import_success">Restored %1$d message(s)</string>
+    <string name="settings_backup_not_default_app">Set Messages as your default SMS app before restoring a backup</string>
+    <string name="settings_backup_destination_unavailable">Couldn\'t open that file</string>
+    <string name="settings_backup_error">Backup failed: %1$s</string>
 
     <string name="settings_app_version_title">App version</string>
     <string name="settings_rate_app_title">Rate the app</string>

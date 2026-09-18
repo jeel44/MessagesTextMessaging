@@ -201,6 +201,10 @@ class TelephonySyncRepository @Inject constructor(
         }
     }
 
+    override suspend fun resetSyncWatermark(): Unit = withContext(Dispatchers.IO) {
+        syncStateDao.upsert(SyncStateEntity())
+    }
+
     override suspend fun lastSyncAtMillis(): Long? = syncStateDao.get()?.lastFullSyncAtMillis
 
     /**
