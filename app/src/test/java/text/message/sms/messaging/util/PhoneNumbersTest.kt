@@ -34,4 +34,20 @@ class PhoneNumbersTest {
         assertTrue(PhoneNumbers.isShortCode("22333"))
         assertFalse(PhoneNumbers.isShortCode("5550101234"))
     }
+
+    @Test
+    fun `comparableSuffix matches formatting and country-code prefix differences that normalize alone would not`() {
+        // The exact pairing that motivates comparableSuffix as a *lookup key*: normalize() keeps
+        // country code presence/absence as a literal difference, so these two would land on
+        // different map keys even though areEquivalent (and comparableSuffix) treat them as the
+        // same handset -- see LocalConversationRepository.contactsByComparableSuffix's doc for the
+        // real-world bug this was.
+        assertEquals(
+            PhoneNumbers.comparableSuffix("+1 555 010 1234"),
+            PhoneNumbers.comparableSuffix("5550101234"),
+        )
+        assertTrue(
+            PhoneNumbers.normalize("+1 555 010 1234") != PhoneNumbers.normalize("5550101234"),
+        )
+    }
 }

@@ -8,12 +8,14 @@ import text.message.sms.messaging.domain.model.Recipient
 import text.message.sms.messaging.util.PhoneNumbers
 
 /**
- * @param contactsByNormalizedAddress resolved contacts keyed by normalized phone number, so
- * recipient rows can show a name instead of a bare number. Recipients with no match fall back to
- * their address.
+ * @param contactsByComparableSuffix resolved contacts keyed by [PhoneNumbers.comparableSuffix]
+ * (not [PhoneNumbers.normalize] -- see
+ * [text.message.sms.messaging.data.repository.LocalConversationRepository.contactsByComparableSuffix]
+ * for why an exact-normalized-string key would miss a real match), so recipient rows can show a
+ * name instead of a bare number. Recipients with no match fall back to their address.
  */
 fun ConversationWithRecipients.toDomain(
-    contactsByNormalizedAddress: Map<String, Contact> = emptyMap(),
+    contactsByComparableSuffix: Map<String, Contact> = emptyMap(),
 ): Conversation = Conversation(
     id = conversation.threadId,
     threadId = conversation.threadId,
@@ -21,7 +23,7 @@ fun ConversationWithRecipients.toDomain(
         Recipient(
             id = recipient.id,
             address = recipient.address,
-            contact = contactsByNormalizedAddress[PhoneNumbers.normalize(recipient.address)],
+            contact = contactsByComparableSuffix[PhoneNumbers.comparableSuffix(recipient.address)],
         )
     },
     snippet = conversation.snippet,

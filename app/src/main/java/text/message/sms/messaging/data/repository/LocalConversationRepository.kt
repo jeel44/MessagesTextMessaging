@@ -36,7 +36,7 @@ class LocalConversationRepository @Inject constructor(
     override fun observeConversation(threadId: Long): Flow<Conversation?> =
         combine(
             conversationDao.observeByThreadId(threadId),
-            contactsByNormalizedAddress(),
+            contactsByComparableSuffix(),
         ) { conversation, contacts -> conversation?.toDomain(contacts) }
 
     override suspend fun findByThreadId(threadId: Long): Conversation? =
@@ -91,17 +91,30 @@ class LocalConversationRepository @Inject constructor(
         conversationDao.search(query).withContacts()
 
     private fun Flow<List<ConversationWithRecipients>>.withContacts(): Flow<List<Conversation>> =
-        combine(contactsByNormalizedAddress()) { conversations, contacts ->
+        combine(contactsByComparableSuffix()) { conversations, contacts ->
             conversations.map { it.toDomain(contacts) }
         }
 
-    private fun contactsByNormalizedAddress(): Flow<Map<String, Contact>> =
+    /**
+     * Contacts keyed by [PhoneNumbers.comparableSuffix], not [PhoneNumbers.normalize] -- a
+     * [RecipientEntity.address] and a [Contact]'s own saved number can come from entirely
+     * different sources (the system Telephony provider for an address synced from an incoming
+     * message, versus [text.message.sms.messaging.data.local.provider.ContactProviderGateway] for
+     * one picked from Contacts when starting a new outgoing thread) and legitimately differ in
+     * whether a country code is present even though they reach the same handset. An exact-string
+     * lookup keyed by [PhoneNumbers.normalize] alone would miss that pairing -- e.g. a contact
+     * saved as "5550101234" never matching a recipient row stored as "+15550101234" -- which is
+     * exactly why a newly-created outgoing thread (recipient address fresh from Contacts) could
+     * fail to resolve a name that an existing, previously-synced-from-Telephony thread for the
+     * same contact happened to already show correctly.
+     */
+    private fun contactsByComparableSuffix(): Flow<Map<String, Contact>> =
         contactDao.observeAll().map { rows ->
             val contacts = rows.map { it.toDomain() }
             buildMap {
                 for (contact in contacts) {
                     for (number in contact.numbers) {
-                        put(PhoneNumbers.normalize(number), contact)
+                        put(PhoneNumbers.comparableSuffix(number), contact)
                     }
                 }
             }
