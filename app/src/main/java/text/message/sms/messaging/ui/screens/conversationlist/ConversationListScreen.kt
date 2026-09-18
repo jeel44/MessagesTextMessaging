@@ -475,16 +475,28 @@ private fun ConversationList(
 /**
  * Wraps [ConversationRow] in a [SwipeToDismissBox] whose two directions perform whatever
  * [swipeActionPreference] configures (Settings' "Swipe actions" row) -- QKSMS-style archive-right
- * /delete-left are just the defaults. [SwipeAction.ARCHIVE] and [SwipeAction.DELETE] both let the
- * swipe commit (`true`) -- the row leaves the list right away either way, matching QKSMS's
- * undo-after (not confirm-before) pattern for both: archiving already happened (it's a cheap,
- * reversible write) and the caller's snackbar offers Undo; deleting is only *requested* --
- * [text.message.sms.messaging.ui.screens.conversationlist.ConversationListViewModel.requestDelete]
- * hides the thread without actually calling [text.message.sms.messaging.domain.usecase.DeleteConversation]
- * yet, so there's nothing irreversible to undo *from*. Every other action performs immediately and
- * springs back (`false`) rather than removing the row. A direction configured to
- * [SwipeAction.NONE] is disabled outright rather than merely a no-op, so it doesn't intercept the
- * gesture at all.
+ * /delete-left are just the defaults.
+ *
+ * [confirmValueChange] always returns `false`, for every action including [SwipeAction.ARCHIVE]
+ * and [SwipeAction.DELETE] -- it never lets [dismissState] commit to a dismissed value, only ever
+ * performs the side effect and springs the box back to [SwipeToDismissBoxValue.Settled]. Whether
+ * the row then actually disappears is driven entirely by [conversation] leaving the list this
+ * composable's caller feeds it (removed from the inbox by [SwipeAction.ARCHIVE]'s write landing,
+ * or hidden client-side by [SwipeAction.DELETE]'s
+ * [text.message.sms.messaging.ui.screens.conversationlist.ConversationListViewModel.requestDelete]),
+ * which happens fast enough to look identical to a committed swipe-dismiss in practice.
+ *
+ * This is deliberate, not an oversight: letting `confirmValueChange` return `true` and commit
+ * [dismissState] to e.g. `StartToEnd` used to seem like the "proper" swipe-dismiss animation, but
+ * it is exactly the footgun the API's own deprecation notice warns about. [LazyColumn] retains
+ * remembered state per item key across a brief disappear-then-reappear -- which is exactly what
+ * archiving-then-undoing does to this row, same [Conversation.threadId] key both times -- so a
+ * committed [dismissState] survived the round trip and came back still "dismissed": the row
+ * rendered only [SwipeActionBackground] (a plain color fill with an icon, no name or preview)
+ * forever after Undo, because [SwipeToDismissBox] never draws [content] for a non-[Settled]
+ * value. Always returning `false` here means there is never a committed value to (incorrectly)
+ * restore, so a row that reappears -- from Undo or any other data change -- always reappears
+ * looking normal.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -504,20 +516,11 @@ private fun SwipeableConversationRow(
                 SwipeToDismissBoxValue.Settled -> return@rememberSwipeToDismissBoxState true
             }
             when (action) {
-                SwipeAction.NONE -> false
-                SwipeAction.DELETE -> {
-                    onDeleteRequested()
-                    true
-                }
-                SwipeAction.ARCHIVE -> {
-                    onSwipeAction(action)
-                    true
-                }
-                SwipeAction.TOGGLE_READ, SwipeAction.CALL -> {
-                    onSwipeAction(action)
-                    false
-                }
+                SwipeAction.NONE -> Unit
+                SwipeAction.DELETE -> onDeleteRequested()
+                SwipeAction.ARCHIVE, SwipeAction.TOGGLE_READ, SwipeAction.CALL -> onSwipeAction(action)
             }
+            false
         },
     )
 
