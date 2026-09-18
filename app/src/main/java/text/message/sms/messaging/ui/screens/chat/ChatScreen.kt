@@ -20,10 +20,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -82,6 +84,7 @@ import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import kotlinx.coroutines.flow.SharedFlow
 import text.message.sms.messaging.R
 import text.message.sms.messaging.domain.model.Attachment
 import text.message.sms.messaging.domain.model.Conversation
@@ -127,32 +130,8 @@ fun ChatScreen(
         contract = ActivityResultContracts.TakePicture(),
     ) { success -> if (success) pendingCameraUri?.let { viewModel.onAttachmentSelected(it.toString()) } }
 
-    val listState = rememberLazyListState()
     val zone = remember { ZoneId.systemDefault() }
     val chatItems = remember(messages, zone) { groupMessages(messages, zone) }
-
-    // Only auto-scroll for a newly-arrived message if the user is already near the bottom --
-    // otherwise an incoming message would yank them away from history they scrolled up to read.
-    val isNearBottom by remember {
-        derivedStateOf {
-            val layoutInfo = listState.layoutInfo
-            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            lastVisible >= layoutInfo.totalItemsCount - 2
-        }
-    }
-    LaunchedEffect(chatItems.size) {
-        if (chatItems.isNotEmpty() && isNearBottom) {
-            listState.animateScrollToItem(chatItems.lastIndex)
-        }
-    }
-    val latestChatItems by rememberUpdatedState(chatItems)
-    LaunchedEffect(viewModel) {
-        viewModel.events.collect { event ->
-            if (event is ChatEvent.MessageSent && latestChatItems.isNotEmpty()) {
-                listState.animateScrollToItem(latestChatItems.lastIndex)
-            }
-        }
-    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -181,25 +160,11 @@ fun ChatScreen(
             color = MaterialTheme.colorScheme.surfaceContainer,
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                items(chatItems, key = { it.key }) { item ->
-                    when (item) {
-                        is ChatListItem.DateHeader -> ChatDateSeparator(item.date)
-                        is ChatListItem.Bubble -> ChatMessageRow(
-                            message = item.message,
-                            isLastInRun = item.isLastInRun,
-                            onAttachmentClick = { attachment ->
-                                attachment.contentUri?.let(onAttachmentClick)
-                            },
-                        )
-                    }
-                }
-            }
+            ChatMessageList(
+                chatItems = chatItems,
+                messageSentEvents = viewModel.events,
+                onAttachmentClick = { attachment -> attachment.contentUri?.let(onAttachmentClick) },
+            )
         }
     }
 
@@ -223,6 +188,82 @@ fun ChatScreen(
                 Toast.makeText(context, R.string.chat_attachment_coming_soon, Toast.LENGTH_SHORT).show()
             },
         )
+    }
+}
+
+/**
+ * The message timeline, plus the scroll-position logic that decides where it lands. `internal`
+ * (rather than `private`) so a UI test can drive it directly with a plain [chatItems] list, without
+ * a [ChatViewModel] -- see [ChatMessageListScrollTest].
+ *
+ * [chatItems] is oldest-first (matching [text.message.sms.messaging.data.local.db.dao.MessageDao
+ * .observeThread]'s `ORDER BY received_at ASC`), and this [LazyColumn] is not `reverseLayout`, so
+ * index 0 renders at the top and the last index at the bottom -- the most recent message is always
+ * the *last* item, never the first.
+ *
+ * [hasScrolledToLatestOnOpen] separates two distinct scroll behaviors that [isNearBottom] alone
+ * used to conflate into one, which was the bug: a freshly opened chat starts with [listState]
+ * unscrolled at index 0 (the oldest message, top of the list) -- so on that very first layout,
+ * [isNearBottom] is `false` by definition (the visible items are nowhere near the last index), and
+ * the auto-scroll below would never fire, leaving the screen open on the oldest message instead of
+ * the most recent one. The first time [chatItems] has anything in it, this jumps straight to the
+ * last item unconditionally (no [isNearBottom] check); only later arrivals -- once the user has
+ * already been positioned at the bottom at least once -- respect [isNearBottom], so an incoming
+ * message while the user has scrolled up to read history doesn't yank them back down.
+ */
+@Composable
+internal fun ChatMessageList(
+    chatItems: List<ChatListItem>,
+    messageSentEvents: SharedFlow<ChatEvent>,
+    onAttachmentClick: (Attachment) -> Unit,
+    modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
+) {
+    var hasScrolledToLatestOnOpen by remember { mutableStateOf(false) }
+
+    // Only auto-scroll for a newly-arrived message if the user is already near the bottom --
+    // otherwise an incoming message would yank them away from history they scrolled up to read.
+    val isNearBottom by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisible >= layoutInfo.totalItemsCount - 2
+        }
+    }
+    LaunchedEffect(chatItems.size) {
+        if (chatItems.isEmpty()) return@LaunchedEffect
+        if (!hasScrolledToLatestOnOpen) {
+            listState.scrollToItem(chatItems.lastIndex)
+            hasScrolledToLatestOnOpen = true
+        } else if (isNearBottom) {
+            listState.animateScrollToItem(chatItems.lastIndex)
+        }
+    }
+    val latestChatItems by rememberUpdatedState(chatItems)
+    LaunchedEffect(messageSentEvents) {
+        messageSentEvents.collect { event ->
+            if (event is ChatEvent.MessageSent && latestChatItems.isNotEmpty()) {
+                listState.animateScrollToItem(latestChatItems.lastIndex)
+            }
+        }
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        items(chatItems, key = { it.key }) { item ->
+            when (item) {
+                is ChatListItem.DateHeader -> ChatDateSeparator(item.date)
+                is ChatListItem.Bubble -> ChatMessageRow(
+                    message = item.message,
+                    isLastInRun = item.isLastInRun,
+                    onAttachmentClick = onAttachmentClick,
+                )
+            }
+        }
     }
 }
 
@@ -319,8 +360,10 @@ private fun ChatPeerAvatar(conversation: Conversation?, modifier: Modifier = Mod
     }
 }
 
-/** One [Message], or a date-section label in front of a run of messages sharing a day. */
-private sealed interface ChatListItem {
+/** One [Message], or a date-section label in front of a run of messages sharing a day.
+ * `internal` (rather than `private`) so [ChatMessageListScrollTest] can build a plain list of
+ * these directly, without a [ChatViewModel] or real [Message] data. */
+internal sealed interface ChatListItem {
     val key: Any
 
     data class DateHeader(val date: LocalDate) : ChatListItem {
@@ -410,8 +453,23 @@ private fun ChatDateSeparator(date: LocalDate, modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * The message input bar. `internal` (rather than `private`) so a UI test can host it directly,
+ * without a [ChatViewModel], to verify [Modifier.imePadding] actually pushes it above the
+ * keyboard -- see [ChatComposerImePaddingTest].
+ *
+ * [Modifier.imePadding] here is load-bearing, not decorative: [text.message.sms.messaging
+ * .MainActivity] calls `enableEdgeToEdge()`, which stops the system from automatically resizing
+ * -- or otherwise reserving space in -- the window for the keyboard the way a non-edge-to-edge
+ * activity would. `windowSoftInputMode="adjustResize"` in the manifest is still correct and still
+ * needed (it's what makes the IME inset arrive at all instead of the window simply being drawn
+ * behind the keyboard), but with edge-to-edge on, nothing above this composable -- not
+ * [ChatScreen]'s [androidx.compose.material3.Scaffold], which never pushes its `bottomBar` slot
+ * for the IME the way it does for its `content` slot -- pads for the keyboard automatically. This
+ * bar sat directly underneath (and was hidden by) the keyboard, and unusable, without it.
+ */
 @Composable
-private fun ChatComposer(
+internal fun ChatComposer(
     text: String,
     onTextChange: (String) -> Unit,
     pendingAttachmentUri: String?,
@@ -421,7 +479,9 @@ private fun ChatComposer(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .imePadding(),
         color = MaterialTheme.colorScheme.surface,
     ) {
         Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
