@@ -20,6 +20,7 @@ import text.message.sms.messaging.domain.repository.MessageRepository
 import text.message.sms.messaging.domain.repository.SyncProgress
 import text.message.sms.messaging.domain.repository.SyncRepository
 import text.message.sms.messaging.service.DefaultSmsAppGuard
+import text.message.sms.messaging.util.PhoneNumbers
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -251,12 +252,17 @@ class TelephonySyncRepository @Inject constructor(
 
         var insertedMessage: Message? = null
         if (!alreadyCached) {
-            val recipients = (listOfNotNull(message.address) + mmsProviderGateway.readRecipients(providerId)).toSet()
-            if (recipients.isEmpty()) {
+            val rawRecipients = (listOfNotNull(message.address) + mmsProviderGateway.readRecipients(providerId)).toSet()
+            if (rawRecipients.isEmpty()) {
                 Log.w(TAG, "Skipping MMS provider id $providerId: no recipients, cannot resolve a thread")
                 return MmsSyncResult(null, null)
             }
 
+            // Same business/RCS-sender-address exclusion as MmsDownloadResultReceiver -- an
+            // address like `agent@rbm.goog` must not count as a participant. `message` itself
+            // (inserted below) still carries its own unfiltered `address`, so the raw sender is
+            // never lost, only excluded from what decides the thread's participant count.
+            val recipients = PhoneNumbers.realParticipantsOnly(rawRecipients)
             val resolvedThreadId = resolveThreadIdCached(threadIdCache, recipients)
             val blocked = message.address != null && blockedNumberRepository.isBlocked(message.address)
             if (!blocked) {

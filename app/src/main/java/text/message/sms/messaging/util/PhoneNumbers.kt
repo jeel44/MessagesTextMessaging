@@ -39,4 +39,30 @@ object PhoneNumbers {
 
     /** True for short codes, which cannot receive MMS and are never real contacts. */
     fun isShortCode(address: String): Boolean = normalize(address).length in 1..6
+
+    /** True when [address], once common formatting punctuation is stripped, is nothing but an
+     * optional leading `+` and digits -- i.e. it's shaped like something a human could actually
+     * be reached at (a real number or a short code). False for an RCS/business sender address
+     * such as `agent@rbm.goog` (RCS Business Messaging) or an alphanumeric SMS sender id --
+     * neither of which is a person who can be a thread "participant". Deliberately shape-based
+     * rather than a list of known suffixes (`@rbm.goog` etc.), since new business-address formats
+     * can show up without a matching app update. */
+    fun looksLikePhoneNumber(address: String): Boolean {
+        val stripped = address.trim().filterNot { it in FORMATTING_CHARACTERS }
+        if (stripped.isEmpty()) return false
+        val digits = stripped.removePrefix("+")
+        return digits.isNotEmpty() && digits.all { it.isDigit() }
+    }
+
+    /** Narrows [addresses] to the ones [looksLikePhoneNumber] accepts, so a non-human sender
+     * address never inflates a thread's participant count or flips
+     * [text.message.sms.messaging.domain.model.Conversation.isGroup]. Falls back to the original
+     * [addresses] when every one of them fails the check -- resolving *some* thread beats
+     * silently dropping the message this participant set came from. */
+    fun realParticipantsOnly(addresses: Set<String>): Set<String> {
+        val filtered = addresses.filterTo(mutableSetOf(), ::looksLikePhoneNumber)
+        return filtered.ifEmpty { addresses }
+    }
+
+    private val FORMATTING_CHARACTERS = charArrayOf(' ', '-', '(', ')', '.')
 }

@@ -13,6 +13,7 @@ import text.message.sms.messaging.data.local.provider.mms.MmsPduDecoder
 import text.message.sms.messaging.di.ApplicationScope
 import text.message.sms.messaging.domain.repository.ConversationRepository
 import text.message.sms.messaging.domain.usecase.ReceiveMms
+import text.message.sms.messaging.util.PhoneNumbers
 import javax.inject.Inject
 
 /**
@@ -64,9 +65,15 @@ class MmsDownloadResultReceiver : BroadcastReceiver() {
         if (!file.exists()) return
 
         val retrieved = MmsPduDecoder.decodeRetrieveConf(file.readBytes()) ?: return
-        val participants = (listOfNotNull(retrieved.from) + retrieved.to + retrieved.cc).toSet()
-        if (participants.isEmpty()) return
+        val rawParticipants = (listOfNotNull(retrieved.from) + retrieved.to + retrieved.cc).toSet()
+        if (rawParticipants.isEmpty()) return
 
+        // A business/RCS sender address (e.g. `agent@rbm.goog`) must never count as a thread
+        // participant -- see PhoneNumbers.realParticipantsOnly. insertRetrieved below still
+        // mirrors every raw address from `retrieved` into the system provider unfiltered, so
+        // nothing about the message itself is dropped, only what counts toward the thread's
+        // participant set.
+        val participants = PhoneNumbers.realParticipantsOnly(rawParticipants)
         val threadId = conversationRepository.resolveThreadId(participants)
         val providerUri = mmsProviderGateway.insertRetrieved(retrieved, threadId, subscriptionId)
         if (providerUri.toString().isNotEmpty()) receiveMms(providerUri.toString())
