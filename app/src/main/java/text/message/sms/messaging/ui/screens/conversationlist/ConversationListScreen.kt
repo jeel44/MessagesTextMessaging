@@ -163,11 +163,13 @@ fun ConversationListScreen(
     // different SyncProgress.Failed value, reappears instead of staying hidden forever.
     var dismissedFailure by remember { mutableStateOf<SyncProgress.Failed?>(null) }
 
-    // Catches both a return from the role request launched below and a default-SMS-app change
-    // made outside the app entirely (system Settings) while this screen was backgrounded --
-    // either way, the screen is visible again exactly when this fires.
+    // Catches both a return from the role request launched below and a default-SMS-app/contacts
+    // permission change made outside the app entirely (system Settings, or onboarding granting
+    // READ_CONTACTS mid-session) while this screen was backgrounded or hadn't been reached yet --
+    // either way, the screen is visible again (or first appears) exactly when this fires.
     LifecycleResumeEffect(Unit) {
         viewModel.refreshDefaultSmsAppStatus()
+        viewModel.refreshContactsPermissionStatus()
         onPauseOrDispose {}
     }
 

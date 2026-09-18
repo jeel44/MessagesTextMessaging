@@ -53,11 +53,18 @@
         </intent>
     </queries>
 
+    <!--
+      allowBackup=false is deliberate, not the unfilled default. Auto Backup/cloud-backup with no
+      exclude rules backs up every app-private file, including the onboarding-complete DataStore
+      flag and the local Room cache, so a "fresh" reinstall (same package, same signing key,
+      backed-up device) silently restored onboarding_complete=true and skipped onboarding
+      entirely, even though the OS had already reset every runtime permission and the default-SMS
+      role. All of this app's local storage mirrors the system Telephony/Contacts providers and
+      is fully rebuildable from a resync; none of it should survive a reinstall.
+    -->
     <application
         android:name=".MessagingApplication"
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"

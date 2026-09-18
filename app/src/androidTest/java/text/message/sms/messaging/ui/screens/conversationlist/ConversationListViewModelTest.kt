@@ -34,10 +34,13 @@ import text.message.sms.messaging.data.local.db.entity.RecipientEntity
 import text.message.sms.messaging.data.local.provider.ProviderChangeObserver
 import text.message.sms.messaging.data.local.provider.TelephonyThreadResolver
 import text.message.sms.messaging.data.repository.LocalConversationRepository
+import text.message.sms.messaging.domain.model.Contact
+import text.message.sms.messaging.domain.model.ContactGroup
 import text.message.sms.messaging.domain.model.DeliveryState
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.model.MessageChannel
 import text.message.sms.messaging.domain.model.MessageFolder
+import text.message.sms.messaging.domain.repository.ContactRepository
 import text.message.sms.messaging.domain.repository.ConversationRepository
 import text.message.sms.messaging.domain.repository.MessageRepository
 import text.message.sms.messaging.domain.repository.SyncProgress
@@ -47,6 +50,7 @@ import text.message.sms.messaging.domain.usecase.MarkArchived
 import text.message.sms.messaging.domain.usecase.MarkRead
 import text.message.sms.messaging.domain.usecase.MarkUnarchived
 import text.message.sms.messaging.domain.usecase.MarkUnread
+import text.message.sms.messaging.domain.usecase.SyncContacts
 import text.message.sms.messaging.domain.usecase.SyncMessages
 import text.message.sms.messaging.service.DefaultSmsAppGuard
 
@@ -119,11 +123,24 @@ class ConversationListViewModelTest {
             override suspend fun hasAnyMessages(): Boolean = false
         }
 
+        // Only MarkRead/MarkUnread need a MessageRepository; SyncContacts is likewise never
+        // exercised by the delete/undo flow this test covers, so a stub ContactRepository is
+        // enough to satisfy the constructor.
+        val contactRepository = object : ContactRepository {
+            override fun observeAll(): Flow<List<Contact>> = MutableStateFlow(emptyList())
+            override suspend fun findByAddress(address: String): Contact? = null
+            override fun search(query: String): Flow<List<Contact>> = MutableStateFlow(emptyList())
+            override fun observeGroups(): Flow<List<ContactGroup>> = MutableStateFlow(emptyList())
+            override suspend fun refreshFromProvider() = Unit
+        }
+
         val builtViewModel = ConversationListViewModel(
             conversationRepository = conversationRepository,
             syncRepository = syncRepository,
             defaultSmsAppGuard = DefaultSmsAppGuard(context),
             syncMessages = syncMessages,
+            syncContacts = SyncContacts(contactRepository),
+            context = context,
             providerChangeObserver = ProviderChangeObserver(context, applicationScope, syncMessages),
             swipeActionPreferences = SwipeActionPreferences(context),
             markArchivedUseCase = MarkArchived(conversationRepository),

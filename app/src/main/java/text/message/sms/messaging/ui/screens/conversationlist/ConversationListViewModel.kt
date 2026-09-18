@@ -1,9 +1,14 @@
 package text.message.sms.messaging.ui.screens.conversationlist
 
+import android.Manifest
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -27,6 +32,7 @@ import text.message.sms.messaging.domain.usecase.MarkArchived
 import text.message.sms.messaging.domain.usecase.MarkRead
 import text.message.sms.messaging.domain.usecase.MarkUnread
 import text.message.sms.messaging.domain.usecase.MarkUnarchived
+import text.message.sms.messaging.domain.usecase.SyncContacts
 import text.message.sms.messaging.domain.usecase.SyncMessages
 import text.message.sms.messaging.service.DefaultSmsAppGuard
 import javax.inject.Inject
@@ -77,6 +83,8 @@ class ConversationListViewModel @Inject constructor(
     syncRepository: SyncRepository,
     private val defaultSmsAppGuard: DefaultSmsAppGuard,
     private val syncMessages: SyncMessages,
+    private val syncContacts: SyncContacts,
+    @param:ApplicationContext private val context: Context,
     private val providerChangeObserver: ProviderChangeObserver,
     private val swipeActionPreferences: SwipeActionPreferences,
     private val markArchivedUseCase: MarkArchived,
@@ -91,6 +99,11 @@ class ConversationListViewModel @Inject constructor(
 
     private val _isDefaultSmsApp = MutableStateFlow(defaultSmsAppGuard.isDefault)
     internal val isDefaultSmsApp: StateFlow<Boolean> = _isDefaultSmsApp.asStateFlow()
+
+    /** Seeded with the real permission state so the first [refreshContactsPermissionStatus] call
+     * (right after this ViewModel is constructed) compares against where things actually stood,
+     * not an assumed false. */
+    private var hasContactsPermission = hasReadContactsPermission()
 
     /** So a sync failure (partial or total) or a long first sync is visible on this screen
      * instead of just looking like an empty inbox -- see [ConversationListScreen]. */
@@ -147,6 +160,26 @@ class ConversationListViewModel @Inject constructor(
             viewModelScope.launch { syncMessages() }
         }
     }
+
+    /** Call on every screen resume, same as [refreshDefaultSmsAppStatus]. Onboarding requests
+     * READ_CONTACTS mid-session (see [text.message.sms.messaging.ui.screens.onboarding.WelcomeScreen])
+     * rather than restarting the process, so [text.message.sms.messaging.MessagingApplication]'s
+     * own launch-time check -- which ran before that grant even happened -- never sees it; without
+     * this, a contact's name would only ever appear after the user force-restarts the app or opens
+     * New Message (whose own [text.message.sms.messaging.ui.screens.newmessage.NewMessageViewModel.onContactsPermissionGranted]
+     * happens to run the same sync as a side effect of an unrelated screen). */
+    internal fun refreshContactsPermissionStatus() {
+        val hasPermissionNow = hasReadContactsPermission()
+        val justGranted = hasPermissionNow && !hasContactsPermission
+        hasContactsPermission = hasPermissionNow
+        if (justGranted) {
+            viewModelScope.launch { syncContacts() }
+        }
+    }
+
+    private fun hasReadContactsPermission(): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) ==
+            PackageManager.PERMISSION_GRANTED
 
     /** Backs the failed-sync banner's Retry button. */
     internal fun retrySync() {
