@@ -57,6 +57,7 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.net.toUri
+import androidx.hilt.navigation.compose.hiltViewModel
 import text.message.sms.messaging.R
 import text.message.sms.messaging.service.DefaultSmsAppGuard
 import text.message.sms.messaging.ui.theme.Pill
@@ -101,10 +102,17 @@ private data class WelcomeFeature(
  * SMS/MMS is this app's reason to exist, so Continue is gated on those alone. The rest of the
  * requested set (contacts, phone state, call log, call, notifications) back secondary or
  * not-yet-built features and are best-effort: a denial there degrades a feature later rather
- * than blocking onboarding now.
+ * than blocking onboarding now. A READ_CONTACTS grant specifically also kicks off
+ * [WelcomeViewModel.onContactsPermissionGranted] right away, the same immediate-catch-up-sync
+ * pattern [SetDefaultSmsScreen] uses for the default-SMS-app role -- see that ViewModel's doc
+ * comment for why this can't be left to a later resume-based check instead.
  */
 @Composable
-fun WelcomeScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
+fun WelcomeScreen(
+    onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: WelcomeViewModel = hiltViewModel(),
+) {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
 
@@ -113,6 +121,9 @@ fun WelcomeScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
     ) { results ->
+        if (results[Manifest.permission.READ_CONTACTS] == true) {
+            viewModel.onContactsPermissionGranted()
+        }
         val coreGranted = DefaultSmsAppGuard.CoreSmsPermissions.all { results[it] == true }
         promptState = when {
             coreGranted -> {
