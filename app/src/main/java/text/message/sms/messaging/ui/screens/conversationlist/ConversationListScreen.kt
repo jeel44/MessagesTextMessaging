@@ -500,7 +500,7 @@ private fun ConversationList(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SwipeableConversationRow(
+internal fun SwipeableConversationRow(
     conversation: Conversation,
     swipeActionPreference: SwipeActionPreference,
     onClick: () -> Unit,
@@ -508,6 +508,23 @@ private fun SwipeableConversationRow(
     onDeleteRequested: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // AnchoredDraggableState (which backs dismissState) re-evaluates confirmValueChange on every
+    // drag-move frame for as long as the touch stays past the anchor's threshold, then once more
+    // on release. A `true` return normally advances currentValue to the crossed anchor, and
+    // AnchoredDraggableState skips re-invoking confirmValueChange for an anchor it's already at --
+    // but the `false` return required by the fix above (see its doc comment) means currentValue
+    // never advances, so that dedup never engages: one physical swipe invokes confirmValueChange,
+    // and therefore performs the action, many times over. Harmless repetition for an idempotent
+    // write like ARCHIVE/TOGGLE_READ, but each firing for DELETE queued its own PendingDelete
+    // event -- Undo tapped on the first snackbar only cancelled that one, and the duplicates
+    // queued right behind it got their own snackbars, timed out untapped, and each actually
+    // deleted the conversation moments after the user had already tapped Undo. actionFired gates
+    // the action to firing once per excursion away from Settled; the LaunchedEffect below resets
+    // it from dismissState's live drag position (targetValue is a derivedStateOf over the raw
+    // offset) rather than another confirmValueChange call, since a rejected change's rollback
+    // animates straight back to Settled without ever invoking confirmValueChange(Settled).
+    var actionFired by remember { mutableStateOf(false) }
+
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             val action = when (value) {
@@ -515,14 +532,23 @@ private fun SwipeableConversationRow(
                 SwipeToDismissBoxValue.EndToStart -> swipeActionPreference.endToStart
                 SwipeToDismissBoxValue.Settled -> return@rememberSwipeToDismissBoxState true
             }
-            when (action) {
-                SwipeAction.NONE -> Unit
-                SwipeAction.DELETE -> onDeleteRequested()
-                SwipeAction.ARCHIVE, SwipeAction.TOGGLE_READ, SwipeAction.CALL -> onSwipeAction(action)
+            if (!actionFired) {
+                actionFired = true
+                when (action) {
+                    SwipeAction.NONE -> Unit
+                    SwipeAction.DELETE -> onDeleteRequested()
+                    SwipeAction.ARCHIVE, SwipeAction.TOGGLE_READ, SwipeAction.CALL -> onSwipeAction(action)
+                }
             }
             false
         },
     )
+
+    LaunchedEffect(dismissState.targetValue) {
+        if (dismissState.targetValue == SwipeToDismissBoxValue.Settled) {
+            actionFired = false
+        }
+    }
 
     SwipeToDismissBox(
         state = dismissState,
