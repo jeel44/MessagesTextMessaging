@@ -35,9 +35,27 @@ import text.message.sms.messaging.domain.usecase.MarkUnarchived
 import text.message.sms.messaging.domain.usecase.SyncContacts
 import text.message.sms.messaging.domain.usecase.SyncMessages
 import text.message.sms.messaging.service.DefaultSmsAppGuard
+import text.message.sms.messaging.util.OtpDetector
 import javax.inject.Inject
 
-internal enum class ConversationFilter { ALL, UNREAD, PINNED }
+/** The inbox's category chip row. Each category is an independent membership test over a
+ * [Conversation] rather than a mutually-exclusive bucket -- e.g. a resolved contact's message
+ * that happens to contain an OTP keyword can appear under both [PERSONAL] and [OTP] -- since
+ * there's no per-message sender classification in the data model to assign exactly one category,
+ * only heuristics run over [Conversation.recipients]/[Conversation.snippet]. See
+ * [isPersonal]/[isTransaction]/[isOtp] below. */
+internal enum class ConversationFilter { ALL, PERSONAL, TRANSACTIONS, OTP }
+
+/** Conservative keyword set for [ConversationFilter.TRANSACTIONS] -- there's no reliable sender-ID
+ * signal available (a business's alphanumeric SMS sender ID and a plain phone number share the
+ * same [text.message.sms.messaging.domain.model.Recipient.address] field, with nothing to tell
+ * them apart), so this leans entirely on wording banks/payment processors actually use. */
+private val TRANSACTION_KEYWORD_REGEX = Regex(
+    "debited|credited|withdrawn|a/c|account balance|available balance|upi|txn|transaction|" +
+        "emi|payment (?:of|received|successful)|amount (?:debited|credited|paid)|bill (?:due|paid)|" +
+        "spent (?:on|at)|purchase of",
+    RegexOption.IGNORE_CASE,
+)
 
 /** A swipe just happened and needs an undo-able snackbar -- see [ConversationListScreen]'s
  * `LaunchedEffect` for how each is resolved (either undone, or left to take effect). */
@@ -126,8 +144,9 @@ class ConversationListViewModel @Inject constructor(
         val visible = inbox.filterNot { it.threadId in pendingDeletes }
         when (filter) {
             ConversationFilter.ALL -> visible
-            ConversationFilter.UNREAD -> visible.filter { it.hasUnread }
-            ConversationFilter.PINNED -> visible.filter { it.isPinned }
+            ConversationFilter.PERSONAL -> visible.filter { it.isPersonal() }
+            ConversationFilter.TRANSACTIONS -> visible.filter { it.isTransaction() }
+            ConversationFilter.OTP -> visible.filter { it.isOtp() }
         }
     }.stateIn(
         scope = viewModelScope,
@@ -234,3 +253,21 @@ class ConversationListViewModel @Inject constructor(
         }
     }
 }
+
+/** A saved contact makes a thread unambiguously personal; a group thread is treated the same way
+ * even if not every member resolved to a contact, since a group text is inherently a
+ * person-to-person conversation rather than a business one. */
+private fun Conversation.isPersonal(): Boolean = isGroup || recipients.any { it.contact != null }
+
+/** [OtpDetector] already runs per-row for the quick-copy affordance -- reused here rather than
+ * duplicated so the chip and the filter can never disagree about which threads count. Not
+ * restricted to unresolved senders: a saved contact forwarding a code is rare but still worth
+ * surfacing under this filter. */
+private fun Conversation.isOtp(): Boolean = OtpDetector.extractCode(snippet) != null
+
+/** Excludes [isOtp] matches (a verification text mentioning "your account" shouldn't double as a
+ * transaction) and resolved contacts (a real person's message matching these words by coincidence
+ * isn't a bank alert) -- see [TRANSACTION_KEYWORD_REGEX]'s doc comment for why keywords are the
+ * only signal available at all. */
+private fun Conversation.isTransaction(): Boolean =
+    !isOtp() && recipients.none { it.contact != null } && TRANSACTION_KEYWORD_REGEX.containsMatchIn(snippet)

@@ -12,8 +12,8 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
@@ -36,14 +37,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.MarkChatUnread
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -129,6 +135,7 @@ fun ConversationListScreen(
     val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
     val swipeActionPreference by viewModel.swipeActionPreference.collectAsStateWithLifecycle()
     val archivedCount by viewModel.archivedCount.collectAsStateWithLifecycle()
+    val selectedFilter by viewModel.filter.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -219,17 +226,13 @@ fun ConversationListScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onNewMessageClick,
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_compose),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                    )
-                },
-                text = { Text(stringResource(R.string.home_new_chat_label)) },
-            )
+            FloatingActionButton(onClick = onNewMessageClick) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_compose),
+                    contentDescription = stringResource(R.string.home_new_chat_label),
+                    modifier = Modifier.size(24.dp),
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
@@ -238,6 +241,8 @@ fun ConversationListScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
+            ConversationFilterRow(selected = selectedFilter, onSelect = viewModel::selectFilter)
+
             if (syncProgress is SyncProgress.Running) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
@@ -291,6 +296,86 @@ fun ConversationListScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+/** Light, theme-independent fill for an unselected filter chip -- deliberately not a
+ * `surfaceContainer*` token: those default to M3's baseline (lavender-tinted) values wherever
+ * [text.message.sms.messaging.ui.theme.Color.kt] leaves them unset, which is exactly the bug this
+ * screen's TopAppBar fix worked around for its own container color. */
+private val FilterChipUnselectedContainer = Color(0xFFEEEEEE)
+
+/** [ConversationFilter.ALL] has no icon -- there's nothing to categorize, so a leading icon would
+ * just be noise. The other three always show theirs, selected or not, so the row stays scannable
+ * by shape/color rather than requiring the label to be read.
+ */
+private fun ConversationFilter.iconOrNull() = when (this) {
+    ConversationFilter.ALL -> null
+    ConversationFilter.PERSONAL -> Icons.Filled.Person
+    ConversationFilter.TRANSACTIONS -> Icons.Filled.CreditCard
+    ConversationFilter.OTP -> Icons.Filled.Password
+}
+
+private fun ConversationFilter.labelRes(): Int = when (this) {
+    ConversationFilter.ALL -> R.string.home_filter_all
+    ConversationFilter.PERSONAL -> R.string.home_filter_personal
+    ConversationFilter.TRANSACTIONS -> R.string.home_filter_transactions
+    ConversationFilter.OTP -> R.string.home_filter_otp
+}
+
+/** The selected chip renders as an outlined, unfilled pill in [MaterialTheme.colorScheme.primary]
+ * (the user's picked accent, same as every other selection indicator in the app); an unselected
+ * chip is a flat [FilterChipUnselectedContainer] fill with gray content -- see that constant's own
+ * doc comment for why this can't just be `colorScheme.surfaceContainerHigh`.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ConversationFilterRow(
+    selected: ConversationFilter,
+    onSelect: (ConversationFilter) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ConversationFilter.entries.forEach { filter ->
+            val isSelected = filter == selected
+            FilterChip(
+                selected = isSelected,
+                onClick = { onSelect(filter) },
+                label = { Text(stringResource(filter.labelRes())) },
+                leadingIcon = filter.iconOrNull()?.let { icon ->
+                    {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                },
+                shape = RoundedCornerShape(50),
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = FilterChipUnselectedContainer,
+                    labelColor = UnreadBadgeGray,
+                    iconColor = UnreadBadgeGray,
+                    selectedContainerColor = Color.Transparent,
+                    selectedLabelColor = MaterialTheme.colorScheme.primary,
+                    selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = isSelected,
+                    borderColor = Color.Transparent,
+                    selectedBorderColor = MaterialTheme.colorScheme.primary,
+                    borderWidth = 0.dp,
+                    selectedBorderWidth = 1.dp,
+                ),
+            )
         }
     }
 }
@@ -792,10 +877,12 @@ private fun UnreadCountBadge(count: Int, modifier: Modifier = Modifier) {
 }
 
 /**
- * Bordered, accent-colored chip offering to copy [code] straight from the inbox, without opening
- * the conversation -- [Modifier.clickable] here consumes the tap itself, so it never also fires
+ * Text-link affordance offering to copy [code] straight from the inbox, without opening the
+ * conversation -- [Modifier.clickable] here consumes the tap itself, so it never also fires
  * [ConversationRow]'s own [combinedClickable] underneath it. [code] comes from [OtpDetector],
  * shared with nothing else yet: there's no equivalent affordance inside the Chat screen today.
+ * Shows the fixed "Copy OTP" label rather than [code] itself -- the code is still what actually
+ * gets copied, just not printed a second time next to the snippet that already contains it.
  */
 @Composable
 private fun OtpQuickCopyChip(code: String, modifier: Modifier = Modifier) {
@@ -803,30 +890,28 @@ private fun OtpQuickCopyChip(code: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val copiedMessage = stringResource(R.string.home_otp_copied_toast)
     val copyDescription = stringResource(R.string.home_otp_copy_content_description)
+    val copyLabel = stringResource(R.string.home_otp_copy_label)
 
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(50))
-            .border(1.dp, AccentBlue, RoundedCornerShape(50))
-            .clickable {
+            .clickable(onClickLabel = copyDescription) {
                 clipboardManager.setText(AnnotatedString(code))
                 Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
-            }
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            },
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Icon(
+            imageVector = Icons.Filled.ContentCopy,
+            contentDescription = null,
+            tint = AccentBlue,
+            modifier = Modifier.size(14.dp),
+        )
+        Spacer(modifier = Modifier.width(4.dp))
         Text(
-            text = code,
+            text = copyLabel,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             color = AccentBlue,
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Icon(
-            imageVector = Icons.Filled.ContentCopy,
-            contentDescription = copyDescription,
-            tint = AccentBlue,
-            modifier = Modifier.size(14.dp),
         )
     }
 }

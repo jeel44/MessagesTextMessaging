@@ -43,8 +43,9 @@
 
     <!-- Home (conversation list) -->
     <string name="home_filter_all">All</string>
-    <string name="home_filter_unread">Unread</string>
-    <string name="home_filter_pinned">Pinned</string>
+    <string name="home_filter_personal">Personal</string>
+    <string name="home_filter_transactions">Transactions</string>
+    <string name="home_filter_otp">OTP</string>
     <string name="home_date_today">Today</string>
     <string name="home_date_yesterday">Yesterday</string>
     <string name="home_empty_title">No messages yet</string>
@@ -56,6 +57,7 @@
     <string name="home_archived_row_title">Archived</string>
     <string name="home_archived_snackbar">Archived</string>
     <string name="home_new_chat_label">New Chat</string>
+    <string name="home_otp_copy_label">Copy OTP</string>
     <string name="home_otp_copied_toast">Code copied</string>
     <string name="home_otp_copy_content_description">Copy verification code</string>
     <string name="home_deleted_snackbar">Deleted</string>
