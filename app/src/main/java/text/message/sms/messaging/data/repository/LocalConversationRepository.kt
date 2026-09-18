@@ -44,7 +44,11 @@ class LocalConversationRepository @Inject constructor(
 
     override suspend fun resolveThreadId(addresses: Set<String>): Long {
         val threadId = threadResolver.resolve(addresses)
-        conversationDao.upsert(ConversationEntity(threadId = threadId))
+        // Only creates a row when the thread is brand new -- resolveThreadId is called just to
+        // find-or-create a thread id (e.g. tapping a contact in New Message, before any message
+        // is sent), and must never clobber an already-existing conversation's snippet/timestamp/
+        // flags/draft back to blank defaults.
+        conversationDao.insertConversationIfAbsent(ConversationEntity(threadId = threadId))
 
         // The platform already resolves e.g. a contact-picker's formatted number and an earlier
         // message's raw Telephony address to the same thread id when they're the same person --

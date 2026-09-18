@@ -11,11 +11,11 @@ import javax.inject.Singleton
  * the app asks it rather than inventing ids of its own.
  */
 @Singleton
-class TelephonyThreadResolver @Inject constructor(
+open class TelephonyThreadResolver @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) {
 
     /** Returns the existing thread id for [addresses], creating one when there is none. */
-    fun resolve(addresses: Set<String>): Long =
+    open fun resolve(addresses: Set<String>): Long =
         Telephony.Threads.getOrCreateThreadId(context, addresses)
 }

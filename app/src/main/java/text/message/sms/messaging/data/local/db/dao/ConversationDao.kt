@@ -76,6 +76,16 @@ interface ConversationDao {
     @Upsert
     suspend fun upsertAll(conversations: List<ConversationEntity>)
 
+    /** Inserts a placeholder row for a brand-new thread only -- a no-op when [conversation]'s
+     * thread id already has a row. Unlike [upsert], this never overwrites an existing
+     * conversation's snippet/timestamp/flags/draft with the blank defaults of a freshly
+     * constructed [ConversationEntity]. Used by
+     * [text.message.sms.messaging.data.repository.LocalConversationRepository.resolveThreadId],
+     * which is called just to find-or-create a thread id (e.g. tapping a contact in New Message,
+     * before any message is sent) and must never disturb a conversation that already exists. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertConversationIfAbsent(conversation: ConversationEntity)
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertRecipients(recipients: List<RecipientEntity>)
 
