@@ -13,15 +13,19 @@ import androidx.compose.ui.graphics.Color
  * counterpart at the M3-guaranteed-legible tone distance, so no pairing here needs a contrast
  * check beyond "did I use the matching role" -- see [AppTheme] for how that gets used on
  * Splash's full-bleed primary background.
+ *
+ * `internal` rather than `private`: [AccentColorScheme] reuses each swatch's lightness (borrowing
+ * only the hue/saturation of a user-picked accent) to build a custom-accent scheme without
+ * needing its own hand-tuned contrast pairs -- see that file.
  */
-private val SeedBlueLight = Color(0xFF0B57D0)
-private val SeedBluePrimaryContainerLight = Color(0xFFD3E3FD)
-private val SeedBlueOnPrimaryContainerLight = Color(0xFF041E49)
+internal val SeedBlueLight = Color(0xFF0B57D0)
+internal val SeedBluePrimaryContainerLight = Color(0xFFD3E3FD)
+internal val SeedBlueOnPrimaryContainerLight = Color(0xFF041E49)
 
-private val SeedBlueDark = Color(0xFFA8C7FA)
-private val SeedBlueOnPrimaryDark = Color(0xFF062E6F)
-private val SeedBluePrimaryContainerDark = Color(0xFF0842A0)
-private val SeedBlueOnPrimaryContainerDark = Color(0xFFD3E3FD)
+internal val SeedBlueDark = Color(0xFFA8C7FA)
+internal val SeedBlueOnPrimaryDark = Color(0xFF062E6F)
+internal val SeedBluePrimaryContainerDark = Color(0xFF0842A0)
+internal val SeedBlueOnPrimaryContainerDark = Color(0xFFD3E3FD)
 
 internal val LightColors = lightColorScheme(
     primary = SeedBlueLight,

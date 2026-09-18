@@ -4,13 +4,19 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import text.message.sms.messaging.data.local.datastore.ThemeMode
+import text.message.sms.messaging.data.local.datastore.ThemePreference
+import text.message.sms.messaging.data.local.datastore.ThemePreferences
 import text.message.sms.messaging.data.local.provider.ProviderChangeObserver
 import text.message.sms.messaging.di.ApplicationScope
 import text.message.sms.messaging.domain.usecase.SyncMessages
@@ -47,6 +53,9 @@ class MainActivity : ComponentActivity() {
     lateinit var providerChangeObserver: ProviderChangeObserver
 
     @Inject
+    lateinit var themePreferences: ThemePreferences
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
@@ -59,7 +68,19 @@ class MainActivity : ComponentActivity() {
         wasDefaultSmsApp = defaultSmsAppGuard.isDefault
         enableEdgeToEdge()
         setContent {
-            AppTheme {
+            // Live over ThemePreferences.themePreference, not a one-shot read -- a change made in
+            // Settings' theme picker recomposes this the moment DataStore commits it, so the
+            // whole app recolors immediately rather than only on the next cold start.
+            val themePreference by themePreferences.themePreference
+                .collectAsStateWithLifecycle(initialValue = ThemePreference())
+
+            val darkTheme = when (themePreference.mode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+
+            AppTheme(darkTheme = darkTheme, accentColor = themePreference.accentColor) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,

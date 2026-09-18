@@ -1,5 +1,6 @@
 package text.message.sms.messaging.ui.screens.settings
 
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -10,6 +11,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.data.local.datastore.BackupPreferences
+import text.message.sms.messaging.data.local.datastore.ThemeMode
+import text.message.sms.messaging.data.local.datastore.ThemePreference
+import text.message.sms.messaging.data.local.datastore.ThemePreferences
 import text.message.sms.messaging.domain.model.BackupResult
 import text.message.sms.messaging.domain.usecase.ExportBackup
 import text.message.sms.messaging.domain.usecase.ImportBackup
@@ -38,6 +42,7 @@ class SettingsViewModel @Inject constructor(
     private val exportBackupUseCase: ExportBackup,
     private val importBackupUseCase: ImportBackup,
     private val backupPreferences: BackupPreferences,
+    private val themePreferences: ThemePreferences,
 ) : ViewModel() {
 
     private val _operation = MutableStateFlow(BackupOperation.IDLE)
@@ -48,6 +53,17 @@ class SettingsViewModel @Inject constructor(
 
     internal val lastBackupAtMillis: StateFlow<Long?> = backupPreferences.lastBackupAtMillis
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    internal val themePreference: StateFlow<ThemePreference> = themePreferences.themePreference
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemePreference())
+
+    internal fun setThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { themePreferences.setThemeMode(mode) }
+    }
+
+    internal fun setAccentColor(color: Color?) {
+        viewModelScope.launch { themePreferences.setAccentColor(color) }
+    }
 
     internal fun exportBackup(destinationUri: String) {
         if (_operation.value != BackupOperation.IDLE) return

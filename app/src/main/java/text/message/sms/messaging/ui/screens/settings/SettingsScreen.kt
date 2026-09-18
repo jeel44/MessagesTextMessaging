@@ -5,7 +5,10 @@ import android.text.format.DateFormat
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
@@ -24,7 +28,6 @@ import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.FormatSize
@@ -54,6 +57,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -61,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import text.message.sms.messaging.R
+import text.message.sms.messaging.data.local.datastore.ThemeMode
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -68,10 +74,10 @@ import java.util.Locale
 /**
  * App settings, laid out the way QKSMS does it: a flat scrollable list of rows grouped under
  * plain-text category headers, each row an icon + title (+ optional summary) + an optional
- * trailing widget -- a [Switch] for a toggle, or a short value string for a setting whose current
- * choice is worth showing inline. There is no backing preferences store yet, so the toggles below
- * hold their own [rememberSaveable] state rather than persisting anywhere; wiring them to real
- * behavior is a separate change.
+ * trailing widget -- a [Switch] for a toggle, a short value string, or a small color [Swatch] for
+ * a setting whose current choice is worth showing inline. Most toggles below still hold their own
+ * [rememberSaveable] state rather than persisting anywhere -- wiring the rest to real behavior is
+ * a separate change -- except Theme and Backup & Sync, which are backed by [SettingsViewModel].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,17 +86,18 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
-    var darkModeEnabled by rememberSaveable { mutableStateOf(false) }
     var notificationsEnabled by rememberSaveable { mutableStateOf(true) }
     var deliveryReportsEnabled by rememberSaveable { mutableStateOf(false) }
     var quickReplyEnabled by rememberSaveable { mutableStateOf(true) }
     var autoBackupEnabled by rememberSaveable { mutableStateOf(false) }
     var wifiOnlyBackupEnabled by rememberSaveable { mutableStateOf(true) }
+    var showThemePicker by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val operation by viewModel.operation.collectAsStateWithLifecycle()
     val event by viewModel.event.collectAsStateWithLifecycle()
     val lastBackupAtMillis by viewModel.lastBackupAtMillis.collectAsStateWithLifecycle()
+    val themePreference by viewModel.themePreference.collectAsStateWithLifecycle()
     val backupBusy = operation != BackupOperation.IDLE
 
     val exportLauncher = rememberLauncherForActivityResult(
@@ -123,14 +130,19 @@ fun SettingsScreen(
                 SettingsRow(
                     icon = Icons.Filled.Palette,
                     title = stringResource(R.string.settings_theme_title),
-                    summary = stringResource(R.string.settings_theme_summary),
-                    trailing = SettingsTrailing.Value(stringResource(R.string.settings_theme_value)),
-                ),
-                SettingsRow(
-                    icon = Icons.Filled.DarkMode,
-                    title = stringResource(R.string.settings_dark_mode_title),
-                    summary = stringResource(R.string.settings_dark_mode_summary),
-                    trailing = SettingsTrailing.Toggle(darkModeEnabled) { darkModeEnabled = it },
+                    summary = stringResource(
+                        R.string.settings_theme_summary,
+                        stringResource(themePreference.mode.labelRes()),
+                        stringResource(
+                            if (themePreference.accentColor == null) {
+                                R.string.theme_picker_color_default
+                            } else {
+                                R.string.theme_picker_color_custom
+                            },
+                        ),
+                    ),
+                    trailing = SettingsTrailing.Swatch(MaterialTheme.colorScheme.primary),
+                    onClick = { showThemePicker = true },
                 ),
                 SettingsRow(
                     icon = Icons.Filled.FormatSize,
@@ -265,6 +277,16 @@ fun SettingsScreen(
             SettingsList(sections = sections, modifier = Modifier.fillMaxSize())
         }
     }
+
+    if (showThemePicker) {
+        ThemePickerDialog(
+            currentMode = themePreference.mode,
+            currentAccentColor = themePreference.accentColor,
+            onModeSelected = viewModel::setThemeMode,
+            onAccentColorSelected = viewModel::setAccentColor,
+            onDismiss = { showThemePicker = false },
+        )
+    }
 }
 
 private data class SettingsSection(val title: String, val rows: List<SettingsRow>)
@@ -281,6 +303,7 @@ private data class SettingsRow(
 private sealed interface SettingsTrailing {
     data object None : SettingsTrailing
     data class Value(val text: String) : SettingsTrailing
+    data class Swatch(val color: Color) : SettingsTrailing
     data class Toggle(val checked: Boolean, val onCheckedChange: (Boolean) -> Unit) : SettingsTrailing
 }
 
@@ -368,6 +391,16 @@ private fun SettingsRowItem(row: SettingsRow, modifier: Modifier = Modifier) {
                     text = trailing.text,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            is SettingsTrailing.Swatch -> {
+                Spacer(modifier = Modifier.width(16.dp))
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(trailing.color)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
                 )
             }
             SettingsTrailing.None -> Unit

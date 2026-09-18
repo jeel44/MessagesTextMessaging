@@ -132,12 +132,23 @@
     <string name="settings_section_about">About</string>
 
     <string name="settings_theme_title">Theme</string>
-    <string name="settings_theme_summary">Choose an accent color</string>
-    <string name="settings_theme_value">Default</string>
-    <string name="settings_dark_mode_title">Dark mode</string>
-    <string name="settings_dark_mode_summary">Override the system setting</string>
+    <string name="settings_theme_summary">%1$s theme · %2$s</string>
     <string name="settings_text_size_title">Text size</string>
     <string name="settings_text_size_value">Medium</string>
+
+    <!-- Theme picker -->
+    <string name="theme_mode_system">System</string>
+    <string name="theme_mode_light">Light</string>
+    <string name="theme_mode_dark">Dark</string>
+    <string name="theme_picker_mode_header">Theme mode</string>
+    <string name="theme_picker_color_header">Accent color</string>
+    <string name="theme_picker_color_default">Default</string>
+    <string name="theme_picker_color_custom">Custom</string>
+    <string name="theme_picker_default_swatch_description">Use the default color</string>
+    <string name="theme_picker_custom_swatch_description">Pick a custom color</string>
+    <string name="theme_picker_custom_color_title">Custom color</string>
+    <string name="action_done">Done</string>
+    <string name="action_select">Select</string>
 
     <string name="settings_default_app_title">Default SMS app</string>
     <string name="settings_default_app_summary">Set Messages as your default SMS app</string>
