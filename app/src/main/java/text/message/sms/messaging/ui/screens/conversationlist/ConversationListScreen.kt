@@ -34,15 +34,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.MarkChatUnread
 import androidx.compose.material3.Button
@@ -50,6 +50,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -201,34 +202,51 @@ fun ConversationListScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.screen_conversations)) },
-                navigationIcon = { BrandMark() },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.background,
-                ),
-                actions = {
-                    IconButton(onClick = onSearchClick) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_search),
-                            contentDescription = stringResource(R.string.action_search),
-                            modifier = Modifier.size(24.dp),
+            Column {
+                TopAppBar(
+                    navigationIcon = {
+                        // No drawer/destination wired up yet -- purely visual to match the
+                        // reference until there's something for it to open.
+                        IconButton(onClick = {}) {
+                            Icon(
+                                imageVector = Icons.Filled.Menu,
+                                contentDescription = stringResource(R.string.action_menu),
+                            )
+                        }
+                    },
+                    title = {
+                        Text(
+                            text = stringResource(R.string.home_search_placeholder),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(onClickLabel = stringResource(R.string.action_search), onClick = onSearchClick),
                         )
-                    }
-                    IconButton(onClick = onSettingsClick) {
-                        Icon(
-                            imageVector = Icons.Filled.Settings,
-                            contentDescription = stringResource(R.string.action_settings),
-                        )
-                    }
-                },
-            )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        scrolledContainerColor = MaterialTheme.colorScheme.background,
+                    ),
+                    actions = {
+                        IconButton(onClick = onSettingsClick) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_settings),
+                                contentDescription = stringResource(R.string.action_settings),
+                            )
+                        }
+                    },
+                )
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    thickness = 1.dp,
+                )
+            }
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onNewMessageClick) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_compose),
+                    imageVector = Icons.AutoMirrored.Filled.Message,
                     contentDescription = stringResource(R.string.home_new_chat_label),
                     modifier = Modifier.size(24.dp),
                 )
@@ -419,24 +437,6 @@ private fun ArchivedSummaryRow(count: Int, onClick: () -> Unit, modifier: Modifi
             text = count.toString(),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun BrandMark(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Sms,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.size(20.dp),
         )
     }
 }
@@ -795,7 +795,7 @@ internal fun ConversationRow(
                 // own design pass; this is just the gesture hook so it's not silently missing.
                 onLongClick = {},
             )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ConversationAvatar(conversation)
@@ -863,7 +863,7 @@ private fun UnreadCountBadge(count: Int, modifier: Modifier = Modifier) {
         modifier = modifier
             .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
             .clip(CircleShape)
-            .background(UnreadBadgeGray)
+            .background(AccentBlue)
             .padding(horizontal = 6.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -923,25 +923,10 @@ private fun OtpQuickCopyChip(code: String, modifier: Modifier = Modifier) {
  * avatar it sits next to. */
 private val AccentBlue = Color(0xFF3B7DED)
 
-/** Fixed palette an unresolved sender's (or photo-less contact's) avatar color is hashed from --
- * deliberately not theme-derived, so a sender's color stays recognizable and stable regardless of
- * which accent the Theme picker has set, the same reasoning as [UnreadBadgeGray] above. */
-private val AvatarPalette = listOf(
-    Color(0xFFE53935), // red
-    AccentBlue, // blue
-    Color(0xFFFB8C00), // orange
-    Color(0xFFEC407A), // pink
-    Color(0xFF8E24AA), // purple
-)
-
-/** Same [key] (a contact's stable [text.message.sms.messaging.domain.model.Contact.lookupKey], or
- * a raw address for an unresolved sender) always lands on the same palette entry -- avoids
- * [Math.abs] overflowing on [Int.MIN_VALUE] by folding the modulo back into range with `+ size`
- * before taking it again. */
-private fun colorForAvatarKey(key: String): Color {
-    val index = ((key.hashCode() % AvatarPalette.size) + AvatarPalette.size) % AvatarPalette.size
-    return AvatarPalette[index]
-}
+/** Flat, theme-independent fill for a saved contact with no synced photo -- a generic person
+ * silhouette on gray, not a colored/initialed avatar, since a saved contact isn't a bank/OTP
+ * sender that needs to stand out; only [AccentBlue] below marks that distinction. */
+private val ContactPlaceholderGray = Color(0xFFBDBDBD)
 
 /** Initials for a raw sender address (a bank/OTP/business sender ID, not a saved contact) --
  * [text.message.sms.messaging.domain.model.Contact.initials] only makes sense for a real display
@@ -959,15 +944,15 @@ private fun ConversationAvatar(conversation: Conversation, modifier: Modifier = 
     val recipient = conversation.recipients.firstOrNull()
     val contact = recipient?.contact
     val hasPhoto = !contact?.photoUri.isNullOrBlank()
-    val backgroundColor = if (conversation.isGroup) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        colorForAvatarKey(contact?.lookupKey ?: recipient?.address.orEmpty())
+    val backgroundColor = when {
+        conversation.isGroup -> MaterialTheme.colorScheme.primaryContainer
+        contact != null -> ContactPlaceholderGray
+        else -> AccentBlue
     }
 
     Box(
         modifier = modifier
-            .size(56.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .background(backgroundColor),
         contentAlignment = Alignment.Center,
@@ -978,12 +963,16 @@ private fun ConversationAvatar(conversation: Conversation, modifier: Modifier = 
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
             )
-            contact != null -> Text(
-                text = contact.initials.ifBlank { "?" },
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
+            // Saved contact, no photo -- generic silhouette, not initials: see
+            // ContactPlaceholderGray's doc comment for why this doesn't use AvatarPalette-style
+            // per-contact color.
+            contact != null -> Icon(
+                imageVector = Icons.Filled.Person,
+                contentDescription = null,
+                tint = Color.White,
             )
+            // Unresolved sender (bank/OTP/business sender ID) -- always AccentBlue, not hashed
+            // per-sender, so it reads as "not a saved contact" at a glance.
             else -> Text(
                 text = initialsForAddress(recipient?.address.orEmpty()),
                 style = MaterialTheme.typography.titleMedium,
@@ -1023,12 +1012,12 @@ private fun ShimmerConversationRow(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(56.dp)
+                .size(48.dp)
                 .clip(CircleShape)
                 .background(shimmerBrush()),
         )

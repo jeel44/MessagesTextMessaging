@@ -8,8 +8,10 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -81,6 +83,14 @@ class MainActivity : ComponentActivity() {
             }
 
             AppTheme(darkTheme = darkTheme, accentColor = themePreference.accentColor) {
+                // enableEdgeToEdge()'s own default style is fixed at onCreate and never reacts to
+                // an in-app theme override (ThemeMode.LIGHT/DARK against a differing system mode),
+                // so the status bar icon color is set explicitly here instead, recomputed
+                // whenever darkTheme itself changes -- dark icons for the light top bar, light
+                // icons once the app is actually in dark theme.
+                SideEffect {
+                    WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = !darkTheme
+                }
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
