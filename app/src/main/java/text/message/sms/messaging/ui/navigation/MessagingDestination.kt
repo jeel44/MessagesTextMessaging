@@ -23,6 +23,8 @@ sealed class MessagingDestination(val route: String) {
 
     data object Search : MessagingDestination("search")
 
+    data object Settings : MessagingDestination("settings")
+
     data object Chat : MessagingDestination("conversations/{$ARG_THREAD_ID}") {
         fun routeFor(threadId: Long): String = "conversations/$threadId"
     }

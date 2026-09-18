@@ -17,6 +17,7 @@ import text.message.sms.messaging.ui.screens.onboarding.SetDefaultSmsScreen
 import text.message.sms.messaging.ui.screens.onboarding.SplashScreen
 import text.message.sms.messaging.ui.screens.onboarding.WelcomeScreen
 import text.message.sms.messaging.ui.screens.search.SearchScreen
+import text.message.sms.messaging.ui.screens.settings.SettingsScreen
 
 /** Wires every screen together. Screens receive plain lambdas, never the controller itself. */
 @Composable
@@ -85,6 +86,9 @@ fun MessagingNavHost(
                 onSearchClick = {
                     navController.navigate(MessagingDestination.Search.route)
                 },
+                onSettingsClick = {
+                    navController.navigate(MessagingDestination.Settings.route)
+                },
             )
         }
 
@@ -132,6 +136,12 @@ fun MessagingNavHost(
                 onResultClick = { threadId ->
                     navController.navigate(MessagingDestination.Chat.routeFor(threadId))
                 },
+            )
+        }
+
+        composable(MessagingDestination.Settings.route) {
+            SettingsScreen(
+                onBack = navController::popBackStack,
             )
         }
     }

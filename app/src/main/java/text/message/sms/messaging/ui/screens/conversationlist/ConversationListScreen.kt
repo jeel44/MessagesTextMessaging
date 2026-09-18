@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.MarkChatUnread
@@ -91,6 +92,7 @@ fun ConversationListScreen(
     onConversationClick: (threadId: Long) -> Unit,
     onNewMessageClick: () -> Unit,
     onSearchClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ConversationListViewModel = hiltViewModel(),
 ) {
@@ -129,6 +131,12 @@ fun ConversationListScreen(
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = stringResource(R.string.action_search),
+                        )
+                    }
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.action_settings),
                         )
                     }
                 },
