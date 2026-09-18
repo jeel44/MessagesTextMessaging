@@ -79,6 +79,15 @@ interface ConversationDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertRecipients(recipients: List<RecipientEntity>)
 
+    /** A thread's already-stored recipient addresses, exactly as stored -- used by
+     * [text.message.sms.messaging.data.repository.LocalConversationRepository.resolveThreadId]
+     * to check a newly-resolved address against via [text.message.sms.messaging.util.PhoneNumbers
+     * .addressesNotAlreadyPresent] before inserting it, so the same person addressed in two
+     * different formats (e.g. a contact-picker's ContactsContract number vs. the raw Telephony
+     * address an earlier message used) reuses the existing row instead of adding a second one. */
+    @Query("SELECT address FROM recipients WHERE thread_id = :threadId")
+    suspend fun getRecipientAddresses(threadId: Long): List<String>
+
     @Query("UPDATE conversations SET is_archived = :archived WHERE thread_id IN (:threadIds)")
     suspend fun setArchived(threadIds: Collection<Long>, archived: Boolean)
 

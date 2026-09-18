@@ -64,5 +64,16 @@ object PhoneNumbers {
         return filtered.ifEmpty { addresses }
     }
 
+    /** Which of [candidates] have no [areEquivalent] match already in [existing] -- e.g. a
+     * contact-picker's ContactsContract-formatted number ("63510 00085") against a thread whose
+     * stored recipient came from the raw Telephony address ("6351000085") an earlier message
+     * used. The platform already resolves both formats to the same thread id; without this check
+     * the caller would still insert a second [text.message.sms.messaging.data.local.db.entity
+     * .RecipientEntity] row for that thread, since its unique index is keyed on the exact address
+     * string -- turning one person into a second "participant" and flipping
+     * [text.message.sms.messaging.domain.model.Conversation.isGroup]. */
+    fun addressesNotAlreadyPresent(existing: Collection<String>, candidates: Set<String>): Set<String> =
+        candidates.filterTo(mutableSetOf()) { candidate -> existing.none { areEquivalent(it, candidate) } }
+
     private val FORMATTING_CHARACTERS = charArrayOf(' ', '-', '(', ')', '.')
 }

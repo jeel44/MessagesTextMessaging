@@ -122,4 +122,39 @@ class PhoneNumbersTest {
 
         assertEquals(rawAddresses, PhoneNumbers.realParticipantsOnly(rawAddresses))
     }
+
+    @Test
+    fun `addressesNotAlreadyPresent treats messaging a contact for the first time as one new recipient`() {
+        // No existing thread yet, so the address the contact picker (or a typed number) supplies
+        // is the thread's first and only recipient.
+        val newAddresses = PhoneNumbers.addressesNotAlreadyPresent(existing = emptyList(), candidates = setOf("6351000085"))
+
+        assertEquals(setOf("6351000085"), newAddresses)
+    }
+
+    @Test
+    fun `addressesNotAlreadyPresent recognizes the same contact messaged again in a different format`() {
+        // The reported bug: "My Sweet Dad" was messaged once via the raw Telephony address
+        // ("6351000085"), then again by picking the same contact from New Message, which supplies
+        // the ContactsContract-formatted number ("63510 00085"). The platform resolves both to
+        // the same thread id; this must recognize the second address as the same person and add
+        // no new recipient row, or the thread would show "2 participants" for one person.
+        val newAddresses = PhoneNumbers.addressesNotAlreadyPresent(
+            existing = listOf("6351000085"),
+            candidates = setOf("63510 00085"),
+        )
+
+        assertTrue("re-messaging the same contact must not add a second recipient row", newAddresses.isEmpty())
+    }
+
+    @Test
+    fun `addressesNotAlreadyPresent still adds a genuinely new participant to an existing group thread`() {
+        // Guards against the fix above overcorrecting into never adding a real new participant.
+        val newAddresses = PhoneNumbers.addressesNotAlreadyPresent(
+            existing = listOf("+15550101234"),
+            candidates = setOf("+15550101234", "+15550109999"),
+        )
+
+        assertEquals(setOf("+15550109999"), newAddresses)
+    }
 }

@@ -90,3 +90,31 @@ val MIGRATION_2_3: Migration = object : Migration(2, 3) {
         )
     }
 }
+
+/**
+ * v3 -> v4: one-time cleanup for the same person appearing twice in one thread's `recipients`
+ * because their address was stored in two different formats -- e.g. a contact-picker's
+ * ContactsContract number ("63510 00085") alongside an earlier message's raw Telephony address
+ * ("6351000085"). [MIGRATION_1_2] already collapsed *exact* duplicate (thread_id, address) rows;
+ * this collapses rows that are the same address once formatting is stripped, which is what let a
+ * single real contact show up as "2 participants". Keeps the lowest-id row per
+ * (thread_id, stripped-suffix) group, matching MIGRATION_1_2's convention. Only merges within a
+ * thread the platform had already unified under one thread id -- it does not merge separate
+ * threads/conversations.
+ */
+val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            DELETE FROM recipients
+            WHERE id NOT IN (
+                SELECT MIN(id) FROM recipients
+                GROUP BY thread_id, substr(
+                    replace(replace(replace(replace(replace(address, ' ', ''), '-', ''), '(', ''), ')', ''), '.', ''),
+                    -9
+                )
+            )
+            """.trimIndent(),
+        )
+    }
+}

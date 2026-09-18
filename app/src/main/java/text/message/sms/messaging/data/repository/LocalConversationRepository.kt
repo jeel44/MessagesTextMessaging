@@ -45,9 +45,19 @@ class LocalConversationRepository @Inject constructor(
     override suspend fun resolveThreadId(addresses: Set<String>): Long {
         val threadId = threadResolver.resolve(addresses)
         conversationDao.upsert(ConversationEntity(threadId = threadId))
-        conversationDao.insertRecipients(
-            addresses.map { address -> RecipientEntity(threadId = threadId, address = address) },
-        )
+
+        // The platform already resolves e.g. a contact-picker's formatted number and an earlier
+        // message's raw Telephony address to the same thread id when they're the same person --
+        // but recipients' unique index is on the exact address string, so inserting every address
+        // in [addresses] unconditionally would still add a second row for that one person. Only
+        // addresses with no existing equivalent become new recipient rows.
+        val existingAddresses = conversationDao.getRecipientAddresses(threadId)
+        val newAddresses = PhoneNumbers.addressesNotAlreadyPresent(existingAddresses, addresses)
+        if (newAddresses.isNotEmpty()) {
+            conversationDao.insertRecipients(
+                newAddresses.map { address -> RecipientEntity(threadId = threadId, address = address) },
+            )
+        }
         return threadId
     }
 
