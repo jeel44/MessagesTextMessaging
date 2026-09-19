@@ -2,6 +2,7 @@ package text.message.sms.messaging.ui.screens.search
 
 import android.text.format.DateFormat
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,13 +12,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -26,17 +31,15 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,6 +50,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -58,14 +63,27 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import text.message.sms.messaging.R
 import text.message.sms.messaging.domain.model.Contact
 import text.message.sms.messaging.domain.model.Conversation
-import text.message.sms.messaging.ui.theme.Pill
+import text.message.sms.messaging.ui.screens.conversationlist.screenSurfaceColor
+import text.message.sms.messaging.ui.theme.ConversationRowDivider
+import text.message.sms.messaging.ui.theme.FilterChipContentGray
+import text.message.sms.messaging.ui.theme.FilterChipSelectedBorder
+import text.message.sms.messaging.ui.theme.FilterChipSelectedContainer
+import text.message.sms.messaging.ui.theme.FilterChipUnselectedContainer
+import text.message.sms.messaging.ui.theme.SearchBarBorder
 import text.message.sms.messaging.util.SearchHighlight
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.TextStyle
+import java.time.temporal.ChronoUnit
 import java.util.Date
+import java.util.Locale
 
 /**
  * Full-text search across threads and message bodies, backed live by [SearchViewModel] --
@@ -73,7 +91,6 @@ import java.util.Date
  * for the "People" tab and [MessageRepository][text.message.sms.messaging.domain.repository.MessageRepository.search]
  * for "Messages". See [SearchViewModel]'s class doc for why there is no "Media" filter chip.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     onBack: () -> Unit,
@@ -97,40 +114,33 @@ fun SearchScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = screenSurfaceColor(),
         topBar = {
-            TopAppBar(
-                title = {
-                    SearchField(
-                        value = queryText,
-                        onValueChange = viewModel::onQueryChanged,
-                        onSearch = {
-                            viewModel.commitSearch()
-                            keyboardController?.hide()
-                        },
-                        focusRequester = focusRequester,
-                    )
+            SearchBar(
+                value = queryText,
+                onValueChange = viewModel::onQueryChanged,
+                onSearch = {
+                    viewModel.commitSearch()
+                    keyboardController?.hide()
                 },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
-                        )
-                    }
-                },
+                onBack = onBack,
+                focusRequester = focusRequester,
             )
         },
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .imePadding(),
         ) {
-            SearchFilterChipRow(
-                selected = filter,
-                onSelect = viewModel::onFilterSelected,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            )
+            if (queryText.isNotEmpty()) {
+                SearchFilterChipRow(
+                    selected = filter,
+                    onSelect = viewModel::onFilterSelected,
+                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 8.dp),
+                )
+            }
 
             SearchContent(
                 queryText = queryText,
@@ -149,47 +159,92 @@ fun SearchScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * White, rounded-pill search bar matching the Home top bar's own pill styling (see
+ * [screenSurfaceColor] and [SearchBarBorder]) -- deliberately not a [androidx.compose.material3.TopAppBar],
+ * whose own tonal-elevation Surface is what caused this screen's lavender cast in the first place.
+ * [statusBarsPadding] here (rather than relying on Scaffold's own inset handling) mirrors exactly
+ * how `ConversationListTopBar` clears the status bar on Home.
+ */
 @Composable
-private fun SearchField(
+private fun SearchBar(
     value: String,
     onValueChange: (String) -> Unit,
     onSearch: () -> Unit,
+    onBack: () -> Unit,
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
-    TextField(
-        value = value,
-        onValueChange = onValueChange,
+    // Same luminance-gated light/dark split as screenSurfaceColor(): the reference's fixed black
+    // icon text and #5F6368 hint/clear gray are only correct against a genuinely light background,
+    // so dark theme falls back to theme-aware onSurface/onSurfaceVariant instead.
+    val isLightSurface = MaterialTheme.colorScheme.background.luminance() > 0.5f
+    val iconTint = if (isLightSurface) Color.Black else MaterialTheme.colorScheme.onSurface
+    val hintColor = if (isLightSurface) FilterChipContentGray else MaterialTheme.colorScheme.onSurfaceVariant
+    val textColor = if (isLightSurface) Color.Black else MaterialTheme.colorScheme.onSurface
+
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .focusRequester(focusRequester),
-        placeholder = { Text(stringResource(R.string.search_hint)) },
-        leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
-        trailingIcon = {
-            if (value.isNotEmpty()) {
-                IconButton(onClick = { onValueChange("") }) {
-                    Icon(
-                        imageVector = Icons.Filled.Clear,
-                        contentDescription = stringResource(R.string.search_clear),
-                    )
-                }
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .height(56.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .background(screenSurfaceColor())
+            .border(1.dp, SearchBarBorder, RoundedCornerShape(28.dp)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.action_back),
+                tint = iconTint,
+                modifier = Modifier.size(24.dp),
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+            if (value.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.search_hint),
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+                    color = hintColor,
+                )
             }
-        },
-        singleLine = true,
-        shape = Pill,
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent,
-        ),
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(onSearch = { onSearch() }),
-    )
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, color = textColor),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+            )
+        }
+
+        if (value.isNotEmpty()) {
+            IconButton(onClick = { onValueChange("") }) {
+                Icon(
+                    imageVector = Icons.Filled.Clear,
+                    contentDescription = stringResource(R.string.search_clear),
+                    tint = hintColor,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
+    }
 }
 
+/** Restyled to match Home's [text.message.sms.messaging.ui.screens.conversationlist.ConversationFilterRow]
+ * chip look exactly (same color tokens, 40dp height, 1.5dp selected border) -- these chips are
+ * functional (they gate [SearchResultsList]'s `showPeople`/`showMessages`), so per the design brief
+ * they're kept, just restyled, and only shown once there's a query to filter. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SearchFilterChipRow(
     selected: SearchFilter,
@@ -206,10 +261,32 @@ private fun SearchFilterChipRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(chips, key = { it.first }) { (chipFilter, label) ->
+            val isSelected = chipFilter == selected
             FilterChip(
-                selected = chipFilter == selected,
+                selected = isSelected,
                 onClick = { onSelect(chipFilter) },
-                label = { Text(label) },
+                label = {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
+                    )
+                },
+                modifier = Modifier.height(40.dp),
+                shape = RoundedCornerShape(50),
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = FilterChipUnselectedContainer,
+                    labelColor = FilterChipContentGray,
+                    selectedContainerColor = FilterChipSelectedContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onSurface,
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = isSelected,
+                    borderColor = Color.Transparent,
+                    selectedBorderColor = FilterChipSelectedBorder,
+                    borderWidth = 0.dp,
+                    selectedBorderWidth = 1.5.dp,
+                ),
             )
         }
     }
@@ -229,8 +306,25 @@ private fun SearchContent(
     when {
         queryText.isEmpty() && recentSearches.isNotEmpty() ->
             RecentSearchesList(recentSearches, onRecentSearchSelected, modifier)
-        queryText.isEmpty() -> Box(modifier) // nothing typed yet and no search history either
+        queryText.isEmpty() -> EmptyQueryState(modifier)
         else -> SearchResultsList(queryText, filter, peopleResults, messageResults, onResultClick, modifier)
+    }
+}
+
+/** Shown for an empty query with no search history yet -- matches the reference design's clean
+ * empty state instead of a blank screen. */
+@Composable
+private fun EmptyQueryState(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.search_empty_state),
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -273,6 +367,10 @@ private fun RecentSearchRow(term: String, onClick: () -> Unit, modifier: Modifie
     }
 }
 
+/** Left inset for the divider between result rows -- lines up with the start of the title/snippet
+ * text (16dp row padding + 48dp avatar + 16dp spacer), same math as Home's own `RowDividerInset`. */
+private val SearchResultRowDividerInset = 80.dp
+
 @Composable
 private fun SearchResultsList(
     queryText: String,
@@ -290,13 +388,20 @@ private fun SearchResultsList(
         return
     }
 
-    LazyColumn(modifier = modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .background(screenSurfaceColor()),
+    ) {
         if (showPeople) {
             if (filter == SearchFilter.ALL) {
                 item(key = "header_people") { SectionHeader(stringResource(R.string.search_section_people)) }
             }
             items(peopleResults, key = { "person_${it.threadId}" }) { conversation ->
-                PersonResultRow(conversation = conversation, onClick = { onResultClick(conversation.threadId) })
+                Column {
+                    PersonResultRow(conversation = conversation, onClick = { onResultClick(conversation.threadId) })
+                    ResultRowDivider()
+                }
             }
         }
         if (showMessages) {
@@ -304,10 +409,22 @@ private fun SearchResultsList(
                 item(key = "header_messages") { SectionHeader(stringResource(R.string.search_section_messages)) }
             }
             items(messageResults, key = { "message_${it.message.id}" }) { row ->
-                MessageResultRow(row = row, query = queryText, onClick = { onResultClick(row.conversation.threadId) })
+                Column {
+                    MessageResultRow(row = row, query = queryText, onClick = { onResultClick(row.conversation.threadId) })
+                    ResultRowDivider()
+                }
             }
         }
     }
+}
+
+@Composable
+private fun ResultRowDivider(modifier: Modifier = Modifier) {
+    HorizontalDivider(
+        modifier = modifier.padding(start = SearchResultRowDividerInset),
+        thickness = 0.75.dp,
+        color = ConversationRowDivider,
+    )
 }
 
 @Composable
@@ -394,7 +511,7 @@ private fun SearchResultRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -403,8 +520,8 @@ private fun SearchResultRow(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = formatMessageTime(timestampMillis),
-                    style = MaterialTheme.typography.labelSmall,
+                    text = formatResultDate(timestampMillis),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -413,7 +530,7 @@ private fun SearchResultRow(
 
             Text(
                 text = snippet,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -426,7 +543,7 @@ private fun SearchResultRow(
 private fun SearchResultAvatar(isGroup: Boolean, contact: Contact?, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .size(56.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.primaryContainer),
         contentAlignment = Alignment.Center,
@@ -452,11 +569,24 @@ private fun SearchResultAvatar(isGroup: Boolean, contact: Contact?, modifier: Mo
     }
 }
 
+/** Short-form date label, matching Home's own row format exactly ("Yesterday" / weekday
+ * abbreviation for the last 7 days / a locale-formatted date beyond that) rather than a clock
+ * time -- see [text.message.sms.messaging.ui.screens.conversationlist.ConversationRow]'s
+ * `formatConversationDate`, duplicated here (not imported) to keep this screen's changes scoped
+ * to this file only. */
 @Composable
-private fun formatMessageTime(timestampMillis: Long): String {
+private fun formatResultDate(timestampMillis: Long): String {
     val context = LocalContext.current
-    return remember(timestampMillis) {
-        DateFormat.getTimeFormat(context).format(Date(timestampMillis))
+    val yesterdayLabel = stringResource(R.string.home_date_yesterday)
+    return remember(timestampMillis, yesterdayLabel) {
+        val zone = ZoneId.systemDefault()
+        val date = Instant.ofEpochMilli(timestampMillis).atZone(zone).toLocalDate()
+        val daysBetween = ChronoUnit.DAYS.between(date, LocalDate.now(zone))
+        when {
+            daysBetween == 1L -> yesterdayLabel
+            daysBetween in 0L..6L -> date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+            else -> DateFormat.getMediumDateFormat(context).format(Date(timestampMillis))
+        }
     }
 }
 
