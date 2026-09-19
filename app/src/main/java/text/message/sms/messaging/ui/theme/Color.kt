@@ -98,6 +98,51 @@ internal val ConversationFabBlue = Color(0xFF2F6BFF)
  * the reference design's very light gray divider. */
 internal val ConversationRowDivider = Color(0xFFE6E6EA)
 
+/** Centered date/time separator text on the Chat screen, and the small status caption under the
+ * last sent bubble ("Sending...", "Failed. Tap to retry") -- a flat gray, not `onSurfaceVariant`,
+ * to match the reference design exactly regardless of accent/dynamic color. Light theme only; dark
+ * theme uses `colorScheme.onSurfaceVariant` instead -- see ChatScreen.kt/MessageBubble.kt's own
+ * light/dark gating. */
+internal val ChatDateSeparatorGray = Color(0xFF6B6F76)
+
+/** Sent message bubble fill on the Chat screen, light theme only. */
+internal val ChatBubbleSentContainer = Color(0xFFE8EEFB)
+
+/** Bubble text color for both sent and received bubbles on the Chat screen, light theme only. */
+internal val ChatBubbleContentDark = Color(0xFF1B1B1F)
+
+/** Flat light-gray fill shared by the Chat screen's received bubble, the composer's "+" button,
+ * and the composer's rounded text field -- light theme only. */
+internal val ChatNeutralFill = Color(0xFFF1F3F4)
+
+/** Composer placeholder/hint text and leading-icon tint on the Chat screen, light theme only. */
+internal val ChatHintGray = Color(0xFF9AA0A6)
+
+/** Send button fill once the composer has text -- light theme only. */
+internal val ChatSendButtonEnabled = Color(0xFF1A5FD0)
+
+/** Send button fill while the composer is empty (still shows blue, just muted) -- light theme
+ * only. */
+internal val ChatSendButtonDisabled = Color(0xFFA9C4F5)
+
+/** Chat top bar avatar background for a saved contact with no synced photo -- a generic
+ * silhouette on gray, matching [text.message.sms.messaging.ui.screens.conversationlist
+ * .ConversationAvatar]'s same reasoning for the inbox row avatar. Light theme only. */
+internal val ChatAvatarPlaceholderGray = Color(0xFFBDBDBD)
+
+/** Chat top bar avatar background for an unresolved sender (bank/OTP/business sender ID) -- shown
+ * with its first letter/digit rather than a silhouette, so it reads as "not a saved contact" at a
+ * glance. Light theme only. */
+internal val ChatAvatarAccentBlue = Color(0xFF3B7DED)
+
+/** Hairline divider along the Chat top bar's bottom edge -- light theme only. */
+internal val ChatTopBarDivider = Color(0xFFE6E6EA)
+
+/** Received message bubble fill on the Chat screen, light theme only -- deliberately a distinct,
+ * slightly darker gray from [ChatNeutralFill] (the composer's "+"/text-field fill), matching the
+ * reference design's received bubble exactly rather than reusing that neutral tone. */
+internal val ChatReceivedBubble = Color(0xFFEFEDEE)
+
 internal val DarkColors = darkColorScheme(
     primary = SeedBlueDark,
     onPrimary = SeedBlueOnPrimaryDark,

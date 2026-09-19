@@ -88,14 +88,18 @@
     <!-- Chat -->
     <string name="chat_call">Call</string>
     <string name="chat_more_options">More options</string>
-    <string name="chat_composer_hint">Text message</string>
+    <string name="chat_composer_hint">Write a message...</string>
     <string name="chat_send">Send</string>
     <string name="chat_add_attachment">Add attachment</string>
+    <string name="chat_schedule_button_description">Schedule message</string>
+    <string name="chat_schedule_tooltip">Tap to schedule your message</string>
     <string name="chat_remove_attachment">Remove attachment</string>
     <string name="chat_status_sending">Sending…</string>
     <string name="chat_status_sent">Sent</string>
     <string name="chat_status_delivered">Delivered</string>
     <string name="chat_status_failed">Failed</string>
+    <string name="chat_status_failed_retry">Failed. Tap to retry</string>
+    <string name="chat_conversation_info">Conversation info</string>
     <string name="chat_attachment_sheet_title">Add to your message</string>
     <string name="chat_attachment_gallery">Gallery</string>
     <string name="chat_attachment_camera">Camera</string>
