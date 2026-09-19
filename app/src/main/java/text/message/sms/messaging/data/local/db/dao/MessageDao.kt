@@ -66,6 +66,11 @@ interface MessageDao {
     @Query("SELECT COUNT(*) FROM messages WHERE thread_id = :threadId")
     suspend fun countForThread(threadId: Long): Int
 
+    /** Every message id across [threadIds], one query for the whole batch -- see
+     * [text.message.sms.messaging.data.repository.LocalMessageRepository.findIdsForThreads]. */
+    @Query("SELECT id FROM messages WHERE thread_id IN (:threadIds)")
+    suspend fun findIdsForThreads(threadIds: Collection<Long>): List<Long>
+
     /** The single newest message left in [threadId] -- used after a selection delete to recompute
      * the conversation's snippet/last-message time, since deleting rows out from under it can
      * leave [text.message.sms.messaging.data.local.db.entity.ConversationEntity] pointing at a

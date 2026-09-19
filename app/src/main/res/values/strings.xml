@@ -63,6 +63,37 @@
     <string name="home_otp_copy_content_description">Copy verification code</string>
     <string name="home_deleted_snackbar">Deleted</string>
 
+    <!-- Home multi-select -->
+    <string name="home_selection_close">Exit selection</string>
+    <string name="home_selection_count_format">%1$d/%2$d</string>
+    <string name="home_selection_archive">Archive</string>
+    <string name="home_selection_delete">Delete</string>
+    <string name="home_selection_more">More options</string>
+    <string name="home_selection_select_all">Select all</string>
+    <string name="home_selection_mark_read">Mark as read</string>
+    <string name="home_selection_mark_unread">Mark as unread</string>
+    <string name="home_selection_pin">Pin</string>
+    <string name="home_selection_unpin">Unpin</string>
+    <string name="home_selection_block">Block</string>
+    <plurals name="home_selection_archived_snackbar">
+        <item quantity="one">%1$d conversation archived</item>
+        <item quantity="other">%1$d conversations archived</item>
+    </plurals>
+    <plurals name="home_selection_deleted_snackbar">
+        <item quantity="one">%1$d conversation deleted</item>
+        <item quantity="other">%1$d conversations deleted</item>
+    </plurals>
+    <plurals name="home_selection_delete_confirm_title">
+        <item quantity="one">Delete %1$d conversation?</item>
+        <item quantity="other">Delete %1$d conversations?</item>
+    </plurals>
+    <string name="home_selection_delete_confirm_message">This will delete all messages in them. This can\'t be undone.</string>
+    <plurals name="home_selection_block_confirm_title">
+        <item quantity="one">Block %1$d conversation?</item>
+        <item quantity="other">Block %1$d conversations?</item>
+    </plurals>
+    <string name="home_selection_block_confirm_message">You won\'t receive messages or calls from these senders. You can unblock them later from each conversation.</string>
+
     <!-- Archived -->
     <string name="archived_unarchive">Unarchive</string>
     <string name="archived_empty_title">No archived conversations</string>

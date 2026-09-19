@@ -208,6 +208,9 @@ class LocalMessageRepository @Inject constructor(
 
     override suspend fun countForThread(threadId: Long): Int = messageDao.countForThread(threadId)
 
+    override suspend fun findIdsForThreads(threadIds: Collection<Long>): List<Long> =
+        if (threadIds.isEmpty()) emptyList() else messageDao.findIdsForThreads(threadIds)
+
     override suspend fun findLatestForThread(threadId: Long): Message? =
         messageDao.findLatestForThread(threadId)?.toDomain()
 

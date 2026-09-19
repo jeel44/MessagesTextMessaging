@@ -1,6 +1,7 @@
 package text.message.sms.messaging.domain.repository
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import text.message.sms.messaging.domain.model.DeliveryState
 import text.message.sms.messaging.domain.model.Message
@@ -77,6 +78,16 @@ interface MessageRepository {
     /** How many messages [threadId] has left -- used after [delete] to tell whether the thread
      * is now empty. */
     suspend fun countForThread(threadId: Long): Int
+
+    /** Every message id across [threadIds] -- used by
+     * [text.message.sms.messaging.domain.usecase.DeleteConversation] to route each thread's
+     * messages through [delete] (which handles Telephony-provider cleanup, not just the local
+     * cache) before the now-empty conversation rows themselves are removed. Default implementation
+     * falls back to [observeThread], so a fake/test repository need not override this;
+     * [text.message.sms.messaging.data.repository.LocalMessageRepository] overrides it with a
+     * real SQL IN-list query instead. */
+    suspend fun findIdsForThreads(threadIds: Collection<Long>): List<Long> =
+        threadIds.flatMap { threadId -> observeThread(threadId).first().map { it.id } }
 
     /** The newest remaining message in [threadId], or `null` if none -- used after [delete] to
      * recompute the conversation's snippet/last-message time. */

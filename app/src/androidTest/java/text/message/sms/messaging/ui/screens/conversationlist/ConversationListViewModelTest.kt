@@ -40,6 +40,9 @@ import text.message.sms.messaging.domain.model.DeliveryState
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.model.MessageChannel
 import text.message.sms.messaging.domain.model.MessageFolder
+import text.message.sms.messaging.domain.model.BlockReason
+import text.message.sms.messaging.domain.model.BlockedNumber
+import text.message.sms.messaging.domain.repository.BlockedNumberRepository
 import text.message.sms.messaging.domain.repository.ContactRepository
 import text.message.sms.messaging.domain.repository.ConversationRepository
 import text.message.sms.messaging.domain.repository.MessageRepository
@@ -47,8 +50,12 @@ import text.message.sms.messaging.domain.repository.SyncProgress
 import text.message.sms.messaging.domain.repository.SyncRepository
 import text.message.sms.messaging.domain.usecase.DeleteConversation
 import text.message.sms.messaging.domain.usecase.MarkArchived
+import text.message.sms.messaging.domain.usecase.MarkBlocked
+import text.message.sms.messaging.domain.usecase.MarkPinned
 import text.message.sms.messaging.domain.usecase.MarkRead
 import text.message.sms.messaging.domain.usecase.MarkUnarchived
+import text.message.sms.messaging.domain.usecase.MarkUnblocked
+import text.message.sms.messaging.domain.usecase.MarkUnpinned
 import text.message.sms.messaging.domain.usecase.MarkUnread
 import text.message.sms.messaging.domain.usecase.SyncContacts
 import text.message.sms.messaging.domain.usecase.SyncMessages
@@ -137,6 +144,15 @@ class ConversationListViewModelTest {
             override suspend fun refreshFromProvider() = Unit
         }
 
+        // Only MarkBlocked/MarkUnblocked need a BlockedNumberRepository, and neither is exercised
+        // by the delete/undo flow this test covers -- a stub is enough to satisfy the constructor.
+        val blockedNumberRepository = object : BlockedNumberRepository {
+            override fun observeAll(): Flow<List<BlockedNumber>> = MutableStateFlow(emptyList())
+            override suspend fun isBlocked(address: String): Boolean = false
+            override suspend fun block(addresses: Collection<String>, reason: BlockReason) = Unit
+            override suspend fun unblock(addresses: Collection<String>) = Unit
+        }
+
         val builtViewModel = ConversationListViewModel(
             conversationRepository = conversationRepository,
             syncRepository = syncRepository,
@@ -148,9 +164,13 @@ class ConversationListViewModelTest {
             swipeActionPreferences = SwipeActionPreferences(context),
             markArchivedUseCase = MarkArchived(conversationRepository),
             markUnarchivedUseCase = MarkUnarchived(conversationRepository),
-            deleteConversationUseCase = DeleteConversation(conversationRepository),
+            deleteConversationUseCase = DeleteConversation(conversationRepository, messageRepository),
             markReadUseCase = MarkRead(messageRepository),
             markUnreadUseCase = MarkUnread(messageRepository),
+            markPinnedUseCase = MarkPinned(conversationRepository),
+            markUnpinnedUseCase = MarkUnpinned(conversationRepository),
+            markBlockedUseCase = MarkBlocked(conversationRepository, blockedNumberRepository),
+            markUnblockedUseCase = MarkUnblocked(conversationRepository, blockedNumberRepository),
         )
         // Routed through a real ViewModelStore (rather than just using builtViewModel directly)
         // purely so tearDown can call the ordinary, public ViewModelStore.clear() -- ViewModel's

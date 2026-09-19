@@ -32,7 +32,11 @@ import text.message.sms.messaging.domain.repository.SyncProgress
 import text.message.sms.messaging.domain.repository.SyncRepository
 import text.message.sms.messaging.domain.usecase.DeleteConversation
 import text.message.sms.messaging.domain.usecase.MarkArchived
+import text.message.sms.messaging.domain.usecase.MarkBlocked
+import text.message.sms.messaging.domain.usecase.MarkPinned
 import text.message.sms.messaging.domain.usecase.MarkRead
+import text.message.sms.messaging.domain.usecase.MarkUnblocked
+import text.message.sms.messaging.domain.usecase.MarkUnpinned
 import text.message.sms.messaging.domain.usecase.MarkUnread
 import text.message.sms.messaging.domain.usecase.MarkUnarchived
 import text.message.sms.messaging.domain.usecase.SyncContacts
@@ -67,6 +71,17 @@ internal sealed interface ConversationListEvent {
      * snackbar's result is known, or the thread stays hidden forever without actually being
      * deleted. */
     data class PendingDelete(val conversation: Conversation) : ConversationListEvent
+
+    /** [threadIds] were just archived from the selection top bar's Archive action -- unlike a
+     * single swipe, this is a plain immediate write (no [PendingDelete]-style hide-then-confirm
+     * dance), so the snackbar this triggers exists purely to offer
+     * [ConversationListViewModel.undoSelectionArchive]. */
+    data class SelectionArchived(val threadIds: Set<Long>) : ConversationListEvent
+
+    /** [count] threads were just deleted from the selection top bar's Delete action, after the
+     * screen's own confirmation dialog already ran -- no further undo offered, matching
+     * [text.message.sms.messaging.ui.screens.chat.ChatScreen]'s own confirmed-delete snackbar. */
+    data class SelectionDeleted(val count: Int) : ConversationListEvent
 }
 
 /**
@@ -106,6 +121,10 @@ class ConversationListViewModel @Inject constructor(
     private val deleteConversationUseCase: DeleteConversation,
     private val markReadUseCase: MarkRead,
     private val markUnreadUseCase: MarkUnread,
+    private val markPinnedUseCase: MarkPinned,
+    private val markUnpinnedUseCase: MarkUnpinned,
+    private val markBlockedUseCase: MarkBlocked,
+    private val markUnblockedUseCase: MarkUnblocked,
 ) : ViewModel() {
 
     // Perf-pass breadcrumb (Logcat tag "NavPerf"), not read by any UI decision -- logs once, the
@@ -167,8 +186,54 @@ class ConversationListViewModel @Inject constructor(
         .map { it.size }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    /** Home's multi-select state -- non-empty means selection mode is active (see
+     * [ConversationListScreen]'s `isSelectionMode`). A plain [MutableStateFlow] survives rotation
+     * on its own (this [ViewModel] outlives the configuration change); nothing else needs to hide
+     * behind [androidx.lifecycle.SavedStateHandle] here. */
+    private val _selectedThreadIds = MutableStateFlow<Set<Long>>(emptySet())
+    internal val selectedThreadIds: StateFlow<Set<Long>> = _selectedThreadIds.asStateFlow()
+
+    /** The currently-selected rows themselves (not just their ids) -- lets the selection top bar's
+     * overflow menu decide "Mark as read" vs. "Mark as unread" and "Pin" vs. "Unpin" without
+     * re-deriving [conversations] itself. */
+    internal val selectedConversations: StateFlow<List<Conversation>> = combine(
+        conversations,
+        selectedThreadIds,
+    ) { list, ids -> list.filter { it.threadId in ids } }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList(),
+    )
+
+    /** Long-press on a row: enters selection mode with just that row selected. */
+    internal fun startSelection(threadId: Long) {
+        _selectedThreadIds.value = setOf(threadId)
+    }
+
+    /** A tap (in selection mode) on a row: adds or removes just that row from the selection.
+     * Selecting the last remaining row back out to empty is what ends selection mode -- there is
+     * no separate "exit" branch here, [ConversationListScreen] just reads `isSelectionMode` off
+     * whether this is empty. */
+    internal fun toggleSelection(threadId: Long) {
+        _selectedThreadIds.update { current -> if (threadId in current) current - threadId else current + threadId }
+    }
+
+    /** Selects every conversation currently loaded in the active filter tab -- never triggers a
+     * fresh query, matching [text.message.sms.messaging.ui.screens.chat.ChatViewModel
+     * .selectAllLoaded]'s same "don't pull in more than what's already on screen" rule. */
+    internal fun selectAllLoaded() {
+        _selectedThreadIds.value = conversations.value.map { it.threadId }.toSet()
+    }
+
+    /** Exits selection mode -- system back, the selection top bar's close icon, a filter change,
+     * and every selection action below all funnel through this. */
+    internal fun clearSelection() {
+        _selectedThreadIds.value = emptySet()
+    }
+
     internal fun selectFilter(filter: ConversationFilter) {
         selectedFilter.value = filter
+        clearSelection()
     }
 
     /** The system intent that asks the user to make this app the default SMS handler. */
@@ -257,6 +322,75 @@ class ConversationListViewModel @Inject constructor(
     internal fun toggleRead(conversation: Conversation) {
         viewModelScope.launch {
             if (conversation.hasUnread) markReadUseCase(listOf(conversation.threadId)) else markUnreadUseCase(listOf(conversation.threadId))
+        }
+    }
+
+    /** Selection top bar's Archive action -- a plain immediate write, same reasoning as
+     * [archiveConversation]. The snackbar this triggers offers [undoSelectionArchive]. */
+    internal fun archiveSelection() {
+        val ids = _selectedThreadIds.value
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            markArchivedUseCase(ids)
+            _events.emit(ConversationListEvent.SelectionArchived(ids))
+            clearSelection()
+        }
+    }
+
+    internal fun undoSelectionArchive(threadIds: Set<Long>) {
+        viewModelScope.launch { markUnarchivedUseCase(threadIds) }
+    }
+
+    /** Selection top bar's Delete action -- unlike swipe-to-delete, [ConversationListScreen]
+     * already ran a confirmation [androidx.compose.material3.AlertDialog] before calling this, so
+     * this deletes immediately (through [DeleteConversation], which also cleans up each thread's
+     * Telephony-provider rows) rather than deferring to another undo-able snackbar window. */
+    internal fun deleteSelection() {
+        val ids = _selectedThreadIds.value
+        if (ids.isEmpty()) return
+        val count = ids.size
+        viewModelScope.launch {
+            deleteConversationUseCase(ids)
+            _events.emit(ConversationListEvent.SelectionDeleted(count))
+            clearSelection()
+        }
+    }
+
+    /** Selection top bar's overflow "Mark as read"/"Mark as unread" action: unread if every
+     * selected row is already read (matching [ConversationListScreen]'s label choice for the
+     * same rule), read otherwise -- so a mixed selection always resolves to "mark everything
+     * read" rather than an ambiguous partial toggle. */
+    internal fun toggleReadSelection() {
+        val ids = _selectedThreadIds.value
+        if (ids.isEmpty()) return
+        val allRead = selectedConversations.value.all { !it.hasUnread }
+        viewModelScope.launch {
+            if (allRead) markUnreadUseCase(ids) else markReadUseCase(ids)
+            clearSelection()
+        }
+    }
+
+    /** Selection top bar's overflow "Pin"/"Unpin" action: unpins only when every selected row is
+     * already pinned, pins otherwise -- same "mixed selection resolves to the more inclusive
+     * action" rule as [toggleReadSelection]. */
+    internal fun togglePinSelection() {
+        val ids = _selectedThreadIds.value
+        if (ids.isEmpty()) return
+        val allPinned = selectedConversations.value.all { it.isPinned }
+        viewModelScope.launch {
+            if (allPinned) markUnpinnedUseCase(ids) else markPinnedUseCase(ids)
+            clearSelection()
+        }
+    }
+
+    /** Selection top bar's overflow Block action -- [ConversationListScreen] already ran a
+     * confirmation dialog before calling this, same reasoning as [deleteSelection]. */
+    internal fun blockSelection() {
+        val ids = _selectedThreadIds.value
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            markBlockedUseCase(ids)
+            clearSelection()
         }
     }
 }
