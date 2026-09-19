@@ -109,6 +109,13 @@
     <string name="chat_attachment_schedule">Schedule</string>
     <string name="chat_attachment_coming_soon">Coming soon</string>
     <string name="chat_media_viewer_title">Photo</string>
+    <string name="chat_security_notice">This SMS is 100% Secure. Messages never collect data without prior consent. Everything is processed and stored on your phone.</string>
+    <string name="chat_cant_reply_short_code">Can\'t reply to this short code</string>
+    <string name="chat_learn_more">Learn More</string>
+    <string name="chat_learn_more_dialog_message">You can\'t reply to messages from business senders and short codes.</string>
+    <string name="chat_learn_more_ok">OK</string>
+    <string name="chat_otp_copy_label">Copy \"%1$s\"</string>
+    <string name="chat_otp_copy_content_description">Copy verification code</string>
 
     <!-- Conversation info -->
     <string name="conversation_info_title">Conversation info</string>
