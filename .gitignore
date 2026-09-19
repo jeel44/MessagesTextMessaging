@@ -1,20 +1,37 @@
+# Ignore everything at the top level, then allow only the real project files
+/*
+!/.gitignore
+!/.idea/
+!/app/
+!/baselineprofile/
+!/build.gradle.kts
+!/gradle/
+!/gradle.properties
+!/gradlew
+!/gradlew.bat
+!/README.md
+!/settings.gradle.kts
+
+# Android Studio / IDE
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+.idea/caches
+.idea/libraries
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
 .DS_Store
-/build
+
+# Gradle and build output
+.gradle
+build/
+**/build/
 /captures
 .externalNativeBuild
 .cxx
-local.properties
 
-**/build/
+# Local machine files
+local.properties
 *.apk
 *.db
 jadx-*/
