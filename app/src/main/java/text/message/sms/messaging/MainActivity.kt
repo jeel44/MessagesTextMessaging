@@ -17,7 +17,9 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import text.message.sms.messaging.data.local.datastore.ThemeMode
 import text.message.sms.messaging.data.local.datastore.ThemePreference
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
@@ -71,12 +73,19 @@ class MainActivity : ComponentActivity() {
         // never mistakes an already-granted role for a fresh grant and fires a redundant sync.
         wasDefaultSmsApp = defaultSmsAppGuard.isDefault
         enableEdgeToEdge()
+        // MessagingApplication.onCreate has already migrated/persisted an explicit theme mode by
+        // this point, so this is a fast read of already-resident DataStore state -- done
+        // synchronously so the very first composed frame (including SplashScreen, both wrapped in
+        // AppTheme below) already reflects it, instead of momentarily showing
+        // collectAsStateWithLifecycle's own initialValue default before the flow's first real
+        // emission lands (a visible light/dark flash on the app's first frame otherwise).
+        val initialThemePreference = runBlocking { themePreferences.themePreference.first() }
         setContent {
             // Live over ThemePreferences.themePreference, not a one-shot read -- a change made in
             // Settings' theme picker recomposes this the moment DataStore commits it, so the
             // whole app recolors immediately rather than only on the next cold start.
             val themePreference by themePreferences.themePreference
-                .collectAsStateWithLifecycle(initialValue = ThemePreference())
+                .collectAsStateWithLifecycle(initialValue = initialThemePreference)
 
             val darkTheme = when (themePreference.mode) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()

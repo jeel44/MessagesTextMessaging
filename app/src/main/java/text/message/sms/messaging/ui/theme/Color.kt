@@ -216,6 +216,31 @@ internal val ConversationRowSelected = Color(0xFFE9EEFA)
  * both themes. */
 internal val ConversationSelectedAvatar = Color(0xFF1E9BF0)
 
+/** [text.message.sms.messaging.ui.components.ShineButton]'s pressed-state fill -- a darker tone of
+ * [ConversationFabBlue]. Same in both themes: the button is a fixed brand blue regardless of
+ * theme, matching the approved onboarding design. */
+internal val ShineButtonPressedBlue = Color(0xFF2760E6)
+
+/** [text.message.sms.messaging.ui.components.ShineButton]'s pulsing halo fill -- [ConversationFabBlue]
+ * at reduced alpha. Same in both themes. */
+internal val ShineButtonHalo = ConversationFabBlue.copy(alpha = 0.26f)
+
+/** WelcomeScreen's "Welcome To" eyebrow label and its post-button privacy line -- light theme
+ * only; dark theme uses `colorScheme.onSurfaceVariant` instead. */
+internal val OnboardingEyebrowGray = Color(0xFF5F6368)
+
+/** WelcomeScreen's app-name headline and tagline, and SetDefaultSmsScreen's body copy -- light
+ * theme only; dark theme uses `colorScheme.onSurface` instead. */
+internal val OnboardingHeadlineDark = Color(0xFF1B1B1F)
+
+/** WelcomeScreen's subtitle line under the tagline -- light theme only; dark theme uses
+ * `colorScheme.onSurfaceVariant` instead. */
+internal val OnboardingSubtitleGray = Color(0xFF6B6F76)
+
+/** WelcomeScreen's "Privacy Policy" link -- light theme only; dark theme uses
+ * `colorScheme.primary` instead. */
+internal val OnboardingPrivacyLinkBlue = Color(0xFF3A6FD8)
+
 internal val DarkColors = darkColorScheme(
     primary = SeedBlueDark,
     onPrimary = SeedBlueOnPrimaryDark,

@@ -8,7 +8,11 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
+import text.message.sms.messaging.data.local.datastore.ThemePreferences
 import text.message.sms.messaging.data.local.provider.ContactChangeObserver
 import text.message.sms.messaging.data.local.provider.ProviderChangeObserver
 import text.message.sms.messaging.di.ApplicationScope
@@ -48,6 +52,12 @@ class MessagingApplication : Application(), Configuration.Provider {
     lateinit var rearmScheduledMessageAlarms: RearmScheduledMessageAlarms
 
     @Inject
+    lateinit var onboardingPreferences: OnboardingPreferences
+
+    @Inject
+    lateinit var themePreferences: ThemePreferences
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
@@ -56,6 +66,17 @@ class MessagingApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Synchronous and, after the first successful run, a no-op forever (see
+        // migrateDefaultThemeModeIfNeeded) -- must complete before any Activity.onCreate ever
+        // reads the stored theme, which finishing here, before the rest of this method, guarantees
+        // (Application.onCreate always completes before the first Activity is created).
+        runBlocking {
+            themePreferences.migrateDefaultThemeModeIfNeeded(
+                isExistingUser = onboardingPreferences.isOnboardingComplete.first(),
+            )
+        }
+
         notificationChannels.register()
 
         // READ_CONTACTS is a separate runtime permission from the default-SMS-app role SMS/MMS

@@ -5,6 +5,11 @@
     <string name="splash_tagline">Simple. Fast. Secure.</string>
 
     <!-- Welcome -->
+    <string name="welcome_eyebrow">Welcome To</string>
+    <string name="welcome_tagline">Fast. Easy. Reliable.</string>
+    <string name="welcome_subtitle">Stay connected with smooth messaging right after your call ends.</string>
+    <string name="welcome_privacy_prefix">By Continuing, you agree our </string>
+    <string name="welcome_privacy_suffix">.</string>
     <string name="welcome_headline">Welcome to Messages</string>
     <string name="welcome_feature_sms_title">Fast &amp; Reliable SMS</string>
     <string name="welcome_feature_sms_desc">Send and receive messages quickly with a smooth texting experience.</string>

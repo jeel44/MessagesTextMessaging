@@ -9,30 +9,22 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Sms
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,8 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
@@ -52,19 +43,34 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import text.message.sms.messaging.R
 import text.message.sms.messaging.service.DefaultSmsAppGuard
-import text.message.sms.messaging.ui.theme.Pill
+import text.message.sms.messaging.ui.components.ShineButton
+import text.message.sms.messaging.ui.components.sharpIconPainter
+import text.message.sms.messaging.ui.screens.conversationlist.screenSurfaceColor
+import text.message.sms.messaging.ui.theme.AppTheme
+import text.message.sms.messaging.ui.theme.OnboardingEyebrowGray
+import text.message.sms.messaging.ui.theme.OnboardingSubtitleGray
 
-// Placeholder URLs -- replace with the real hosted Terms & Conditions / Privacy Policy pages.
-private const val TERMS_AND_CONDITIONS_URL = "https://example.com/terms"
+// Placeholder URL -- replace with the real hosted Privacy Policy page.
 private const val PRIVACY_POLICY_URL = "https://example.com/privacy"
+
+/** Below this available height, the middle illustration switches from a flexible `weight(1f)`
+ * slot to a capped fixed size and the whole screen becomes scrollable, so nothing clips on a very
+ * small or unusually cropped viewport (e.g. split-screen, a tiny device, or a large font scale
+ * pushing the text taller). Comfortably above a typical ~5" phone's content height in portrait, so
+ * normal phones never scroll. */
+private val MinComfortableHeight = 600.dp
+private val IllustrationMaxWidth = 280.dp
 
 private fun onboardingPermissions(): Array<String> {
     val permissions = (
@@ -81,27 +87,20 @@ private fun onboardingPermissions(): Array<String> {
     return permissions.toTypedArray()
 }
 
-private sealed interface PermissionPromptState {
+internal sealed interface PermissionPromptState {
     data object Hidden : PermissionPromptState
     data object NeedsRetry : PermissionPromptState
     data object PermanentlyDenied : PermissionPromptState
 }
 
-private data class WelcomeFeature(
-    val icon: ImageVector,
-    val title: String,
-    val description: String,
-)
-
 /**
- * First screen after Splash: sells the app's core value in four feature rows, collects
- * one-tap consent, then drives the real runtime permission dialogs.
+ * First screen after Splash: the approved-design welcome illustration and pitch, then collects
+ * one-tap consent and drives the real runtime permission dialogs.
  *
  * [onContinue] fires once the core SMS/MMS permissions ([DefaultSmsAppGuard.CoreSmsPermissions])
- * are granted --
- * SMS/MMS is this app's reason to exist, so Continue is gated on those alone. The rest of the
- * requested set (contacts, phone state, call log, call, notifications) back secondary or
- * not-yet-built features and are best-effort: a denial there degrades a feature later rather
+ * are granted -- SMS/MMS is this app's reason to exist, so Continue is gated on those alone. The
+ * rest of the requested set (contacts, phone state, call log, call, notifications) back secondary
+ * or not-yet-built features and are best-effort: a denial there degrades a feature later rather
  * than blocking onboarding now. A READ_CONTACTS grant specifically also kicks off
  * [WelcomeViewModel.onContactsPermissionGranted] right away, the same immediate-catch-up-sync
  * pattern [SetDefaultSmsScreen] uses for the default-SMS-app role -- see that ViewModel's doc
@@ -138,141 +137,131 @@ fun WelcomeScreen(
         }
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        bottomBar = {
-            Surface(color = MaterialTheme.colorScheme.surface) {
-                Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
-                    if (promptState != PermissionPromptState.Hidden) {
-                        PermissionNotice(
-                            state = promptState,
-                            onOpenSettings = { context.openAppSettings() },
-                            modifier = Modifier.padding(bottom = 12.dp),
-                        )
-                    }
-                    Button(
-                        onClick = { permissionLauncher.launch(onboardingPermissions()) },
-                        shape = Pill,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                    ) {
-                        Text(stringResource(R.string.welcome_continue))
-                    }
-                }
-            }
-        },
-    ) { innerPadding ->
-        Column(
+    WelcomeScreenContent(
+        promptState = promptState,
+        onContinueClick = { permissionLauncher.launch(onboardingPermissions()) },
+        onOpenSettings = { context.openAppSettings() },
+        modifier = modifier,
+    )
+}
+
+/**
+ * The screen's actual visual content, with no [WelcomeViewModel]/permission-launcher dependency --
+ * factored out purely so [WelcomeScreen]'s layout can be exercised by
+ * `WelcomeScreenRenderTest` and a `@Preview` without needing a Hilt-backed
+ * [androidx.hilt.navigation.compose.hiltViewModel] (this module has no Hilt test harness set up
+ * yet). [WelcomeScreen] above is the only real caller; it owns every actual side effect
+ * ([onContinueClick] and [onOpenSettings] are both just that composable's real callbacks passed
+ * straight through).
+ */
+@Composable
+internal fun WelcomeScreenContent(
+    promptState: PermissionPromptState,
+    onContinueClick: () -> Unit,
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(modifier = modifier.fillMaxSize(), color = screenSurfaceColor()) {
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 16.dp),
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp),
         ) {
-            Text(
-                text = stringResource(R.string.welcome_headline),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            val useScroll = maxHeight < MinComfortableHeight
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .let { if (useScroll) it.verticalScroll(rememberScrollState()) else it },
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Spacer(modifier = Modifier.height(40.dp))
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Text(
+                    text = stringResource(R.string.welcome_eyebrow),
+                    fontSize = 16.sp,
+                    color = onboardingSecondaryTextColor(OnboardingEyebrowGray),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.app_name),
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = onboardingPrimaryTextColor(),
+                )
 
-            val features = listOf(
-                WelcomeFeature(
-                    icon = Icons.Filled.Sms,
-                    title = stringResource(R.string.welcome_feature_sms_title),
-                    description = stringResource(R.string.welcome_feature_sms_desc),
-                ),
-                WelcomeFeature(
-                    icon = Icons.Filled.Notifications,
-                    title = stringResource(R.string.welcome_feature_notifications_title),
-                    description = stringResource(R.string.welcome_feature_notifications_desc),
-                ),
-                WelcomeFeature(
-                    icon = Icons.Filled.Shield,
-                    title = stringResource(R.string.welcome_feature_privacy_title),
-                    description = stringResource(R.string.welcome_feature_privacy_desc),
-                ),
-                WelcomeFeature(
-                    icon = Icons.Filled.Search,
-                    title = stringResource(R.string.welcome_feature_search_title),
-                    description = stringResource(R.string.welcome_feature_search_desc),
-                ),
-            )
+                val illustration = Modifier
+                    .widthIn(max = IllustrationMaxWidth)
+                    .padding(vertical = 16.dp)
+                Image(
+                    painter = sharpIconPainter(R.drawable.ic_welcome_illustration),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = if (useScroll) illustration.heightIn(max = 240.dp) else illustration.weight(1f),
+                )
 
-            features.forEachIndexed { index, feature ->
-                WelcomeFeatureRow(feature)
-                if (index != features.lastIndex) {
-                    Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = stringResource(R.string.welcome_tagline),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = onboardingPrimaryTextColor(),
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.welcome_subtitle),
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    color = onboardingSecondaryTextColor(OnboardingSubtitleGray),
+                    textAlign = TextAlign.Center,
+                    maxLines = 3,
+                )
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Not part of the approved design's normal path -- only ever visible after a real
+                // permission denial, so it can't be dropped without losing the only way this screen
+                // lets the user recover (retry, or a shortcut to Settings once permanently denied).
+                if (promptState != PermissionPromptState.Hidden) {
+                    PermissionNotice(
+                        state = promptState,
+                        onOpenSettings = onOpenSettings,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                    )
                 }
+
+                ShineButton(
+                    text = stringResource(R.string.welcome_continue),
+                    onClick = onContinueClick,
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    showHalo = true,
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                PrivacyLine()
+
+                Spacer(modifier = Modifier.height(20.dp))
             }
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            ConsentText()
         }
     }
 }
 
 @Composable
-private fun WelcomeFeatureRow(feature: WelcomeFeature, modifier: Modifier = Modifier) {
-    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = feature.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Column {
-            Text(
-                text = feature.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = feature.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun ConsentText(modifier: Modifier = Modifier) {
+private fun PrivacyLine(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val linkStyles = TextLinkStyles(
         style = SpanStyle(
-            color = MaterialTheme.colorScheme.primary,
+            color = onboardingPrivacyLinkColor(),
             textDecoration = TextDecoration.Underline,
         ),
     )
 
     val annotated = buildAnnotatedString {
-        append(stringResource(R.string.welcome_consent_prefix))
-        withLink(
-            LinkAnnotation.Clickable(tag = "terms", styles = linkStyles) {
-                // Placeholder URL -- replace with the real Terms & Conditions page.
-                openUrl(context, TERMS_AND_CONDITIONS_URL)
-            },
-        ) {
-            append(stringResource(R.string.welcome_consent_terms))
-        }
-        append(stringResource(R.string.welcome_consent_and))
+        append(stringResource(R.string.welcome_privacy_prefix))
         withLink(
             LinkAnnotation.Clickable(tag = "privacy", styles = linkStyles) {
                 // Placeholder URL -- replace with the real Privacy Policy page.
@@ -281,13 +270,14 @@ private fun ConsentText(modifier: Modifier = Modifier) {
         ) {
             append(stringResource(R.string.welcome_consent_privacy))
         }
-        append(stringResource(R.string.welcome_consent_suffix))
+        append(stringResource(R.string.welcome_privacy_suffix))
     }
 
     Text(
         text = annotated,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontSize = 12.sp,
+        color = onboardingSecondaryTextColor(OnboardingEyebrowGray),
+        textAlign = TextAlign.Center,
         modifier = modifier,
     )
 }
@@ -299,7 +289,7 @@ private fun PermissionNotice(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier,
         color = MaterialTheme.colorScheme.errorContainer,
         shape = MaterialTheme.shapes.medium,
     ) {
@@ -343,4 +333,28 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
     else -> null
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun WelcomeScreenPreview() {
+    AppTheme {
+        WelcomeScreenContent(
+            promptState = PermissionPromptState.Hidden,
+            onContinueClick = {},
+            onOpenSettings = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Permanently denied")
+@Composable
+private fun WelcomeScreenPermanentlyDeniedPreview() {
+    AppTheme {
+        WelcomeScreenContent(
+            promptState = PermissionPromptState.PermanentlyDenied,
+            onContinueClick = {},
+            onOpenSettings = {},
+        )
+    }
 }
