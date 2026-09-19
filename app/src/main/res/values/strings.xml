@@ -117,6 +117,54 @@
     <string name="chat_otp_copy_label">Copy \"%1$s\"</string>
     <string name="chat_otp_copy_content_description">Copy verification code</string>
 
+    <!-- Chat multi-select -->
+    <string name="chat_selection_close">Exit selection</string>
+    <string name="chat_selection_select_all">Select all</string>
+    <string name="chat_selection_copy">Copy</string>
+    <string name="chat_selection_forward">Forward</string>
+    <string name="chat_selection_share">Share</string>
+    <string name="chat_selection_delete">Delete</string>
+    <string name="chat_selection_details">Message details</string>
+    <string name="chat_selection_more">More options</string>
+    <string name="chat_selection_copied_toast">Copied</string>
+    <string name="chat_selection_forward_attachments_unsupported">Attachments can\'t be forwarded yet</string>
+    <string name="chat_selection_share_title">Share message</string>
+    <string name="chat_selection_selected_indicator">Selected</string>
+    <plurals name="chat_selection_delete_confirm_title">
+        <item quantity="one">Delete %1$d message?</item>
+        <item quantity="other">Delete %1$d messages?</item>
+    </plurals>
+    <string name="chat_selection_delete_confirm_message">This can\'t be undone.</string>
+    <plurals name="chat_selection_deleted_snackbar">
+        <item quantity="one">%1$d message deleted</item>
+        <item quantity="other">%1$d messages deleted</item>
+    </plurals>
+
+    <!-- Message details -->
+    <string name="message_details_title">Message details</string>
+    <string name="message_details_type">Type</string>
+    <string name="message_details_type_sms">Text message</string>
+    <string name="message_details_type_mms">Multimedia message</string>
+    <string name="message_details_from">From</string>
+    <string name="message_details_to">To</string>
+    <string name="message_details_time_sent">Sent</string>
+    <string name="message_details_time_received">Received</string>
+    <string name="message_details_size">Size</string>
+    <string name="message_details_size_characters">%1$d characters</string>
+    <string name="message_details_status">Status</string>
+    <string name="message_details_status_received">Received</string>
+    <string name="message_details_sim">SIM</string>
+    <string name="message_details_sim_value">SIM %1$d</string>
+    <string name="message_details_ok">OK</string>
+
+    <!-- Dual-SIM send picker -->
+    <string name="chat_sim_picker_title">Send with</string>
+    <string name="chat_sim_picker_row_title">SIM %1$d - %2$s</string>
+    <string name="chat_sim_picker_remember">Remember for this conversation</string>
+    <string name="chat_sim_fallback_notice">Your preferred SIM wasn\'t available, so this was sent with SIM %1$d instead</string>
+    <string name="chat_sim_indicator_description">Sending with SIM %1$d. Tap to change.</string>
+    <string name="chat_sim_indicator_description_unknown">Choose which SIM sends this message</string>
+
     <!-- Conversation info -->
     <string name="conversation_info_title">Conversation info</string>
     <string name="conversation_info_group_subtitle">%1$d people</string>
@@ -155,6 +203,7 @@
     <string name="search_section_people">People</string>
     <string name="search_section_messages">Messages</string>
     <string name="search_no_results">No results for \"%1$s\"</string>
+    <string name="search_empty_state">Your conversations will appear here</string>
 
     <!-- Notification channels -->
     <string name="channel_incoming_messages">Incoming messages</string>
@@ -198,6 +247,12 @@
     <string name="settings_swipe_actions_summary">%1$s · %2$s</string>
     <string name="settings_swipe_right_header">Swipe right</string>
     <string name="settings_swipe_left_header">Swipe left</string>
+
+    <!-- Dual-SIM send preference (dual-SIM devices only, entirely hidden otherwise) -->
+    <string name="settings_sim_for_sending_title">SIM for sending messages</string>
+    <string name="settings_sim_slot_summary">SIM %1$d - %2$s</string>
+    <string name="settings_sim_ask_every_time">Ask every time</string>
+    <string name="settings_sim_permission_needed">Permission needed</string>
 
     <string name="settings_auto_backup_title">Auto backup</string>
     <string name="settings_auto_backup_summary">Back up messages automatically</string>

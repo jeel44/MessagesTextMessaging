@@ -161,6 +161,48 @@ internal val ChatCantReplyGray = Color(0xFF5F6368)
 /** Outline for the non-personal chat's "Copy OTP" outlined button -- light theme only. */
 internal val ChatOtpCopyBorderGray = Color(0xFF7A7F87)
 
+/** Selection-mode accent blue for Chat's selection top bar (close icon, count, action icons) --
+ * an alias of [ChatSendButtonEnabled] rather than a duplicate hex, so a future change to the send
+ * button's color never silently changes selection styling too. Light theme only. */
+internal val SelectionAccentBlue = ChatSendButtonEnabled
+
+/** Dark-theme counterpart of [SelectionAccentBlue] -- a lighter blue for legibility on a dark
+ * surface, matching the reference design's dark-mode accent. */
+internal val SelectionAccentBlueDark = Color(0xFF8AB4F8)
+
+/** Solid fill for a selected bubble (sent or received) during Chat's multi-select mode -- an
+ * alias of [ConversationFabBlue] rather than a duplicate hex, so a future change to the Home FAB
+ * color never silently changes selection styling too. Same fill in both themes. */
+internal val ChatBubbleSelectedBlue = ConversationFabBlue
+
+/** Overlay drawn over a selected image attachment during Chat's multi-select mode -- a solid
+ * fill can't be used over an image, so this is [ChatBubbleSelectedBlue] at reduced alpha instead. */
+internal val ChatSelectedImageOverlay = ConversationFabBlue.copy(alpha = 0.4f)
+
+/** Icon tint for [text.message.sms.messaging.ui.components.SelectionOverflowMenu]'s rows, shared
+ * by Chat's and Home's selection top bars -- a near-black, deliberately not a gray, so every icon
+ * in the popup reads the same weight as its label. Light theme only; dark theme uses
+ * `colorScheme.onSurface` instead. */
+internal val SelectionMenuIconDark = Color(0xFF1B1B1F)
+
+/** Label color for [text.message.sms.messaging.ui.components.SelectionOverflowMenu]'s rows -- an
+ * alias of [SelectionMenuIconDark] (same hex) rather than a duplicate constant, so icon and text
+ * can never silently drift apart in tone. Light theme only; dark theme uses
+ * `colorScheme.onSurface` instead. */
+internal val SelectionMenuText = SelectionMenuIconDark
+
+/** Selected-row tint for Home's multi-select mode ([text.message.sms.messaging.ui.screens
+ * .conversationlist.ConversationListScreen]) -- a light, theme-independent blue, matching the
+ * reference design's selection highlight. Light theme only; dark theme uses a
+ * `primaryContainer`-based tint instead, see that screen's own light/dark gating. */
+internal val ConversationRowSelected = Color(0xFFE9EEFA)
+
+/** Solid fill for a selected row's avatar-replacement circle in Home's multi-select mode -- an
+ * alias of [text.message.sms.messaging.ui.theme.ChatAvatarAccentBlue]'s sibling blue rather than a
+ * duplicate hex family; matches the reference design's checkmark-circle blue exactly. Same fill in
+ * both themes. */
+internal val ConversationSelectedAvatar = Color(0xFF1E9BF0)
+
 internal val DarkColors = darkColorScheme(
     primary = SeedBlueDark,
     onPrimary = SeedBlueOnPrimaryDark,
