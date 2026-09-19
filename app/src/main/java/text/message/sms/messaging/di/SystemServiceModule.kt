@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Build
 import android.telephony.SmsManager
 import android.telephony.SubscriptionManager
+import android.telephony.TelephonyManager
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.WorkManager
 import dagger.Module
@@ -40,6 +41,11 @@ object SystemServiceModule {
     @Singleton
     fun provideSubscriptionManager(@ApplicationContext context: Context): SubscriptionManager =
         context.getSystemService(SubscriptionManager::class.java)
+
+    @Provides
+    @Singleton
+    fun provideTelephonyManager(@ApplicationContext context: Context): TelephonyManager =
+        context.getSystemService(TelephonyManager::class.java)
 
     @Provides
     @Singleton

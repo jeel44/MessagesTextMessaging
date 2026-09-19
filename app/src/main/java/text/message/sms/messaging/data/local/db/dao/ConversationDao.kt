@@ -113,6 +113,12 @@ interface ConversationDao {
     @Query("UPDATE conversations SET draft = :draft WHERE thread_id = :threadId")
     suspend fun setDraft(threadId: Long, draft: String?)
 
+    /** Remembers (or clears, when [slot] is null) which SIM slot sends this thread's messages
+     * under the "Ask every time" send preference -- see
+     * [text.message.sms.messaging.domain.model.Conversation.subscriptionSlot]. */
+    @Query("UPDATE conversations SET subscription_slot = :slot WHERE thread_id = :threadId")
+    suspend fun setSubscriptionSlot(threadId: Long, slot: Int?)
+
     @Query("UPDATE conversations SET unread_count = :count WHERE thread_id = :threadId")
     suspend fun setUnreadCount(threadId: Long, count: Int)
 

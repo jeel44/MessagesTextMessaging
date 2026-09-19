@@ -34,6 +34,7 @@ fun ConversationWithRecipients.toDomain(
     isBlocked = conversation.isBlocked,
     isMuted = conversation.isMuted,
     draft = conversation.draft,
+    subscriptionSlot = conversation.subscriptionSlot,
 )
 
 fun Conversation.toEntity(): ConversationEntity = ConversationEntity(
@@ -46,4 +47,5 @@ fun Conversation.toEntity(): ConversationEntity = ConversationEntity(
     isBlocked = isBlocked,
     isMuted = isMuted,
     draft = draft,
+    subscriptionSlot = subscriptionSlot,
 )

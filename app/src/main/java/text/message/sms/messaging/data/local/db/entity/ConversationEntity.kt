@@ -44,4 +44,9 @@ data class ConversationEntity(
 
     @ColumnInfo(name = "draft")
     val draft: String? = null,
+
+    /** 0-based SIM slot remembered for this thread under the "Ask every time" send preference --
+     * see [text.message.sms.messaging.domain.model.Conversation.subscriptionSlot]. */
+    @ColumnInfo(name = "subscription_slot")
+    val subscriptionSlot: Int? = null,
 )

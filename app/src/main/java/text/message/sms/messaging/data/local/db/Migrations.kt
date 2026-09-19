@@ -118,3 +118,16 @@ val MIGRATION_3_4: Migration = object : Migration(3, 4) {
         )
     }
 }
+
+/**
+ * v4 -> v5: adds `conversations.subscription_slot`, the dual-SIM "Ask every time" send
+ * preference's per-conversation memory (see [text.message.sms.messaging.domain.model.Conversation
+ * .subscriptionSlot]). Nullable with no default write, so every existing row comes through as
+ * null ("no remembered SIM yet") rather than losing any data. `messages.subscription_id` needs no
+ * migration here -- it has shipped since the table's very first version.
+ */
+val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE conversations ADD COLUMN subscription_slot INTEGER")
+    }
+}

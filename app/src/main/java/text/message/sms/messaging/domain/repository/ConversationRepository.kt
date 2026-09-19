@@ -27,6 +27,10 @@ interface ConversationRepository {
 
     suspend fun saveDraft(threadId: Long, draft: String?)
 
+    /** Remembers (or clears, when [slot] is null) which SIM slot sends this thread's messages --
+     * see [text.message.sms.messaging.domain.model.Conversation.subscriptionSlot]. */
+    suspend fun setSubscriptionSlot(threadId: Long, slot: Int?)
+
     /** Upserts every thread in [updates]' snippet, last-message time, and unread count inside a
      * single database transaction -- used by [text.message.sms.messaging.data.repository
      * .TelephonySyncRepository.syncAll], which tracks one [ConversationCounterUpdate] per thread

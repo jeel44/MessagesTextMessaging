@@ -11,13 +11,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.data.local.datastore.BackupPreferences
+import text.message.sms.messaging.data.local.datastore.SimPreferences
+import text.message.sms.messaging.data.local.datastore.SimSendPreference
 import text.message.sms.messaging.data.local.datastore.SwipeAction
 import text.message.sms.messaging.data.local.datastore.SwipeActionPreference
 import text.message.sms.messaging.data.local.datastore.SwipeActionPreferences
 import text.message.sms.messaging.data.local.datastore.ThemeMode
 import text.message.sms.messaging.data.local.datastore.ThemePreference
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
+import text.message.sms.messaging.data.local.telephony.SimRepository
 import text.message.sms.messaging.domain.model.BackupResult
+import text.message.sms.messaging.domain.model.SimInfo
 import text.message.sms.messaging.domain.usecase.ExportBackup
 import text.message.sms.messaging.domain.usecase.ImportBackup
 import javax.inject.Inject
@@ -47,6 +51,8 @@ class SettingsViewModel @Inject constructor(
     private val backupPreferences: BackupPreferences,
     private val themePreferences: ThemePreferences,
     private val swipeActionPreferences: SwipeActionPreferences,
+    private val simPreferences: SimPreferences,
+    private val simRepository: SimRepository,
 ) : ViewModel() {
 
     private val _operation = MutableStateFlow(BackupOperation.IDLE)
@@ -78,6 +84,22 @@ class SettingsViewModel @Inject constructor(
 
     internal fun setSwipeEndToStart(action: SwipeAction) {
         viewModelScope.launch { swipeActionPreferences.setEndToStart(action) }
+    }
+
+    /** Hardware capability, not permission-gated -- lets the SIM row render (possibly disabled,
+     * with a "permission needed" hint) even before [hasPhoneStatePermission] is granted. */
+    internal val isMultiSimCapable: Boolean get() = simRepository.isMultiSimCapable
+
+    internal fun hasPhoneStatePermission(): Boolean = simRepository.hasPermission()
+
+    internal val activeSims: StateFlow<List<SimInfo>> = simRepository.activeSims
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    internal val simSendPreference: StateFlow<SimSendPreference> = simPreferences.sendPreference
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SimSendPreference.ASK)
+
+    internal fun setSimSendPreference(preference: SimSendPreference) {
+        viewModelScope.launch { simPreferences.setSendPreference(preference) }
     }
 
     internal fun exportBackup(destinationUri: String) {

@@ -1,5 +1,6 @@
 package text.message.sms.messaging.ui.screens.settings
 
+import android.Manifest
 import android.content.pm.PackageManager
 import android.text.format.DateFormat
 import android.widget.Toast
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.FormatSize
+import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -56,10 +58,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import text.message.sms.messaging.R
+import text.message.sms.messaging.data.local.datastore.SimSendPreference
 import text.message.sms.messaging.data.local.datastore.SwipeAction
 import text.message.sms.messaging.data.local.datastore.ThemeMode
+import text.message.sms.messaging.domain.model.SimInfo
 import text.message.sms.messaging.ui.components.labelRes
 import text.message.sms.messaging.ui.screens.onboarding.currentLanguageOption
 import java.text.SimpleDateFormat
@@ -89,6 +95,7 @@ fun SettingsScreen(
     var wifiOnlyBackupEnabled by rememberSaveable { mutableStateOf(true) }
     var showThemePicker by remember { mutableStateOf(false) }
     var showSwipeActionPicker by remember { mutableStateOf(false) }
+    var showSimPicker by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val operation by viewModel.operation.collectAsStateWithLifecycle()
@@ -96,7 +103,26 @@ fun SettingsScreen(
     val lastBackupAtMillis by viewModel.lastBackupAtMillis.collectAsStateWithLifecycle()
     val themePreference by viewModel.themePreference.collectAsStateWithLifecycle()
     val swipeActionPreference by viewModel.swipeActionPreference.collectAsStateWithLifecycle()
+    val activeSims by viewModel.activeSims.collectAsStateWithLifecycle()
+    val simSendPreference by viewModel.simSendPreference.collectAsStateWithLifecycle()
     val backupBusy = operation != BackupOperation.IDLE
+
+    // Re-checked on resume, not just once: the user may grant READ_PHONE_STATE from the system
+    // Settings page this row's "Permission needed" hint sends them to, and come straight back
+    // here without a process restart.
+    var hasPhonePermission by remember { mutableStateOf(viewModel.hasPhoneStatePermission()) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        hasPhonePermission = viewModel.hasPhoneStatePermission()
+    }
+
+    val phonePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted -> hasPhonePermission = granted }
+
+    // Hardware-capable but not yet grantable/active-checked -> show the row disabled with a
+    // permission hint. Hardware-capable and permitted but only one SIM actually active -> hide
+    // the row entirely, same as a genuinely single-SIM device (see SimRepository's doc comment).
+    val showSimRow = viewModel.isMultiSimCapable && (!hasPhonePermission || activeSims.size >= 2)
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json"),
@@ -151,47 +177,80 @@ fun SettingsScreen(
         ),
         SettingsSection(
             title = stringResource(R.string.settings_section_general),
-            rows = listOf(
-                SettingsRow(
-                    icon = SettingsIcon.Drawable(R.drawable.ic_default_sms),
-                    title = stringResource(R.string.settings_default_app_title),
-                    summary = stringResource(R.string.settings_default_app_summary),
-                ),
-                SettingsRow(
-                    icon = SettingsIcon.Drawable(R.drawable.ic_language),
-                    title = stringResource(R.string.settings_language_title),
-                    summary = languageSummary(),
-                    onClick = onLanguageClick,
-                ),
-                SettingsRow(
-                    icon = SettingsIcon.Drawable(R.drawable.ic_swipe_actions),
-                    title = stringResource(R.string.settings_swipe_actions_title),
-                    summary = stringResource(
-                        R.string.settings_swipe_actions_summary,
-                        stringResource(swipeActionPreference.startToEnd.labelRes()),
-                        stringResource(swipeActionPreference.endToStart.labelRes()),
+            rows = buildList {
+                add(
+                    SettingsRow(
+                        icon = SettingsIcon.Drawable(R.drawable.ic_default_sms),
+                        title = stringResource(R.string.settings_default_app_title),
+                        summary = stringResource(R.string.settings_default_app_summary),
                     ),
-                    onClick = { showSwipeActionPicker = true },
-                ),
-                SettingsRow(
-                    icon = SettingsIcon.Drawable(R.drawable.ic_notifications),
-                    title = stringResource(R.string.settings_notifications_title),
-                    summary = stringResource(R.string.settings_notifications_summary),
-                    trailing = SettingsTrailing.Toggle(notificationsEnabled) { notificationsEnabled = it },
-                ),
-                SettingsRow(
-                    icon = SettingsIcon.Vector(Icons.Filled.DoneAll),
-                    title = stringResource(R.string.settings_delivery_reports_title),
-                    summary = stringResource(R.string.settings_delivery_reports_summary),
-                    trailing = SettingsTrailing.Toggle(deliveryReportsEnabled) { deliveryReportsEnabled = it },
-                ),
-                SettingsRow(
-                    icon = SettingsIcon.Vector(Icons.AutoMirrored.Filled.Reply),
-                    title = stringResource(R.string.settings_quick_reply_title),
-                    summary = stringResource(R.string.settings_quick_reply_summary),
-                    trailing = SettingsTrailing.Toggle(quickReplyEnabled) { quickReplyEnabled = it },
-                ),
-            ),
+                )
+                add(
+                    SettingsRow(
+                        icon = SettingsIcon.Drawable(R.drawable.ic_language),
+                        title = stringResource(R.string.settings_language_title),
+                        summary = languageSummary(),
+                        onClick = onLanguageClick,
+                    ),
+                )
+                add(
+                    SettingsRow(
+                        icon = SettingsIcon.Drawable(R.drawable.ic_swipe_actions),
+                        title = stringResource(R.string.settings_swipe_actions_title),
+                        summary = stringResource(
+                            R.string.settings_swipe_actions_summary,
+                            stringResource(swipeActionPreference.startToEnd.labelRes()),
+                            stringResource(swipeActionPreference.endToStart.labelRes()),
+                        ),
+                        onClick = { showSwipeActionPicker = true },
+                    ),
+                )
+                if (showSimRow) {
+                    add(
+                        SettingsRow(
+                            icon = SettingsIcon.Vector(Icons.Filled.SimCard),
+                            title = stringResource(R.string.settings_sim_for_sending_title),
+                            summary = simSendPreferenceSummary(
+                                hasPermission = hasPhonePermission,
+                                preference = simSendPreference,
+                                sims = activeSims,
+                            ),
+                            enabled = hasPhonePermission,
+                            onClick = {
+                                if (hasPhonePermission) {
+                                    showSimPicker = true
+                                } else {
+                                    phonePermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
+                                }
+                            },
+                        ),
+                    )
+                }
+                add(
+                    SettingsRow(
+                        icon = SettingsIcon.Drawable(R.drawable.ic_notifications),
+                        title = stringResource(R.string.settings_notifications_title),
+                        summary = stringResource(R.string.settings_notifications_summary),
+                        trailing = SettingsTrailing.Toggle(notificationsEnabled) { notificationsEnabled = it },
+                    ),
+                )
+                add(
+                    SettingsRow(
+                        icon = SettingsIcon.Vector(Icons.Filled.DoneAll),
+                        title = stringResource(R.string.settings_delivery_reports_title),
+                        summary = stringResource(R.string.settings_delivery_reports_summary),
+                        trailing = SettingsTrailing.Toggle(deliveryReportsEnabled) { deliveryReportsEnabled = it },
+                    ),
+                )
+                add(
+                    SettingsRow(
+                        icon = SettingsIcon.Vector(Icons.AutoMirrored.Filled.Reply),
+                        title = stringResource(R.string.settings_quick_reply_title),
+                        summary = stringResource(R.string.settings_quick_reply_summary),
+                        trailing = SettingsTrailing.Toggle(quickReplyEnabled) { quickReplyEnabled = it },
+                    ),
+                )
+            },
         ),
         SettingsSection(
             title = stringResource(R.string.settings_section_backup_sync),
@@ -311,6 +370,34 @@ fun SettingsScreen(
             onDismiss = { showSwipeActionPicker = false },
         )
     }
+
+    if (showSimPicker) {
+        SimSendPreferenceDialog(
+            sims = activeSims,
+            selected = simSendPreference,
+            onSelected = viewModel::setSimSendPreference,
+            onDismiss = { showSimPicker = false },
+        )
+    }
+}
+
+/** The SIM row's subtitle: which SIM(s) currently send, or a permission prompt when
+ * [hasPermission] is false (the row is shown disabled in that case -- see [SettingsScreen]'s
+ * `showSimRow`). */
+@Composable
+private fun simSendPreferenceSummary(
+    hasPermission: Boolean,
+    preference: SimSendPreference,
+    sims: List<SimInfo>,
+): String {
+    if (!hasPermission) return stringResource(R.string.settings_sim_permission_needed)
+    val slotIndex = when (preference) {
+        SimSendPreference.SLOT_0 -> 0
+        SimSendPreference.SLOT_1 -> 1
+        SimSendPreference.ASK -> return stringResource(R.string.settings_sim_ask_every_time)
+    }
+    val sim = sims.firstOrNull { it.slotIndex == slotIndex } ?: return stringResource(R.string.settings_sim_ask_every_time)
+    return stringResource(R.string.settings_sim_slot_summary, sim.slotNumber, sim.displayName.ifBlank { sim.carrierName })
 }
 
 /** Not reactive -- [text.message.sms.messaging.ui.screens.onboarding.currentLanguageOption] is a

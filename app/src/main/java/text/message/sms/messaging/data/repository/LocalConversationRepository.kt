@@ -92,6 +92,10 @@ class LocalConversationRepository @Inject constructor(
         conversationDao.setDraft(threadId, draft)
     }
 
+    override suspend fun setSubscriptionSlot(threadId: Long, slot: Int?) {
+        conversationDao.setSubscriptionSlot(threadId, slot)
+    }
+
     override suspend fun refreshCountersBatch(updates: Map<Long, ConversationCounterUpdate>) {
         if (updates.isEmpty()) return
         database.withTransaction {

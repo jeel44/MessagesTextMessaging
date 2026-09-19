@@ -13,6 +13,11 @@ data class Conversation(
     val isBlocked: Boolean,
     val isMuted: Boolean,
     val draft: String?,
+    /** 0-based SIM slot remembered for this thread when the "Ask every time" send preference is
+     * active -- see `text.message.sms.messaging.domain.usecase.ResolveSendSubscription`. Null
+     * until the user picks a SIM and chooses to remember it, and unused entirely outside "Ask"
+     * mode or on a single-SIM device. */
+    val subscriptionSlot: Int? = null,
 ) {
     val isGroup: Boolean get() = recipients.size > 1
 
