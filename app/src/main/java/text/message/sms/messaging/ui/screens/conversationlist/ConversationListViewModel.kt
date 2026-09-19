@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.SystemClock
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -105,6 +108,12 @@ class ConversationListViewModel @Inject constructor(
     private val markUnreadUseCase: MarkUnread,
 ) : ViewModel() {
 
+    // Perf-pass breadcrumb (Logcat tag "NavPerf"), not read by any UI decision -- logs once, the
+    // very first time observeInbox's pipeline actually emits, so "Home's first data load" can be
+    // read off a real device without a profiler.
+    private val createdAtMillis = SystemClock.elapsedRealtime()
+    private var hasLoggedFirstLoad = false
+
     private val selectedFilter = MutableStateFlow(ConversationFilter.ALL)
     internal val filter: StateFlow<ConversationFilter> = selectedFilter.asStateFlow()
 
@@ -140,6 +149,11 @@ class ConversationListViewModel @Inject constructor(
             ConversationFilter.PERSONAL -> visible.filter { it.isPersonal() }
             ConversationFilter.TRANSACTIONS -> visible.filter { it.isTransaction() }
             ConversationFilter.OTP -> visible.filter { it.isOtp() }
+        }
+    }.onEach {
+        if (!hasLoggedFirstLoad) {
+            hasLoggedFirstLoad = true
+            Log.d("NavPerf", "Home first data load: ${SystemClock.elapsedRealtime() - createdAtMillis}ms")
         }
     }.stateIn(
         scope = viewModelScope,

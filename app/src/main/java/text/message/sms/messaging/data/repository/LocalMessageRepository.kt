@@ -49,6 +49,10 @@ class LocalMessageRepository @Inject constructor(
     override fun observeThread(threadId: Long): Flow<List<Message>> =
         messageDao.observeThread(threadId).map { rows -> rows.map { it.toDomain() } }
 
+    override fun observeThreadPage(threadId: Long, limit: Int): Flow<List<Message>> =
+        messageDao.observeThreadPageDesc(threadId, limit)
+            .map { rows -> rows.asReversed().map { it.toDomain() } }
+
     override suspend fun findById(id: Long): Message? =
         messageDao.findById(id)?.toDomain()
 

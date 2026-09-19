@@ -11,6 +11,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
@@ -92,7 +94,13 @@ class MainActivity : ComponentActivity() {
                     WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = !darkTheme
                 }
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
+                    // testTagsAsResourceId turns every Modifier.testTag below into a real
+                    // resource-id UiAutomator can query -- the baseline profile generator (see
+                    // the :baselineprofile module) drives this app as a black box and has no
+                    // other reliable, localization-proof way to find a specific element.
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .semantics { testTagsAsResourceId = true },
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     MessagingNavHost()

@@ -1,5 +1,11 @@
 package text.message.sms.messaging.ui.navigation
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -21,6 +27,28 @@ import text.message.sms.messaging.ui.screens.onboarding.WelcomeScreen
 import text.message.sms.messaging.ui.screens.search.SearchScreen
 import text.message.sms.messaging.ui.screens.settings.SettingsScreen
 
+/** Every destination's transition duration -- short enough to feel immediate, unlike Navigation
+ * Compose's own longer default crossfade, while still being a real, visible transition rather than
+ * an instant cut (the perf pass this was added for keeps animations, just makes them snappy). */
+private const val NavTransitionMillis = 200
+
+/** Small forward slide (not a full-screen-width push) paired with a fade -- set once on [NavHost]
+ * itself so every destination gets the same fast, single transition instead of composable() call
+ * sites each duplicating (or omitting) their own. */
+private val NavForwardEnter = slideInHorizontally(
+    animationSpec = tween(NavTransitionMillis, easing = FastOutSlowInEasing),
+    initialOffsetX = { fullWidth -> fullWidth / 8 },
+) + fadeIn(animationSpec = tween(NavTransitionMillis, easing = FastOutSlowInEasing))
+
+private val NavForwardExit = fadeOut(animationSpec = tween(NavTransitionMillis, easing = FastOutSlowInEasing))
+
+private val NavBackEnter = fadeIn(animationSpec = tween(NavTransitionMillis, easing = FastOutSlowInEasing))
+
+private val NavBackExit = slideOutHorizontally(
+    animationSpec = tween(NavTransitionMillis, easing = FastOutSlowInEasing),
+    targetOffsetX = { fullWidth -> fullWidth / 8 },
+) + fadeOut(animationSpec = tween(NavTransitionMillis, easing = FastOutSlowInEasing))
+
 /** Wires every screen together. Screens receive plain lambdas, never the controller itself. */
 @Composable
 fun MessagingNavHost(
@@ -31,6 +59,10 @@ fun MessagingNavHost(
         navController = navController,
         startDestination = MessagingDestination.Splash.route,
         modifier = modifier,
+        enterTransition = { NavForwardEnter },
+        exitTransition = { NavForwardExit },
+        popEnterTransition = { NavBackEnter },
+        popExitTransition = { NavBackExit },
     ) {
         composable(MessagingDestination.Splash.route) {
             SplashScreen(

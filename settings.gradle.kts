@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Messages Text Messaging"
 include(":app")
+include(":baselineprofile")

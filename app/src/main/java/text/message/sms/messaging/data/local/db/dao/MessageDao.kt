@@ -19,6 +19,21 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE thread_id = :threadId ORDER BY received_at ASC")
     fun observeThread(threadId: Long): Flow<List<MessageWithAttachments>>
 
+    /** The most recent [limit] messages of a thread, newest first -- see [observeThread] for the
+     * unbounded version this backs. Callers reverse the result to display oldest-first; ordering
+     * DESC here (rather than nesting an ASC subquery limited from the tail) keeps this a plain
+     * indexed range scan over `messages(thread_id, received_at)`. */
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM messages
+        WHERE thread_id = :threadId
+        ORDER BY received_at DESC
+        LIMIT :limit
+        """
+    )
+    fun observeThreadPageDesc(threadId: Long, limit: Int): Flow<List<MessageWithAttachments>>
+
     @Transaction
     @Query("SELECT * FROM messages WHERE id = :id")
     suspend fun findById(id: Long): MessageWithAttachments?

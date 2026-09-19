@@ -1,8 +1,10 @@
 package text.message.sms.messaging.data.repository
 
 import androidx.room.withTransaction
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import text.message.sms.messaging.data.local.db.MessagingDatabase
 import text.message.sms.messaging.data.local.db.dao.ContactDao
@@ -42,6 +44,7 @@ class LocalConversationRepository @Inject constructor(
             conversationDao.observeByThreadId(threadId),
             contactsByComparableSuffix(),
         ) { conversation, contacts -> conversation?.toDomain(contacts) }
+            .flowOn(Dispatchers.Default)
 
     override suspend fun findByThreadId(threadId: Long): Conversation? =
         conversationDao.findByThreadId(threadId)?.toDomain()
@@ -115,7 +118,7 @@ class LocalConversationRepository @Inject constructor(
     private fun Flow<List<ConversationWithRecipients>>.withContacts(): Flow<List<Conversation>> =
         combine(contactsByComparableSuffix()) { conversations, contacts ->
             conversations.map { it.toDomain(contacts) }
-        }
+        }.flowOn(Dispatchers.Default)
 
     /**
      * Contacts keyed by [PhoneNumbers.comparableSuffix], not [PhoneNumbers.normalize].

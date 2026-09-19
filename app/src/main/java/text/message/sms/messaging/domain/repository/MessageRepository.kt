@@ -1,6 +1,7 @@
 package text.message.sms.messaging.domain.repository
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import text.message.sms.messaging.domain.model.DeliveryState
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.model.MessageChannel
@@ -10,6 +11,15 @@ import text.message.sms.messaging.domain.model.MessageFolder
 interface MessageRepository {
 
     fun observeThread(threadId: Long): Flow<List<Message>>
+
+    /** Live view over just the most recent [limit] messages of the thread, oldest first -- lets
+     * [text.message.sms.messaging.ui.screens.chat.ChatViewModel] show the first frame without
+     * paying for the whole thread's history. Default implementation falls back to trimming
+     * [observeThread]'s full result, so a fake/test repository need not implement this separately;
+     * [text.message.sms.messaging.data.repository.LocalMessageRepository] overrides it with a
+     * SQL-limited query instead of loading everything first. */
+    fun observeThreadPage(threadId: Long, limit: Int): Flow<List<Message>> =
+        observeThread(threadId).map { it.takeLast(limit) }
 
     suspend fun findById(id: Long): Message?
 

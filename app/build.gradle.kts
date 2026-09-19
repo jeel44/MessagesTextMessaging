@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.room)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 android {
@@ -52,6 +53,14 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
+// Off, not automatic: generating a profile needs a connected device/emulator, and this repo's
+// release build shouldn't silently depend on one being attached (CI included). Run
+// `./gradlew :baselineprofile:generateBaselineProfile` explicitly when the profile needs updating
+// -- see baselineprofile/src/main/java/.../BaselineProfileGenerator.kt for the journey it records.
+baselineProfile {
+    automaticGenerationDuringBuild = false
+}
+
 dependencies {
     // AndroidX foundation
     implementation(libs.androidx.core.ktx)
@@ -92,6 +101,12 @@ dependencies {
 
     // Kotlin libraries
     implementation(libs.kotlinx.coroutines.android)
+
+    // Installs the profile :baselineprofile generates into ART's own profile store on-device --
+    // without this, a generated/shipped baseline-prof.txt in the release APK/AAB is inert on API
+    // < 34 (API 34+'s installer is built into the platform, but this app's minSdk is 26).
+    implementation(libs.androidx.profileinstaller)
+    "baselineProfile"(project(":baselineprofile"))
 
     // Unit tests
     testImplementation(libs.junit)
