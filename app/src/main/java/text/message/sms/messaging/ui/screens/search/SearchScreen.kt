@@ -76,14 +76,8 @@ import text.message.sms.messaging.ui.theme.FilterChipSelectedBorder
 import text.message.sms.messaging.ui.theme.FilterChipSelectedContainer
 import text.message.sms.messaging.ui.theme.FilterChipUnselectedContainer
 import text.message.sms.messaging.ui.theme.SearchBarBorder
+import text.message.sms.messaging.util.RelativeDateFormatter
 import text.message.sms.messaging.util.SearchHighlight
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.TextStyle
-import java.time.temporal.ChronoUnit
-import java.util.Date
-import java.util.Locale
 
 /**
  * Full-text search across threads and message bodies, backed live by [SearchViewModel] --
@@ -569,24 +563,14 @@ private fun SearchResultAvatar(isGroup: Boolean, contact: Contact?, modifier: Mo
     }
 }
 
-/** Short-form date label, matching Home's own row format exactly ("Yesterday" / weekday
- * abbreviation for the last 7 days / a locale-formatted date beyond that) rather than a clock
- * time -- see [text.message.sms.messaging.ui.screens.conversationlist.ConversationRow]'s
- * `formatConversationDate`, duplicated here (not imported) to keep this screen's changes scoped
- * to this file only. */
+/** Short-form date label, matching Home's own row format exactly -- see
+ * [text.message.sms.messaging.util.RelativeDateFormatter.listLabel]. */
 @Composable
 private fun formatResultDate(timestampMillis: Long): String {
     val context = LocalContext.current
-    val yesterdayLabel = stringResource(R.string.home_date_yesterday)
-    return remember(timestampMillis, yesterdayLabel) {
-        val zone = ZoneId.systemDefault()
-        val date = Instant.ofEpochMilli(timestampMillis).atZone(zone).toLocalDate()
-        val daysBetween = ChronoUnit.DAYS.between(date, LocalDate.now(zone))
-        when {
-            daysBetween == 1L -> yesterdayLabel
-            daysBetween in 0L..6L -> date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-            else -> DateFormat.getMediumDateFormat(context).format(Date(timestampMillis))
-        }
+    val is24Hour = remember(context) { DateFormat.is24HourFormat(context) }
+    return remember(timestampMillis, is24Hour) {
+        RelativeDateFormatter.listLabel(timestampMillis, is24Hour)
     }
 }
 

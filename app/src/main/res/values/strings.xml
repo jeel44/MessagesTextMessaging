@@ -46,8 +46,6 @@
     <string name="home_filter_personal">Personal</string>
     <string name="home_filter_transactions">Transactions</string>
     <string name="home_filter_otp">OTP</string>
-    <string name="home_date_today">Today</string>
-    <string name="home_date_yesterday">Yesterday</string>
     <string name="home_empty_title">No messages yet</string>
     <string name="home_empty_message">Start a conversation and it will show up here.</string>
     <string name="home_not_default_title">Set Messages as your default SMS app</string>

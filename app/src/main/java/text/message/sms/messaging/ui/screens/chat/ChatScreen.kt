@@ -164,6 +164,7 @@ import text.message.sms.messaging.ui.theme.SelectionAccentBlueDark
 import text.message.sms.messaging.util.NavPerfTracer
 import text.message.sms.messaging.util.OtpDetector
 import text.message.sms.messaging.util.PhoneNumbers
+import text.message.sms.messaging.util.RelativeDateFormatter
 import text.message.sms.messaging.util.isPersonalChat
 import text.message.sms.messaging.util.placeCall
 import java.io.File
@@ -171,8 +172,6 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.TextStyle
-import java.time.temporal.ChronoUnit
 import java.util.Date
 import java.util.Locale
 
@@ -1000,7 +999,8 @@ private fun OtpCopyButton(code: String, modifier: Modifier = Modifier) {
 
 /**
  * Plain centered gray text, no pill/background -- "Wed 12:25 AM" (weekday + time) for the last 7
- * days, "19 Sep, 3:16 AM" (day + month + time) for anything older. Unlike
+ * days, "19 Sep, 3:16 AM" (day + month + time) for anything older this year, "19 Sep 2025, 3:16 AM"
+ * for a previous year -- see [RelativeDateFormatter.separatorLabel]. Unlike
  * [text.message.sms.messaging.ui.screens.conversationlist.DateSectionHeader], this always
  * includes a time, since [groupMessages] can insert a separator mid-day (a >1hr gap), not only on
  * a day change.
@@ -1010,19 +1010,9 @@ private fun ChatDateSeparator(timestampMillis: Long, modifier: Modifier = Modifi
     val context = LocalContext.current
     val isLight = isLightChatTheme()
     val textColor = if (isLight) ChatDateSeparatorGray else MaterialTheme.colorScheme.onSurfaceVariant
-    val label = remember(timestampMillis) {
-        val zone = ZoneId.systemDefault()
-        val date = Instant.ofEpochMilli(timestampMillis).atZone(zone).toLocalDate()
-        val daysBetween = ChronoUnit.DAYS.between(date, LocalDate.now(zone))
-        val time = DateFormat.getTimeFormat(context).format(Date(timestampMillis))
-        if (daysBetween in 0L..6L) {
-            val weekday = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-            "$weekday $time"
-        } else {
-            val day = date.dayOfMonth
-            val month = date.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-            "$day $month, $time"
-        }
+    val is24Hour = remember(context) { DateFormat.is24HourFormat(context) }
+    val label = remember(timestampMillis, is24Hour) {
+        RelativeDateFormatter.separatorLabel(timestampMillis, is24Hour)
     }
     Box(
         modifier = modifier

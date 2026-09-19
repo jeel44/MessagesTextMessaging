@@ -142,14 +142,11 @@ import text.message.sms.messaging.ui.theme.SelectionAccentBlueDark
 import text.message.sms.messaging.ui.theme.SelectionMenuIconDark
 import text.message.sms.messaging.util.NavPerfTracer
 import text.message.sms.messaging.util.OtpDetector
+import text.message.sms.messaging.util.RelativeDateFormatter
 import text.message.sms.messaging.util.placeCall
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.TextStyle
-import java.time.temporal.ChronoUnit
-import java.util.Date
-import java.util.Locale
 import kotlin.math.abs
 
 /** Resource-id hooks for the baseline profile generator (`:baselineprofile` module) to drive this
@@ -1141,19 +1138,11 @@ private fun SwipeActionBackground(
 }
 
 /** `internal` so [text.message.sms.messaging.ui.screens.archived.ArchivedScreen] can reuse it
- * for its own date-grouped list. */
+ * for its own date-grouped list -- see [RelativeDateFormatter.dayHeaderLabel]. Never the words
+ * "Today"/"Yesterday". */
 @Composable
 internal fun DateSectionHeader(date: LocalDate, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val today = remember { LocalDate.now() }
-    val label = when (date) {
-        today -> stringResource(R.string.home_date_today)
-        today.minusDays(1) -> stringResource(R.string.home_date_yesterday)
-        else -> remember(date) {
-            val millis = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-            DateFormat.getMediumDateFormat(context).format(Date(millis))
-        }
-    }
+    val label = remember(date) { RelativeDateFormatter.dayHeaderLabel(date) }
     Text(
         text = label,
         style = MaterialTheme.typography.labelLarge,
@@ -1519,23 +1508,16 @@ private fun shimmerBrush(): Brush {
 }
 
 /**
- * Short-form date label for a row's right column -- never a clock time, matching the reference
- * design: "Yesterday" for yesterday, a weekday abbreviation ("Thu", "Wed") for today and the rest
- * of the last 7 days, and a locale-formatted date for anything older.
+ * Short-form date label for a row's right column -- a bare time for today, a weekday abbreviation
+ * ("Thu", "Wed") for the rest of the last 7 days, and "12 Sep" / "12 Sep 2025" for anything older,
+ * see [RelativeDateFormatter.listLabel]. Never the words "Today"/"Yesterday".
  */
 @Composable
 private fun formatConversationDate(timestampMillis: Long): String {
     val context = LocalContext.current
-    val yesterdayLabel = stringResource(R.string.home_date_yesterday)
-    return remember(timestampMillis, yesterdayLabel) {
-        val zone = ZoneId.systemDefault()
-        val date = Instant.ofEpochMilli(timestampMillis).atZone(zone).toLocalDate()
-        val daysBetween = ChronoUnit.DAYS.between(date, LocalDate.now(zone))
-        when {
-            daysBetween == 1L -> yesterdayLabel
-            daysBetween in 0L..6L -> date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-            else -> DateFormat.getMediumDateFormat(context).format(Date(timestampMillis))
-        }
+    val is24Hour = remember(context) { DateFormat.is24HourFormat(context) }
+    return remember(timestampMillis, is24Hour) {
+        RelativeDateFormatter.listLabel(timestampMillis, is24Hour)
     }
 }
 
