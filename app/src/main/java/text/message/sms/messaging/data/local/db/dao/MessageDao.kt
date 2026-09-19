@@ -69,6 +69,12 @@ interface MessageDao {
     @Query("SELECT EXISTS(SELECT 1 FROM messages LIMIT 1)")
     suspend fun hasAnyMessages(): Boolean
 
+    /** Which of [providerIds] are already cached, one query for the whole batch -- lets a bulk
+     * sync skip already-synced rows without a per-row [findByProviderId] round trip. See
+     * [text.message.sms.messaging.data.repository.TelephonySyncRepository.syncAll]. */
+    @Query("SELECT provider_id FROM messages WHERE channel = :channel AND provider_id IN (:providerIds)")
+    suspend fun findExistingProviderIds(providerIds: Collection<Long>, channel: MessageChannel): List<Long>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(message: MessageEntity): Long
 

@@ -311,13 +311,14 @@ class MmsProviderGateway @Inject constructor(
         )
     }
 
-    /** Provider ids of every MMS newer than [sinceDateSeconds] (the MMS provider's native
-     * unit), oldest first -- the shape
-     * [text.message.sms.messaging.data.repository.TelephonySyncRepository] needs for an
-     * incremental sync. Each id is re-read through [readMessage] to reuse its full
-     * header/address/part decode rather than duplicating it here. */
-    fun queryIdsSince(sinceDateSeconds: Long): List<Long> {
-        val projection = arrayOf(Telephony.Mms._ID)
+    /** Provider id plus native (seconds) date of every MMS newer than [sinceDateSeconds], oldest
+     * first -- the shape [text.message.sms.messaging.data.repository.TelephonySyncRepository]
+     * needs for an incremental sync. [dateSeconds] rides along in this same single query so an
+     * already-cached row's sync watermark can advance without paying for a full [readMessage]
+     * re-decode just to learn its timestamp; each id still goes through [readMessage] to reuse its
+     * full header/address/part decode, but only when the row isn't already cached. */
+    fun queryIdsSince(sinceDateSeconds: Long): List<MmsIdAndDate> {
+        val projection = arrayOf(Telephony.Mms._ID, Telephony.Mms.DATE)
         return contentResolver.query(
             Telephony.Mms.CONTENT_URI,
             projection,
@@ -326,10 +327,35 @@ class MmsProviderGateway @Inject constructor(
             "${Telephony.Mms.DATE} ASC",
         )?.use { cursor ->
             val idColumn = cursor.getColumnIndexOrThrow(Telephony.Mms._ID)
+            val dateColumn = cursor.getColumnIndexOrThrow(Telephony.Mms.DATE)
             buildList {
                 while (cursor.moveToNext()) {
                     // Mirrors SmsProviderGateway.querySince(): one bad row's cursor read must not
                     // abort every id already collected from this cursor.
+                    try {
+                        add(MmsIdAndDate(cursor.getLong(idColumn), cursor.getLong(dateColumn)))
+                    } catch (error: Exception) {
+                        Log.w(TAG, "Skipping malformed MMS id cursor row", error)
+                    }
+                }
+            }
+        }.orEmpty()
+    }
+
+    /** The newest [limit] MMS provider ids of [threadId], regardless of the sync watermark -- see
+     * [SmsProviderGateway.queryThreadRecent], the SMS equivalent this mirrors. */
+    fun queryThreadRecentIds(threadId: Long, limit: Int): List<Long> {
+        val projection = arrayOf(Telephony.Mms._ID)
+        return contentResolver.query(
+            Telephony.Mms.CONTENT_URI,
+            projection,
+            "${Telephony.Mms.THREAD_ID} = ?",
+            arrayOf(threadId.toString()),
+            "${Telephony.Mms.DATE} DESC LIMIT $limit",
+        )?.use { cursor ->
+            val idColumn = cursor.getColumnIndexOrThrow(Telephony.Mms._ID)
+            buildList {
+                while (cursor.moveToNext()) {
                     try {
                         add(cursor.getLong(idColumn))
                     } catch (error: Exception) {
@@ -339,6 +365,9 @@ class MmsProviderGateway @Inject constructor(
             }
         }.orEmpty()
     }
+
+    /** [providerId] paired with its native (seconds) [Telephony.Mms.DATE] -- see [queryIdsSince]. */
+    data class MmsIdAndDate(val providerId: Long, val dateSeconds: Long)
 
     /** All recipient addresses recorded against [providerId], excluding the sender. Used when
      * building the recipient set for a conversation thread from a resynced MMS row. */

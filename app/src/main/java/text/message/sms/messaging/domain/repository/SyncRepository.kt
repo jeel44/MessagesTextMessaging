@@ -14,6 +14,13 @@ interface SyncRepository {
     /** Pulls a single provider row into the cache, e.g. after a broadcast. */
     suspend fun syncMessage(providerUri: String)
 
+    /** Imports [threadId]'s newest [limit] messages right away, ahead of wherever [syncAll]'s
+     * background chunked walk currently is -- see
+     * [text.message.sms.messaging.data.repository.TelephonySyncRepository.syncThreadPriority] for
+     * why this never touches the incremental watermark [syncAll] maintains. Cheap to call even
+     * when the thread is already fully cached; a fake/test repository can treat this as a no-op. */
+    suspend fun syncThreadPriority(threadId: Long, limit: Int = 40) {}
+
     /** Clears the incremental-sync watermark so the next [syncAll] walks the entire system
      * provider again instead of only rows newer than what was already pulled -- needed after
      * [text.message.sms.messaging.domain.repository.BackupRepository.import] writes historical

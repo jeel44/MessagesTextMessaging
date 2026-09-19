@@ -158,6 +158,39 @@ class LocalMessageRepository @Inject constructor(
         }
     }
 
+    /**
+     * See [MessageRepository.insertIncomingBatch]. Every entry in [messages] must already carry
+     * a non-zero [Message.providerId] -- unlike [insertIncoming], this never falls back to
+     * writing a provider row, since a sync-sourced message always already has one.
+     */
+    override suspend fun insertIncomingBatch(messages: List<Message>): List<Message> = withContext(Dispatchers.IO) {
+        if (messages.isEmpty()) return@withContext emptyList()
+        database.withTransaction {
+            messages.map { message ->
+                var localId = messageDao.insert(message.toEntity())
+                if (localId == -1L) {
+                    localId = messageDao.findByProviderId(message.providerId, message.channel)?.message?.id ?: localId
+                }
+
+                val attachments = if (message.attachments.isEmpty()) {
+                    emptyList()
+                } else {
+                    attachmentDao.upsertAll(
+                        message.attachments.map { it.copy(messageId = localId).toEntity() },
+                    )
+                    attachmentDao.findForMessage(localId).map { it.toDomain() }
+                }
+
+                message.copy(id = localId, attachments = attachments)
+            }
+        }
+    }
+
+    override suspend fun findExistingProviderIds(providerIds: Collection<Long>, channel: MessageChannel): Set<Long> =
+        withContext(Dispatchers.IO) {
+            if (providerIds.isEmpty()) emptySet() else messageDao.findExistingProviderIds(providerIds, channel).toSet()
+        }
+
     override suspend fun setDeliveryState(messageId: Long, state: DeliveryState, errorCode: Int) {
         messageDao.setDeliveryState(messageId, state, errorCode)
     }

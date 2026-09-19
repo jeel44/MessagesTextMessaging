@@ -1,5 +1,6 @@
 package text.message.sms.messaging.data.repository
 
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.net.toUri
 import kotlinx.coroutines.CancellationException
@@ -29,11 +30,19 @@ import javax.inject.Singleton
  * Mirrors the system Telephony provider into the local cache.
  *
  * Incremental by construction: [SyncStateEntity] tracks the newest SMS/MMS timestamp already
- * pulled in, and every sync -- whether the app-open full walk in `syncAll` or the single-row
- * pull `syncMessage` runs after a broadcast -- only ever asks the provider for rows newer than
- * that watermark. A row already present locally (matched by provider id + channel, the same
- * unique key [text.message.sms.messaging.data.local.db.dao.MessageDao] enforces) is skipped
- * rather than re-inserted, so re-running a sync is always safe.
+ * pulled in, and every full sync -- the app-open walk in `syncAll` -- only ever asks the provider
+ * for rows newer than that watermark. A row already present locally (matched by provider id +
+ * channel, the same unique key [text.message.sms.messaging.data.local.db.dao.MessageDao]
+ * enforces) is skipped rather than re-inserted, so re-running a sync is always safe.
+ *
+ * `syncAll` processes rows newest-first, in chunks of [SYNC_CHUNK_SIZE], each chunk written in a
+ * single transaction ([MessageRepository.insertIncomingBatch]) with its own conversation-counter
+ * flush right after -- see [flushConversationUpdates]. Both are load-bearing for perceived speed:
+ * a transaction per row (the previous shape) pays SQLite's commit cost thousands of times over for
+ * a large first-run backfill, and [text.message.sms.messaging.data.local.db.dao.ConversationDao
+ * .observeInbox]'s `last_message_at > 0` filter means Home shows nothing at all for a thread until
+ * its counters are flushed -- so flushing only once at the very end (the previous shape) made Home
+ * look empty for the entire sync instead of filling in progressively, newest conversations first.
  */
 @Singleton
 class TelephonySyncRepository @Inject constructor(
@@ -63,6 +72,9 @@ class TelephonySyncRepository @Inject constructor(
             return@withContext
         }
 
+        val startedAtMillis = SystemClock.elapsedRealtime()
+        Log.d(PERF_TAG, "syncAll start")
+
         try {
             val persistedState = syncStateDao.get() ?: SyncStateEntity()
             // Normally sync_state and messages/conversations live in the same Room database and
@@ -82,9 +94,15 @@ class TelephonySyncRepository @Inject constructor(
             } else {
                 persistedState
             }
+
             val smsMessages = smsProviderGateway.querySince(state.lastSmsDateMillis)
-            val mmsIds = mmsProviderGateway.queryIdsSince(state.lastMmsDateSeconds)
-            val total = smsMessages.size + mmsIds.size
+            val mmsRefs = mmsProviderGateway.queryIdsSince(state.lastMmsDateSeconds)
+            val total = smsMessages.size + mmsRefs.size
+            Log.d(
+                PERF_TAG,
+                "provider query returned ${smsMessages.size} sms + ${mmsRefs.size} mms " +
+                    "in ${SystemClock.elapsedRealtime() - startedAtMillis}ms",
+            )
 
             if (total == 0) {
                 syncStateDao.upsert(state.copy(lastFullSyncAtMillis = System.currentTimeMillis()))
@@ -93,95 +111,96 @@ class TelephonySyncRepository @Inject constructor(
             }
 
             progress.value = SyncProgress.Running(0, total)
-            var completed = 0
-            var failedCount = 0
-            // The first row's exception, so the aggregate SyncProgress.Failed below can surface
-            // the real cause -- e.g. "IllegalArgumentException: column 'error_code' does not
-            // exist" -- rather than just a count. Later failures are still logged individually
-            // (below) with their own full stack trace; only the first is promoted to the visible
-            // progress state, since on real devices repeated failures in one sync are almost
-            // always the same root cause (e.g. one OEM-missing column hit by every row).
-            var firstFailure: Exception? = null
-            var newestSmsMillis = state.lastSmsDateMillis
-            var newestMmsSeconds = state.lastMmsDateSeconds
-            // Once a row in a channel fails, that channel's watermark stops advancing -- even
-            // past later rows that succeed -- so the failed row (and everything after it) is
-            // included again on the next sync instead of being silently skipped forever once the
-            // watermark moves beyond its timestamp. Already-synced rows in that re-included range
-            // are cheap no-ops (see syncSms/syncMms's own findByProviderId dedup check).
-            var smsWatermarkStalled = false
-            var mmsWatermarkStalled = false
-            // Per-thread snippet/last-message-time, tracking only the latest-received row per
-            // thread across the whole batch -- upserted once after both loops below finish
-            // instead of once per message, so the conversation list's live Flow re-sorts and
-            // re-renders once per sync pass rather than flickering through every intermediate
-            // state while a large catch-up sync is still running.
-            val conversationUpdates = mutableMapOf<Long, Message>()
+            val stats = SyncStats(newestSmsMillis = state.lastSmsDateMillis, newestMmsSeconds = state.lastMmsDateSeconds)
             // Telephony.Threads.getOrCreateThreadId is a real ContentResolver round-trip, not a
             // local lookup -- caching it per address set for the duration of this one sync pass
             // avoids repeating that call for every message in a thread that has many.
             val threadIdCache = mutableMapOf<Set<String>, Long>()
 
-            smsMessages.forEach { message ->
-                try {
-                    syncSms(message, threadIdCache)?.let { recordConversationUpdate(conversationUpdates, it) }
-                    if (!smsWatermarkStalled) {
-                        newestSmsMillis = maxOf(newestSmsMillis, message.receivedAtMillis)
-                    }
-                } catch (error: Exception) {
-                    if (error is CancellationException) throw error
-                    failedCount++
-                    smsWatermarkStalled = true
-                    if (firstFailure == null) firstFailure = error
-                    Log.w(TAG, "Skipping malformed SMS row (provider id ${message.providerId})", error)
-                }
-                completed++
-                progress.value = SyncProgress.Running(completed, total)
+            // Newest-first, chunked: the most recently active conversations become visible in
+            // Home within the first chunk's insert (typically well under a second), instead of
+            // only once the *entire* backfill finishes -- see this class's doc comment.
+            smsMessages.asReversed().chunked(SYNC_CHUNK_SIZE).forEachIndexed { index, chunk ->
+                val chunkStartMillis = SystemClock.elapsedRealtime()
+                val inserted = prepareAndInsertSmsChunk(chunk, threadIdCache, stats)
+                flushConversationUpdates(inserted)
+                progress.value = SyncProgress.Running(stats.completed, total)
+                Log.d(
+                    PERF_TAG,
+                    "sms chunk $index (${chunk.size} rows, ${inserted.size} inserted) in " +
+                        "${SystemClock.elapsedRealtime() - chunkStartMillis}ms",
+                )
             }
 
-            mmsIds.forEach { providerId ->
-                try {
-                    val result = syncMms(providerId, threadIdCache)
-                    result.insertedMessage?.let { recordConversationUpdate(conversationUpdates, it) }
-                    if (result.receivedAtMillis != null && !mmsWatermarkStalled) {
-                        newestMmsSeconds = maxOf(newestMmsSeconds, result.receivedAtMillis / MILLIS_PER_SECOND)
-                    }
-                } catch (error: Exception) {
-                    if (error is CancellationException) throw error
-                    failedCount++
-                    mmsWatermarkStalled = true
-                    if (firstFailure == null) firstFailure = error
-                    Log.w(TAG, "Skipping malformed MMS row (provider id $providerId)", error)
-                }
-                completed++
-                progress.value = SyncProgress.Running(completed, total)
+            mmsRefs.asReversed().chunked(SYNC_CHUNK_SIZE).forEachIndexed { index, chunk ->
+                val chunkStartMillis = SystemClock.elapsedRealtime()
+                val inserted = prepareAndInsertMmsChunk(chunk, threadIdCache, stats)
+                flushConversationUpdates(inserted)
+                progress.value = SyncProgress.Running(stats.completed, total)
+                Log.d(
+                    PERF_TAG,
+                    "mms chunk $index (${chunk.size} rows, ${inserted.size} inserted) in " +
+                        "${SystemClock.elapsedRealtime() - chunkStartMillis}ms",
+                )
             }
-
-            conversationRepository.refreshCountersBatch(
-                conversationUpdates.mapValues { (_, message) ->
-                    ConversationCounterUpdate(message.body, message.receivedAtMillis)
-                },
-            )
 
             syncStateDao.upsert(
                 SyncStateEntity(
-                    lastSmsDateMillis = newestSmsMillis,
-                    lastMmsDateSeconds = newestMmsSeconds,
+                    lastSmsDateMillis = stats.newestSmsMillis,
+                    lastMmsDateSeconds = stats.newestMmsSeconds,
                     lastFullSyncAtMillis = System.currentTimeMillis(),
                 ),
             )
-            progress.value = if (failedCount > 0) {
+            progress.value = if (stats.failedCount > 0) {
                 SyncProgress.Failed(
-                    "$failedCount of $total message(s) failed to sync: ${firstFailure.describe()}",
-                    failedCount,
+                    "${stats.failedCount} of $total message(s) failed to sync: ${stats.firstFailure.describe()}",
+                    stats.failedCount,
                 )
             } else {
                 SyncProgress.Idle
             }
+            Log.d(
+                PERF_TAG,
+                "syncAll end: ${stats.completed}/$total processed, ${stats.failedCount} failed, " +
+                    "total ${SystemClock.elapsedRealtime() - startedAtMillis}ms",
+            )
         } catch (error: Exception) {
             if (error is CancellationException) throw error
             Log.w(TAG, "syncAll failed", error)
             progress.value = SyncProgress.Failed(error.describe())
+        }
+    }
+
+    /**
+     * Imports [threadId]'s newest [limit] SMS/MMS rows immediately, outside the normal
+     * incremental watermark -- called when [text.message.sms.messaging.ui.screens.chat.ChatViewModel]
+     * opens a thread, so that thread's recent history is on screen right away even if the
+     * background [syncAll] pass (chunked oldest-thread-last within each channel) hasn't reached it
+     * yet. Cheap to call unconditionally: [prepareAndInsertSmsChunk]/[prepareAndInsertMmsChunk]'s
+     * batched existence check makes an already-fully-synced thread a near no-op. Never touches
+     * [SyncStateEntity] -- this is a targeted, out-of-order import, not part of the sequential
+     * cursor [syncAll] maintains, so it must not perturb that cursor's watermark.
+     */
+    override suspend fun syncThreadPriority(threadId: Long, limit: Int): Unit = withContext(Dispatchers.IO) {
+        if (!defaultSmsAppGuard.isDefault || !defaultSmsAppGuard.hasCoreSmsPermissions) return@withContext
+
+        try {
+            val threadIdCache = mutableMapOf<Set<String>, Long>()
+            val stats = SyncStats()
+
+            val smsRows = smsProviderGateway.queryThreadRecent(threadId, limit)
+            val insertedSms = prepareAndInsertSmsChunk(smsRows, threadIdCache, stats)
+
+            val mmsIds = mmsProviderGateway.queryThreadRecentIds(threadId, limit)
+            // dateSeconds is irrelevant here -- this path never writes SyncStateEntity, so the
+            // watermark bookkeeping prepareAndInsertMmsChunk does internally is simply discarded.
+            val mmsRefs = mmsIds.map { MmsProviderGateway.MmsIdAndDate(it, 0L) }
+            val insertedMms = prepareAndInsertMmsChunk(mmsRefs, threadIdCache, stats)
+
+            flushConversationUpdates(insertedSms + insertedMms)
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            Log.w(TAG, "syncThreadPriority failed for thread $threadId", error)
         }
     }
 
@@ -212,6 +231,150 @@ class TelephonySyncRepository @Inject constructor(
     override suspend fun lastSyncAtMillis(): Long? = syncStateDao.get()?.lastFullSyncAtMillis
 
     /**
+     * Prepares a chunk of raw SMS rows -- skipping already-cached ones (one batched existence
+     * check for the whole chunk, not one query per row), blocked senders, and addressless rows --
+     * then inserts everything that survived in a single transaction via
+     * [MessageRepository.insertIncomingBatch]. [stats] is mutated in place for the caller's
+     * running completed/failed/watermark bookkeeping across chunks.
+     */
+    private suspend fun prepareAndInsertSmsChunk(
+        chunk: List<Message>,
+        threadIdCache: MutableMap<Set<String>, Long>,
+        stats: SyncStats,
+    ): List<Message> {
+        if (chunk.isEmpty()) return emptyList()
+        val existing = messageRepository.findExistingProviderIds(chunk.map { it.providerId }, MessageChannel.SMS)
+        val toInsert = mutableListOf<Message>()
+
+        for (raw in chunk) {
+            try {
+                if (raw.providerId !in existing) {
+                    val blocked = raw.address != null && blockedNumberRepository.isBlocked(raw.address)
+                    if (!blocked) {
+                        val addresses = setOfNotNull(raw.address)
+                        if (addresses.isEmpty()) {
+                            // No address means there is nothing to resolve a thread from -- see
+                            // the class doc on TelephonySyncRepository's original syncSms.
+                            Log.w(TAG, "Skipping SMS provider id ${raw.providerId}: no address, cannot resolve a thread")
+                        } else {
+                            val resolvedThreadId = resolveThreadIdCached(threadIdCache, addresses)
+                            toInsert += raw.copy(threadId = resolvedThreadId)
+                        }
+                    }
+                }
+                if (!stats.smsWatermarkStalled) {
+                    stats.newestSmsMillis = maxOf(stats.newestSmsMillis, raw.receivedAtMillis)
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                stats.failedCount++
+                stats.smsWatermarkStalled = true
+                if (stats.firstFailure == null) stats.firstFailure = error
+                Log.w(TAG, "Skipping malformed SMS row (provider id ${raw.providerId})", error)
+            }
+            stats.completed++
+        }
+
+        return insertChunkSafely(toInsert)
+    }
+
+    /** MMS equivalent of [prepareAndInsertSmsChunk]. The existence check runs *before*
+     * [readAndPrepareMms], so an already-cached row skips its full header/address/part re-decode
+     * entirely rather than only skipping the DB write, unlike the old per-row `syncMms`. */
+    private suspend fun prepareAndInsertMmsChunk(
+        chunk: List<MmsProviderGateway.MmsIdAndDate>,
+        threadIdCache: MutableMap<Set<String>, Long>,
+        stats: SyncStats,
+    ): List<Message> {
+        if (chunk.isEmpty()) return emptyList()
+        val existing = messageRepository.findExistingProviderIds(chunk.map { it.providerId }, MessageChannel.MMS)
+        val toInsert = mutableListOf<Message>()
+
+        for (ref in chunk) {
+            try {
+                if (ref.providerId !in existing) {
+                    readAndPrepareMms(ref.providerId, threadIdCache)?.let { toInsert += it }
+                }
+                if (!stats.mmsWatermarkStalled) {
+                    stats.newestMmsSeconds = maxOf(stats.newestMmsSeconds, ref.dateSeconds)
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                stats.failedCount++
+                stats.mmsWatermarkStalled = true
+                if (stats.firstFailure == null) stats.firstFailure = error
+                Log.w(TAG, "Skipping malformed MMS row (provider id ${ref.providerId})", error)
+            }
+            stats.completed++
+        }
+
+        return insertChunkSafely(toInsert)
+    }
+
+    /** Reads, resolves and blocked-filters one MMS row -- everything [prepareAndInsertMmsChunk]
+     * needs before a row can join the chunk's batch insert. Returns `null` for a row that should
+     * be skipped (no recipients, or a blocked sender), same as the old per-row `syncMms`. */
+    private suspend fun readAndPrepareMms(providerId: Long, threadIdCache: MutableMap<Set<String>, Long>): Message? {
+        val message = mmsProviderGateway.readMessage("content://mms/$providerId") ?: return null
+
+        val rawRecipients = (listOfNotNull(message.address) + mmsProviderGateway.readRecipients(providerId)).toSet()
+        if (rawRecipients.isEmpty()) {
+            Log.w(TAG, "Skipping MMS provider id $providerId: no recipients, cannot resolve a thread")
+            return null
+        }
+
+        // Same business/RCS-sender-address exclusion as MmsDownloadResultReceiver -- an address
+        // like `agent@rbm.goog` must not count as a participant.
+        val recipients = PhoneNumbers.realParticipantsOnly(rawRecipients)
+        val resolvedThreadId = resolveThreadIdCached(threadIdCache, recipients)
+        val blocked = message.address != null && blockedNumberRepository.isBlocked(message.address)
+        if (blocked) return null
+
+        return message.copy(threadId = resolvedThreadId)
+    }
+
+    /**
+     * Inserts [toInsert] as a single batch/transaction. A batch failure (expected only if the
+     * data this chunk was built from is somehow inconsistent -- never seen in practice, since
+     * every row was already validated while building [toInsert]) falls back to inserting one row
+     * at a time so a single bad row can't lose the rest of an otherwise-healthy chunk, preserving
+     * the same "one malformed row must not lose the whole batch" guarantee the old per-row
+     * transactions gave for free.
+     */
+    private suspend fun insertChunkSafely(toInsert: List<Message>): List<Message> {
+        if (toInsert.isEmpty()) return emptyList()
+        return try {
+            messageRepository.insertIncomingBatch(toInsert)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            Log.w(TAG, "Batch insert failed for a chunk of ${toInsert.size} row(s); retrying individually", error)
+            toInsert.mapNotNull { message ->
+                try {
+                    messageRepository.insertIncoming(message, notifyConversation = false)
+                } catch (rowError: Exception) {
+                    if (rowError is CancellationException) throw rowError
+                    Log.w(TAG, "Skipping malformed row (provider id ${message.providerId}) during fallback insert", rowError)
+                    null
+                }
+            }
+        }
+    }
+
+    /** Batches [inserted] into one conversation-counters update per touched thread (keeping only
+     * the latest-received row per thread) and flushes it in one transaction -- called once per
+     * chunk rather than once per message, so the conversation list's live Flow re-sorts and
+     * re-renders a handful of times per sync pass instead of flickering through every message. */
+    private suspend fun flushConversationUpdates(inserted: List<Message>) {
+        if (inserted.isEmpty()) return
+        val updates = mutableMapOf<Long, Message>()
+        inserted.forEach { recordConversationUpdate(updates, it) }
+        conversationRepository.refreshCountersBatch(
+            updates.mapValues { (_, message) -> ConversationCounterUpdate(message.body, message.receivedAtMillis) },
+        )
+    }
+
+    /**
      * [message]'s own `threadId` is whatever raw value was already stamped on the Telephony
      * cursor row -- assigned at some point in the past by whichever component wrote it (the
      * platform itself, or a previous default SMS app), using its own address resolution at that
@@ -223,6 +386,9 @@ class TelephonySyncRepository @Inject constructor(
      * holding the default-SMS-app role, can resolve differently), so [message] must always be
      * rewritten to carry the resolved id before insert -- otherwise `messages.thread_id`'s
      * foreign key has nothing to point at and every insert fails.
+     *
+     * Only used by the legacy single-row [syncMessage] path now; [syncAll] uses
+     * [prepareAndInsertSmsChunk] instead.
      */
     private suspend fun syncSms(message: Message, threadIdCache: MutableMap<Set<String>, Long>): Message? {
         if (messageRepository.findByProviderId(message.providerId, MessageChannel.SMS) != null) return null
@@ -230,10 +396,6 @@ class TelephonySyncRepository @Inject constructor(
 
         val addresses = setOfNotNull(message.address)
         if (addresses.isEmpty()) {
-            // No address means there is nothing to resolve a thread from, and therefore no
-            // ConversationEntity to insert this row against -- see the class doc above. Falling
-            // through to insert with message's own (unresolved) threadId would hit the exact
-            // foreign-key failure this fix exists to prevent.
             Log.w(TAG, "Skipping SMS provider id ${message.providerId}: no address, cannot resolve a thread")
             return null
         }
@@ -248,6 +410,9 @@ class TelephonySyncRepository @Inject constructor(
      * watermark move past it. [MmsSyncResult.insertedMessage] is non-null only when a row was
      * actually inserted, for the caller's batched conversation-counters update. Applies the same
      * resolved-thread-id rewrite as [syncSms], and for the same reason -- see its doc.
+     *
+     * Only used by the legacy single-row [syncMessage] path now; [syncAll] uses
+     * [prepareAndInsertMmsChunk]/[readAndPrepareMms] instead.
      */
     private suspend fun syncMms(providerId: Long, threadIdCache: MutableMap<Set<String>, Long>): MmsSyncResult {
         val message = mmsProviderGateway.readMessage("content://mms/$providerId") ?: return MmsSyncResult(null, null)
@@ -261,10 +426,6 @@ class TelephonySyncRepository @Inject constructor(
                 return MmsSyncResult(null, null)
             }
 
-            // Same business/RCS-sender-address exclusion as MmsDownloadResultReceiver -- an
-            // address like `agent@rbm.goog` must not count as a participant. `message` itself
-            // (inserted below) still carries its own unfiltered `address`, so the raw sender is
-            // never lost, only excluded from what decides the thread's participant count.
             val recipients = PhoneNumbers.realParticipantsOnly(rawRecipients)
             val resolvedThreadId = resolveThreadIdCached(threadIdCache, recipients)
             val blocked = message.address != null && blockedNumberRepository.isBlocked(message.address)
@@ -279,8 +440,8 @@ class TelephonySyncRepository @Inject constructor(
         return MmsSyncResult(message.receivedAtMillis, insertedMessage)
     }
 
-    /** Keeps only the latest-received row per thread, for the batched conversation-counters
-     * update at the end of [syncAll]. */
+    /** Keeps only the latest-received row per thread, for a batched conversation-counters
+     * update. */
     private fun recordConversationUpdate(updates: MutableMap<Long, Message>, message: Message) {
         val current = updates[message.threadId]
         if (current == null || message.receivedAtMillis >= current.receivedAtMillis) {
@@ -296,6 +457,20 @@ class TelephonySyncRepository @Inject constructor(
 
     private data class MmsSyncResult(val receivedAtMillis: Long?, val insertedMessage: Message?)
 
+    /** Running counters threaded through [syncAll]'s chunk loop -- a single mutable holder rather
+     * than several `var`s, since both the SMS and MMS chunk-processing helpers need to update the
+     * same state across many chunk calls. */
+    private class SyncStats(
+        var newestSmsMillis: Long = 0L,
+        var newestMmsSeconds: Long = 0L,
+    ) {
+        var completed: Int = 0
+        var failedCount: Int = 0
+        var firstFailure: Exception? = null
+        var smsWatermarkStalled: Boolean = false
+        var mmsWatermarkStalled: Boolean = false
+    }
+
     /**
      * The real exception, not a generic string -- this is what actually shows up in
      * [SyncProgress.Failed.message] and thus the on-device failure banner, precisely so a real
@@ -308,6 +483,14 @@ class TelephonySyncRepository @Inject constructor(
 
     private companion object {
         const val TAG = "TelephonySyncRepository"
-        const val MILLIS_PER_SECOND = 1_000L
+
+        /** Temporary perf-pass breadcrumb (Logcat tag "SyncPerf") -- read with
+         * `adb logcat -s SyncPerf:D` to see per-phase sync timings on a real device. */
+        const val PERF_TAG = "SyncPerf"
+
+        /** Rows per transaction during a bulk sync -- large enough that the fixed per-transaction
+         * commit cost is amortized over many rows, small enough that the very first chunk (which
+         * unlocks Home's first visible data) still commits in well under a second. */
+        const val SYNC_CHUNK_SIZE = 500
     }
 }

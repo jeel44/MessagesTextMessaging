@@ -102,6 +102,43 @@ class SmsProviderGateway @Inject constructor(
         }.orEmpty()
     }
 
+    /** The newest [limit] SMS rows of [threadId], regardless of the sync watermark -- used to
+     * prioritize a single thread's recent history (e.g. opening a Chat screen before the
+     * background sync has reached that thread) ahead of the normal incremental walk. */
+    fun queryThreadRecent(threadId: Long, limit: Int): List<Message> {
+        val projection = arrayOf(
+            Telephony.Sms._ID,
+            Telephony.Sms.THREAD_ID,
+            Telephony.Sms.ADDRESS,
+            Telephony.Sms.BODY,
+            Telephony.Sms.DATE,
+            Telephony.Sms.DATE_SENT,
+            Telephony.Sms.READ,
+            Telephony.Sms.SEEN,
+            Telephony.Sms.TYPE,
+            Telephony.Sms.SUBSCRIPTION_ID,
+            Telephony.Sms.ERROR_CODE,
+        )
+
+        return contentResolver.query(
+            Telephony.Sms.CONTENT_URI,
+            projection,
+            "${Telephony.Sms.THREAD_ID} = ?",
+            arrayOf(threadId.toString()),
+            "${Telephony.Sms.DATE} DESC LIMIT $limit",
+        )?.use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) {
+                    try {
+                        add(cursor.toMessage())
+                    } catch (error: Exception) {
+                        Log.w(TAG, "Skipping malformed SMS cursor row", error)
+                    }
+                }
+            }
+        }.orEmpty()
+    }
+
     private fun Cursor.toMessage(): Message {
         val dateSent = getLong(getColumnIndexOrThrow(Telephony.Sms.DATE_SENT))
         val dateReceived = getLong(getColumnIndexOrThrow(Telephony.Sms.DATE))

@@ -51,6 +51,23 @@ interface MessageRepository {
      * updated as part of this call, or deferred to a caller doing a batched update. */
     suspend fun insertIncoming(message: Message, notifyConversation: Boolean = true): Message
 
+    /** Bulk form of [insertIncoming] for a sync pass: every entry in [messages] is written inside
+     * a single transaction instead of one commit per row, and none of them are written back to
+     * the system provider (they're already sync sourced from it -- see
+     * [text.message.sms.messaging.data.repository.TelephonySyncRepository]). The default
+     * implementation just calls [insertIncoming] once per message, so a fake/test repository need
+     * not override this; [text.message.sms.messaging.data.repository.LocalMessageRepository]
+     * overrides it with a real single-transaction batch insert. */
+    suspend fun insertIncomingBatch(messages: List<Message>): List<Message> =
+        messages.map { insertIncoming(it, notifyConversation = false) }
+
+    /** Which of [providerIds] (all the same [channel]) already have a cached row, in one call --
+     * lets a bulk sync skip already-synced rows without a [findByProviderId] round trip per row.
+     * The default implementation falls back to one [findByProviderId] call per id, so a fake/test
+     * repository need not override this. */
+    suspend fun findExistingProviderIds(providerIds: Collection<Long>, channel: MessageChannel): Set<Long> =
+        providerIds.filterTo(mutableSetOf()) { findByProviderId(it, channel) != null }
+
     suspend fun setDeliveryState(messageId: Long, state: DeliveryState, errorCode: Int = 0)
 
     suspend fun setRead(threadIds: Collection<Long>, read: Boolean)
