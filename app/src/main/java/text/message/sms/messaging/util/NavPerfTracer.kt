@@ -51,4 +51,41 @@ internal object NavPerfTracer {
         if (firstFrameCount == laterCount) return
         Log.d(PERF_TAG, "thread=$threadId messages changed after first frame: $firstFrameCount -> $laterCount")
     }
+
+    private const val BLINK_TAG = "ChatListBlink"
+
+    /** [ChatScreen]'s very first composition for this thread -- the start of the ~120ms window
+     * the list-blink bug measured empty. */
+    fun logChatListBlinkScreenComposed(threadId: Long) {
+        val elapsedMillis = SystemClock.elapsedRealtime()
+        Log.d(BLINK_TAG, "thread=$threadId screenComposed at=${elapsedMillis}ms")
+    }
+
+    /** [ChatViewModel.hasLoadedInitialMessages] flipped true -- the first real Room page for this
+     * thread arrived, so [ChatMessageList] is now eligible to compose. */
+    fun logChatListBlinkFirstPageArrived(threadId: Long) {
+        val elapsedMillis = SystemClock.elapsedRealtime()
+        Log.d(BLINK_TAG, "thread=$threadId firstPageArrived at=${elapsedMillis}ms")
+    }
+
+    /** [ChatMessageList]'s [androidx.compose.foundation.lazy.LazyColumn] laid out for the first
+     * time -- [firstVisibleItemIndex] and [lastVisibleItemKey] should already reflect the newest
+     * message, since the fix bakes the initial scroll position into the list state instead of
+     * scrolling to it after the fact. */
+    fun logChatListBlinkFirstLayout(threadId: Long, firstVisibleItemIndex: Int, lastVisibleItemKey: Any?) {
+        val elapsedMillis = SystemClock.elapsedRealtime()
+        Log.d(
+            BLINK_TAG,
+            "thread=$threadId firstLayout at=${elapsedMillis}ms firstVisibleItemIndex=$firstVisibleItemIndex " +
+                "lastVisibleItemKey=$lastVisibleItemKey",
+        )
+    }
+
+    /** A scroll happened on [listState] after [logChatListBlinkFirstLayout] already fired for this
+     * thread -- [source] identifies which mechanism triggered it ("newMessage" or "messageSent"
+     * are both expected/legitimate; anything else during the fix's manual checklist is a bug). */
+    fun logChatListBlinkScrollAfterFirstLayout(threadId: Long, source: String) {
+        val elapsedMillis = SystemClock.elapsedRealtime()
+        Log.d(BLINK_TAG, "thread=$threadId scrollAfterFirstLayout at=${elapsedMillis}ms source=$source")
+    }
 }

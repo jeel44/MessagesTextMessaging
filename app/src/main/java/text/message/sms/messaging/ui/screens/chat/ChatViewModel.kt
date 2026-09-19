@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -116,6 +117,14 @@ class ChatViewModel @Inject constructor(
 
     private data class CoreState(val conversation: Conversation?, val messages: List<Message>)
 
+    // Flips true on the first real emission from observeThreadPage (whether or not that page
+    // turns out to be empty). Needed because `messages` itself can't tell a thread that's still
+    // loading apart from a thread that's genuinely empty -- both read as emptyList() from its
+    // seeded stateIn initial value below. ChatScreen holds off composing ChatMessageList (and
+    // its LazyColumn) until this is true, so the list is never first drawn before real data is
+    // there to draw -- see ChatMessageList's doc comment for why that matters.
+    private val hasLoadedInitialPage = MutableStateFlow(false)
+
     // conversation and messages are combined into ONE upstream Flow, rather than each being its
     // own independent stateIn, so a screen collecting both (see ChatScreen) recomposes once per
     // meaningful change instead of once per Flow -- two Room queries that happen to resolve a few
@@ -123,7 +132,8 @@ class ChatViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     private val coreState: StateFlow<CoreState> = combine(
         conversationRepository.observeConversation(threadId),
-        messagePageSize.flatMapLatest { limit -> messageRepository.observeThreadPage(threadId, limit) },
+        messagePageSize.flatMapLatest { limit -> messageRepository.observeThreadPage(threadId, limit) }
+            .onEach { hasLoadedInitialPage.value = true },
     ) { conversation, messages -> CoreState(conversation, messages) }
         .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CoreState(openHint, emptyList()))
@@ -131,6 +141,8 @@ class ChatViewModel @Inject constructor(
     val messages: StateFlow<List<Message>> = coreState.map { it.messages }
         .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val hasLoadedInitialMessages: StateFlow<Boolean> = hasLoadedInitialPage.asStateFlow()
 
     val conversation: StateFlow<Conversation?> = coreState.map { it.conversation }
         .distinctUntilChanged()

@@ -8,6 +8,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -148,6 +149,11 @@ fun MessageBubble(
             attachments.forEach { attachment ->
                 if (attachment.isImage && attachment.contentUri != null) {
                     Box {
+                        // aspectRatio reserves the bubble's height up front -- [Attachment] carries
+                        // no known width/height, so this is a fixed placeholder ratio rather than
+                        // the image's real one, but it still means a late decode (Coil resolving
+                        // the content URI) never changes this item's height after first layout and
+                        // pushes every item below it in the list.
                         AsyncImage(
                             model = attachment.contentUri,
                             contentDescription = attachment.fileName,
@@ -155,6 +161,7 @@ fun MessageBubble(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
                                 .widthIn(max = 240.dp)
+                                .aspectRatio(4f / 3f)
                                 .clickable(enabled = !isSelectionMode) { onAttachmentClick(attachment) },
                         )
                         if (isSelected) {

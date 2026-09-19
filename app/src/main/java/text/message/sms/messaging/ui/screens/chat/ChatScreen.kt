@@ -93,6 +93,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -215,11 +216,20 @@ fun ChatScreen(
 
     LaunchedEffect(viewModel.threadId) {
         NavPerfTracer.logChatFirstFrame(viewModel.threadId)
+        NavPerfTracer.logChatListBlinkScreenComposed(viewModel.threadId)
     }
 
     val messages by viewModel.messages.collectAsStateWithLifecycle()
     val conversation by viewModel.conversation.collectAsStateWithLifecycle()
     val chatMode by viewModel.chatMode.collectAsStateWithLifecycle()
+
+    // Gates ChatMessageList below -- see ChatViewModel.hasLoadedInitialMessages' doc comment.
+    // Flips true (once, ever, for this screen instance) the moment the first real Room page for
+    // this thread arrives, whether or not that page turns out to be empty.
+    val hasLoadedInitialMessages by viewModel.hasLoadedInitialMessages.collectAsStateWithLifecycle()
+    LaunchedEffect(hasLoadedInitialMessages) {
+        if (hasLoadedInitialMessages) NavPerfTracer.logChatListBlinkFirstPageArrived(viewModel.threadId)
+    }
 
     // Frame-level breadcrumb for the "opening a chat" perf/glitch pass -- see NavPerfTracer's
     // "ChatOpenPerf" tag doc comments. Runs once per threadId, same as logChatFirstFrame above.
@@ -397,21 +407,28 @@ fun ChatScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
-        ChatMessageList(
-            chatItems = chatItems,
-            messageSentEvents = viewModel.events,
-            onAttachmentClick = { attachment -> attachment.contentUri?.let(onAttachmentClick) },
-            onLoadOlder = viewModel::loadOlderMessages,
-            isPersonal = isPersonal,
-            latestOtpMessageId = latestOtpMessageId,
-            selectedIds = selectedIds,
-            isSelectionMode = isSelectionMode,
-            onToggleSelection = viewModel::toggleSelection,
-            onStartSelection = viewModel::startSelection,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        )
+        // Not composed at all until the first real page has arrived -- see
+        // ChatViewModel.hasLoadedInitialMessages' doc comment. Before that, this slot is just the
+        // Scaffold's background (top bar and composer stay visible above/below it), never an
+        // empty LazyColumn that visibly pops once content lands.
+        if (hasLoadedInitialMessages) {
+            ChatMessageList(
+                chatItems = chatItems,
+                messageSentEvents = viewModel.events,
+                onAttachmentClick = { attachment -> attachment.contentUri?.let(onAttachmentClick) },
+                onLoadOlder = viewModel::loadOlderMessages,
+                isPersonal = isPersonal,
+                latestOtpMessageId = latestOtpMessageId,
+                selectedIds = selectedIds,
+                isSelectionMode = isSelectionMode,
+                onToggleSelection = viewModel::toggleSelection,
+                onStartSelection = viewModel::startSelection,
+                threadId = viewModel.threadId,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+            )
+        }
     }
 
     if (showLearnMoreDialog) {
@@ -486,15 +503,21 @@ private fun isLightChatTheme(): Boolean = MaterialTheme.colorScheme.background.l
  * index 0 renders at the top and the last index at the bottom -- the most recent message is always
  * the *last* item, never the first.
  *
- * [hasScrolledToLatestOnOpen] separates two distinct scroll behaviors that [isNearBottom] alone
- * used to conflate into one, which was the bug: a freshly opened chat starts with [listState]
- * unscrolled at index 0 (the oldest message, top of the list) -- so on that very first layout,
- * [isNearBottom] is `false` by definition (the visible items are nowhere near the last index), and
- * the auto-scroll below would never fire, leaving the screen open on the oldest message instead of
- * the most recent one. The first time [chatItems] has anything in it, this jumps straight to the
- * last item unconditionally (no [isNearBottom] check); only later arrivals -- once the user has
- * already been positioned at the bottom at least once -- respect [isNearBottom], so an incoming
- * message while the user has scrolled up to read history doesn't yank them back down.
+ * [listState]'s default value bakes the newest message straight into the state's *creation*
+ * (`initialFirstVisibleItemIndex = chatItems.lastIndex`) instead of scrolling to it after the
+ * first frame -- that post-layout scroll used to be the list-blink bug: [chatItems] arrives after
+ * [ChatMessageList] itself has already composed once at index 0 (the oldest message, top of the
+ * list), so the list would draw one real frame there before a `LaunchedEffect` jumped it to the
+ * bottom on the next frame. Callers (see [ChatScreen]) now hold off composing this function at all
+ * until the first real page has loaded, so on the one and only composition that matters,
+ * [chatItems] already has its final first-page contents and [listState]'s initial index is already
+ * correct -- no programmatic scroll happens for the initial position, ever.
+ *
+ * [hasCompletedInitialComposition] separates that already-correct first frame from every
+ * *subsequent* [chatItems] size change (a genuinely new message arriving, or a widened page from
+ * [onLoadOlder]): only those later changes consult [isNearBottom] to decide whether to
+ * `animateScrollToItem`, so an incoming message while the user has scrolled up to read history
+ * doesn't yank them back down.
  *
  * Spacing between items is driven entirely by each item's own padding (a [ChatListItem.DateHeader]'s
  * 16dp top/bottom, a [ChatListItem.Bubble] row's 4dp/8dp top depending on [ChatListItem.Bubble
@@ -508,15 +531,19 @@ internal fun ChatMessageList(
     onAttachmentClick: (Attachment) -> Unit,
     modifier: Modifier = Modifier,
     onLoadOlder: () -> Unit = {},
-    listState: LazyListState = rememberLazyListState(),
+    listState: LazyListState = rememberLazyListState(
+        initialFirstVisibleItemIndex = chatItems.lastIndex.coerceAtLeast(0),
+    ),
     isPersonal: Boolean = true,
     latestOtpMessageId: Long? = null,
     selectedIds: Set<Long> = emptySet(),
     isSelectionMode: Boolean = false,
     onToggleSelection: (Long) -> Unit = {},
     onStartSelection: (Long) -> Unit = {},
+    threadId: Long = -1L,
 ) {
-    var hasScrolledToLatestOnOpen by remember { mutableStateOf(false) }
+    var hasCompletedInitialComposition by remember { mutableStateOf(false) }
+    var hasLoggedFirstLayout by remember { mutableStateOf(false) }
 
     // Only auto-scroll for a newly-arrived message if the user is already near the bottom --
     // otherwise an incoming message would yank them away from history they scrolled up to read.
@@ -528,15 +555,31 @@ internal fun ChatMessageList(
         }
     }
 
+    // ChatListBlink measurement (see NavPerfTracer): logs firstVisibleItemIndex and the last
+    // visible item's key the first time this list actually has a laid-out frame, so a logcat
+    // filter on "ChatListBlink" can confirm the first frame already sits at the newest message.
+    LaunchedEffect(threadId, chatItems.isEmpty()) {
+        if (hasLoggedFirstLayout) return@LaunchedEffect
+        if (chatItems.isEmpty()) {
+            hasLoggedFirstLayout = true
+            NavPerfTracer.logChatListBlinkFirstLayout(threadId, 0, null)
+            return@LaunchedEffect
+        }
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo }.first { it.isNotEmpty() }
+        hasLoggedFirstLayout = true
+        val visible = listState.layoutInfo.visibleItemsInfo
+        NavPerfTracer.logChatListBlinkFirstLayout(threadId, listState.firstVisibleItemIndex, visible.lastOrNull()?.key)
+    }
+
     // Requests an older page once the user scrolls near the top of what's currently loaded --
     // ChatViewModel.loadOlderMessages widens the query rather than this screen paging through a
     // separate result set, so the scroll position naturally holds steady as more history arrives
     // above it. Only fires once real messages exist (never on the empty first frame), only past
-    // hasScrolledToLatestOnOpen (so it can't race the initial jump to the newest message), and only
-    // when there's actually more content than fits the viewport -- otherwise a short thread (every
-    // loaded message already fits on screen, so the initial jump-to-bottom already leaves
-    // firstVisibleItemIndex at 0) would spuriously read as "near the top" the instant it opens and
-    // widen the page for no reason.
+    // hasCompletedInitialComposition (so it can't race the very first frame, which already opens
+    // at the bottom -- see this function's doc comment), and only when there's actually more
+    // content than fits the viewport -- otherwise a short thread (every loaded message already
+    // fits on screen, so the initial position already leaves firstVisibleItemIndex at 0) would
+    // spuriously read as "near the top" the instant it opens and widen the page for no reason.
     val isNearTop by remember {
         derivedStateOf {
             val layoutInfo = listState.layoutInfo
@@ -544,18 +587,22 @@ internal fun ChatMessageList(
             hasOverflow && listState.firstVisibleItemIndex <= 5
         }
     }
-    LaunchedEffect(isNearTop, hasScrolledToLatestOnOpen, chatItems.isEmpty()) {
-        if (hasScrolledToLatestOnOpen && isNearTop && chatItems.isNotEmpty()) {
+    LaunchedEffect(isNearTop, hasCompletedInitialComposition, chatItems.isEmpty()) {
+        if (hasCompletedInitialComposition && isNearTop && chatItems.isNotEmpty()) {
             onLoadOlder()
         }
     }
 
     LaunchedEffect(chatItems.size) {
         if (chatItems.isEmpty()) return@LaunchedEffect
-        if (!hasScrolledToLatestOnOpen) {
-            listState.scrollToItem(chatItems.lastIndex)
-            hasScrolledToLatestOnOpen = true
-        } else if (isNearBottom) {
+        if (!hasCompletedInitialComposition) {
+            // Position is already correct via listState's initial index above -- this only marks
+            // the first frame as done, no scroll is performed here.
+            hasCompletedInitialComposition = true
+            return@LaunchedEffect
+        }
+        if (isNearBottom) {
+            NavPerfTracer.logChatListBlinkScrollAfterFirstLayout(threadId, "newMessage")
             listState.animateScrollToItem(chatItems.lastIndex)
         }
     }
@@ -563,6 +610,7 @@ internal fun ChatMessageList(
     LaunchedEffect(messageSentEvents) {
         messageSentEvents.collect { event ->
             if (event is ChatEvent.MessageSent && latestChatItems.isNotEmpty()) {
+                NavPerfTracer.logChatListBlinkScrollAfterFirstLayout(threadId, "messageSent")
                 listState.animateScrollToItem(latestChatItems.lastIndex)
             }
         }
