@@ -32,4 +32,23 @@ internal object NavPerfTracer {
         val elapsedMillis = SystemClock.elapsedRealtime() - clickAtMillis
         Log.d(TAG, "Home tap -> Chat first frame (thread=$threadId): ${elapsedMillis}ms")
     }
+
+    private const val PERF_TAG = "ChatOpenPerf"
+
+    /** [mode] is [text.message.sms.messaging.ui.screens.chat.ChatMode]'s name, and [messageCount]
+     * is `messages.size` -- both read at Chat's very first composition, so a logcat filter on
+     * "ChatOpenPerf" shows exactly what the user's first frame looked like: whether the mode was
+     * already known (never `PERSONAL` by default -- see `ChatMode`'s doc comment) and whether the
+     * message list was already non-empty before any second emission could arrive. */
+    fun logChatOpenDetails(threadId: Long, mode: String, messageCount: Int) {
+        Log.d(PERF_TAG, "thread=$threadId firstFrameMode=$mode firstFrameMessageCount=$messageCount")
+    }
+
+    /** Called from a delayed check after Chat's first frame -- logs only if the message list's
+     * size actually differs from what the first frame showed, i.e. a real second emission (a
+     * priority sync import, a page widen) changed what's on screen after the fact. */
+    fun logChatMessagesChangedAfterFirstFrame(threadId: Long, firstFrameCount: Int, laterCount: Int) {
+        if (firstFrameCount == laterCount) return
+        Log.d(PERF_TAG, "thread=$threadId messages changed after first frame: $firstFrameCount -> $laterCount")
+    }
 }

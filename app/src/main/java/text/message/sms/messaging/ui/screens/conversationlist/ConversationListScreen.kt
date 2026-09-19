@@ -140,6 +140,7 @@ import text.message.sms.messaging.ui.theme.SearchBarBorder
 import text.message.sms.messaging.ui.theme.SelectionAccentBlue
 import text.message.sms.messaging.ui.theme.SelectionAccentBlueDark
 import text.message.sms.messaging.ui.theme.SelectionMenuIconDark
+import text.message.sms.messaging.util.ChatOpenHint
 import text.message.sms.messaging.util.NavPerfTracer
 import text.message.sms.messaging.util.OtpDetector
 import text.message.sms.messaging.util.RelativeDateFormatter
@@ -900,7 +901,10 @@ private fun ConversationList(
                 SwipeableConversationRow(
                     conversation = conversation,
                     swipeActionPreference = swipeActionPreference,
-                    onClick = { onConversationClick(conversation.threadId) },
+                    onClick = {
+                        ChatOpenHint.prime(conversation)
+                        onConversationClick(conversation.threadId)
+                    },
                     onSwipeAction = { action -> onSwipeAction(action, conversation) },
                     onDeleteRequested = { onDeleteRequested(conversation) },
                     isSelectionMode = isSelectionMode,

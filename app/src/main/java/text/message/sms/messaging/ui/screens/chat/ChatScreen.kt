@@ -165,7 +165,6 @@ import text.message.sms.messaging.util.NavPerfTracer
 import text.message.sms.messaging.util.OtpDetector
 import text.message.sms.messaging.util.PhoneNumbers
 import text.message.sms.messaging.util.RelativeDateFormatter
-import text.message.sms.messaging.util.isPersonalChat
 import text.message.sms.messaging.util.placeCall
 import java.io.File
 import java.text.SimpleDateFormat
@@ -186,6 +185,10 @@ internal const val ChatMessageListTestTag = "chat_message_list"
 private val Context.chatComposerTooltipDataStore: DataStore<Preferences> by
     preferencesDataStore(name = "chat_composer_tooltip")
 private val ScheduleTooltipShownKey = booleanPreferencesKey("schedule_tooltip_shown")
+
+/** How long the composer's one-time tooltip waits after first composition before it's allowed to
+ * pop in -- long enough that it never reads as part of the chat opening. */
+private const val ScheduleTooltipOpenDelayMillis = 500L
 
 /**
  * A single thread: message timeline, date separators and the composer, all driven live by
@@ -216,6 +219,18 @@ fun ChatScreen(
 
     val messages by viewModel.messages.collectAsStateWithLifecycle()
     val conversation by viewModel.conversation.collectAsStateWithLifecycle()
+    val chatMode by viewModel.chatMode.collectAsStateWithLifecycle()
+
+    // Frame-level breadcrumb for the "opening a chat" perf/glitch pass -- see NavPerfTracer's
+    // "ChatOpenPerf" tag doc comments. Runs once per threadId, same as logChatFirstFrame above.
+    LaunchedEffect(viewModel.threadId) {
+        val firstFrameMode = chatMode
+        val firstFrameCount = messages.size
+        NavPerfTracer.logChatOpenDetails(viewModel.threadId, firstFrameMode.name, firstFrameCount)
+        delay(800)
+        NavPerfTracer.logChatMessagesChangedAfterFirstFrame(viewModel.threadId, firstFrameCount, messages.size)
+    }
+
     val messageText by viewModel.messageText.collectAsStateWithLifecycle()
     val pendingAttachmentUri by viewModel.pendingAttachmentUri.collectAsStateWithLifecycle()
     val activeSims by viewModel.activeSims.collectAsStateWithLifecycle()
@@ -235,10 +250,11 @@ fun ChatScreen(
     // navigates away.
     BackHandler(enabled = isSelectionMode) { viewModel.clearSelection() }
 
-    // Defaults to personal (full composer) while the conversation is still loading, only
-    // switching to the read-only non-personal layout once the real classification is known -- see
-    // [isPersonalChat]'s doc comment for why this is broader than Home's PERSONAL filter chip.
-    val isPersonal = remember(conversation) { conversation?.isPersonalChat() ?: true }
+    // Never defaults to personal (or non-personal) while the mode is still unknown -- see
+    // [ChatMode]'s doc comment. [isPersonal] is only ever true once [chatMode] has actually
+    // settled on [ChatMode.PERSONAL]; both the call icon and the whole bottom area stay hidden for
+    // the narrow [ChatMode.UNKNOWN] window in between (see this screen's `bottomBar` below).
+    val isPersonal = chatMode == ChatMode.PERSONAL
 
     // The most recent *received* message with an OTP, if any -- reuses [OtpDetector], the same
     // extractor behind Home's inbox quick-copy chip, so the two can never disagree about which
@@ -359,8 +375,11 @@ fun ChatScreen(
             }
         },
         bottomBar = {
-            if (isPersonal) {
-                ChatComposer(
+            // No branch at all for ChatMode.UNKNOWN -- neither the composer nor the non-personal
+            // security card renders until the real mode is known, so there's nothing to visibly
+            // swap out once it resolves (see ChatMode's doc comment).
+            when (chatMode) {
+                ChatMode.PERSONAL -> ChatComposer(
                     text = messageText,
                     onTextChange = viewModel::onMessageTextChanged,
                     pendingAttachmentUri = pendingAttachmentUri,
@@ -372,8 +391,8 @@ fun ChatScreen(
                     simIndicatorSlot = simIndicatorSlot,
                     onSimIndicatorClick = viewModel::onSimBadgeClick,
                 )
-            } else {
-                NonPersonalBottomBar(onLearnMoreClick = { showLearnMoreDialog = true })
+                ChatMode.NON_PERSONAL -> NonPersonalBottomBar(onLearnMoreClick = { showLearnMoreDialog = true })
+                ChatMode.UNKNOWN -> Unit
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -512,10 +531,18 @@ internal fun ChatMessageList(
     // Requests an older page once the user scrolls near the top of what's currently loaded --
     // ChatViewModel.loadOlderMessages widens the query rather than this screen paging through a
     // separate result set, so the scroll position naturally holds steady as more history arrives
-    // above it. Only fires once real messages exist (never on the empty first frame) and only
-    // past hasScrolledToLatestOnOpen, so it can't race the initial jump to the newest message.
+    // above it. Only fires once real messages exist (never on the empty first frame), only past
+    // hasScrolledToLatestOnOpen (so it can't race the initial jump to the newest message), and only
+    // when there's actually more content than fits the viewport -- otherwise a short thread (every
+    // loaded message already fits on screen, so the initial jump-to-bottom already leaves
+    // firstVisibleItemIndex at 0) would spuriously read as "near the top" the instant it opens and
+    // widen the page for no reason.
     val isNearTop by remember {
-        derivedStateOf { listState.firstVisibleItemIndex <= 5 }
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val hasOverflow = layoutInfo.totalItemsCount > layoutInfo.visibleItemsInfo.size
+            hasOverflow && listState.firstVisibleItemIndex <= 5
+        }
     }
     LaunchedEffect(isNearTop, hasScrolledToLatestOnOpen, chatItems.isEmpty()) {
         if (hasScrolledToLatestOnOpen && isNearTop && chatItems.isNotEmpty()) {
@@ -1070,6 +1097,9 @@ internal fun ChatComposer(
         val alreadyShown = context.chatComposerTooltipDataStore.data.first()[ScheduleTooltipShownKey] ?: false
         if (!alreadyShown) {
             context.chatComposerTooltipDataStore.edit { it[ScheduleTooltipShownKey] = true }
+            // Waits for the screen's own open animation/layout to settle first, so this never
+            // pops in as part of what looks like the chat opening.
+            delay(ScheduleTooltipOpenDelayMillis)
             showScheduleTooltip = true
             delay(5_000)
             showScheduleTooltip = false

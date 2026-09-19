@@ -46,6 +46,7 @@ import text.message.sms.messaging.ui.screens.conversationlist.ConversationListIt
 import text.message.sms.messaging.ui.screens.conversationlist.ConversationRow
 import text.message.sms.messaging.ui.screens.conversationlist.DateSectionHeader
 import text.message.sms.messaging.ui.screens.conversationlist.groupedByDate
+import text.message.sms.messaging.util.ChatOpenHint
 import java.time.ZoneId
 
 /**
@@ -98,7 +99,10 @@ fun ArchivedScreen(
                         is ConversationListItem.SectionHeader -> DateSectionHeader(item.date)
                         is ConversationListItem.Row -> ArchivedConversationRow(
                             conversation = item.conversation,
-                            onClick = { onConversationClick(item.conversation.threadId) },
+                            onClick = {
+                                ChatOpenHint.prime(item.conversation)
+                                onConversationClick(item.conversation.threadId)
+                            },
                             onUnarchive = { viewModel.unarchive(item.conversation.threadId) },
                         )
                     }

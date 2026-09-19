@@ -12,7 +12,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -31,7 +33,18 @@ import text.message.sms.messaging.domain.usecase.SendMessage
 import text.message.sms.messaging.domain.usecase.SendSubscriptionResult
 import text.message.sms.messaging.domain.usecase.SyncThreadPriority
 import text.message.sms.messaging.ui.navigation.MessagingDestination
+import text.message.sms.messaging.util.ChatOpenHint
+import text.message.sms.messaging.util.isPersonalChat
 import javax.inject.Inject
+
+/** [ChatScreen]'s personal/non-personal render mode -- see [ChatViewModel.chatMode]. Never
+ * defaults to [PERSONAL]: [UNKNOWN] is the only state before the real answer (from a Home/Archived
+ * tap's [ChatOpenHint], or otherwise [ChatViewModel]'s own [Conversation] load) is known, and
+ * [ChatScreen] renders no call icon and no bottom area (neither composer nor security card) while
+ * it's [UNKNOWN], so the mode can only ever be set once, correctly, never flip after the fact. */
+internal enum class ChatMode { UNKNOWN, PERSONAL, NON_PERSONAL }
+
+private fun Conversation.toChatMode(): ChatMode = if (isPersonalChat()) ChatMode.PERSONAL else ChatMode.NON_PERSONAL
 
 internal sealed interface ChatEvent {
     data object MessageSent : ChatEvent
@@ -94,13 +107,42 @@ class ChatViewModel @Inject constructor(
     // grows).
     private val messagePageSize = MutableStateFlow(INITIAL_MESSAGE_PAGE_SIZE)
 
+    /** Whatever Home/Archived already knew about this thread at the moment it was tapped -- see
+     * [ChatOpenHint]. Used as the seed for [conversation]/[chatMode] below so a hinted open never
+     * shows a placeholder mode at all; `null` for every other entry point (deep link,
+     * notification, search, forward, a brand-new thread), which fall back to [ChatMode.UNKNOWN]
+     * until the real query resolves, same as before this existed. */
+    private val openHint: Conversation? = ChatOpenHint.consume(threadId)
+
+    private data class CoreState(val conversation: Conversation?, val messages: List<Message>)
+
+    // conversation and messages are combined into ONE upstream Flow, rather than each being its
+    // own independent stateIn, so a screen collecting both (see ChatScreen) recomposes once per
+    // meaningful change instead of once per Flow -- two Room queries that happen to resolve a few
+    // milliseconds apart no longer show up as two separate partial frames.
     @OptIn(ExperimentalCoroutinesApi::class)
-    val messages: StateFlow<List<Message>> = messagePageSize
-        .flatMapLatest { limit -> messageRepository.observeThreadPage(threadId, limit) }
+    private val coreState: StateFlow<CoreState> = combine(
+        conversationRepository.observeConversation(threadId),
+        messagePageSize.flatMapLatest { limit -> messageRepository.observeThreadPage(threadId, limit) },
+    ) { conversation, messages -> CoreState(conversation, messages) }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CoreState(openHint, emptyList()))
+
+    val messages: StateFlow<List<Message>> = coreState.map { it.messages }
+        .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val conversation: StateFlow<Conversation?> = conversationRepository.observeConversation(threadId)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    val conversation: StateFlow<Conversation?> = coreState.map { it.conversation }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), openHint)
+
+    /** [ChatScreen]'s personal/non-personal mode -- see [ChatMode]'s doc comment. Resolved from
+     * [conversation] the instant it's non-null (immediately, for a hinted open); [ChatMode.UNKNOWN]
+     * only in the narrow window before that, never [ChatMode.PERSONAL] by default. */
+    internal val chatMode: StateFlow<ChatMode> = conversation
+        .map { convo -> convo?.toChatMode() ?: ChatMode.UNKNOWN }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), openHint?.toChatMode() ?: ChatMode.UNKNOWN)
 
     private val _messageText = MutableStateFlow("")
     val messageText: StateFlow<String> = _messageText.asStateFlow()
