@@ -63,6 +63,41 @@ internal val LightColors = lightColorScheme(
     inverseOnSurface = Color(0xFFF1F0F4),
 )
 
+/** Thin border around the Home top bar's search pill -- a plain hairline, not a `outlineVariant`
+ * token, since the pill must read the same subtle gray in both themes rather than following
+ * whatever the current accent/dynamic scheme derives for that role. */
+internal val SearchBarBorder = Color(0xFFDADCE0)
+
+/** Selected filter chip fill -- a light, theme-independent blue tint paired with a matching
+ * outline (see `ConversationFilterRow`'s chip colors in ConversationListScreen.kt). Deliberately
+ * not `primaryContainer`: the reference design's chip fill must look the same regardless of the
+ * user's picked accent color or dynamic color. */
+internal val FilterChipSelectedContainer = Color(0xFFE3ECFB)
+
+/** Selected filter chip outline -- a fixed blue, same reasoning as [FilterChipSelectedContainer]:
+ * must match the reference design exactly rather than following `colorScheme.primary`, which is
+ * both themeable (custom accent / dynamic color) and a visibly different blue from this hue. */
+internal val FilterChipSelectedBorder = Color(0xFF1A5FD0)
+
+/** Unselected filter chip fill -- deliberately not a `surfaceContainer*` token: those default to
+ * M3's baseline (lavender-tinted) values wherever this file leaves them unset, which is exactly
+ * the bug the Home TopAppBar's own container-color fix worked around. */
+internal val FilterChipUnselectedContainer = Color(0xFFF1F3F4)
+
+/** Neutral label/icon color for an unselected filter chip -- same reasoning as
+ * [FilterChipUnselectedContainer]: must read the same regardless of the current accent. */
+internal val FilterChipContentGray = Color(0xFF5F6368)
+
+/** Fixed, theme-independent blue for the Home screen's compose FAB -- matches the reference
+ * design exactly rather than following the user's picked accent, the same reasoning as the swipe
+ * action colors in ConversationListScreen.kt. */
+internal val ConversationFabBlue = Color(0xFF2F6BFF)
+
+/** Divider between Home's conversation rows -- a hairline, deliberately not `outlineVariant`
+ * (`0xFFC4C6D0` in [LightColors]): that token reads noticeably darker and cooler/blue-tinted than
+ * the reference design's very light gray divider. */
+internal val ConversationRowDivider = Color(0xFFE6E6EA)
+
 internal val DarkColors = darkColorScheme(
     primary = SeedBlueDark,
     onPrimary = SeedBlueOnPrimaryDark,

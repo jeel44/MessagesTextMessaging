@@ -2,16 +2,23 @@ package text.message.sms.messaging.ui.screens.conversationlist
 
 import android.text.format.DateFormat
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +33,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -36,15 +44,22 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.MarkChatRead
 import androidx.compose.material.icons.outlined.MarkChatUnread
+import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.SelectAll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -66,8 +81,6 @@ import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -83,11 +96,17 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -104,19 +123,44 @@ import text.message.sms.messaging.data.local.datastore.SwipeAction
 import text.message.sms.messaging.data.local.datastore.SwipeActionPreference
 import text.message.sms.messaging.domain.model.Conversation
 import text.message.sms.messaging.domain.repository.SyncProgress
+import text.message.sms.messaging.ui.components.SelectionMenuItem
+import text.message.sms.messaging.ui.components.SelectionOverflowMenu
 import text.message.sms.messaging.ui.components.icon
+import text.message.sms.messaging.ui.theme.ChatTopBarDivider
+import text.message.sms.messaging.ui.theme.ConversationFabBlue
+import text.message.sms.messaging.ui.theme.ConversationRowDivider
+import text.message.sms.messaging.ui.theme.ConversationRowSelected
+import text.message.sms.messaging.ui.theme.ConversationSelectedAvatar
+import text.message.sms.messaging.ui.theme.FilterChipContentGray
+import text.message.sms.messaging.ui.theme.FilterChipSelectedBorder
+import text.message.sms.messaging.ui.theme.FilterChipSelectedContainer
+import text.message.sms.messaging.ui.theme.FilterChipUnselectedContainer
 import text.message.sms.messaging.ui.theme.Pill
+import text.message.sms.messaging.ui.theme.SearchBarBorder
+import text.message.sms.messaging.ui.theme.SelectionAccentBlue
+import text.message.sms.messaging.ui.theme.SelectionAccentBlueDark
+import text.message.sms.messaging.ui.theme.SelectionMenuIconDark
+import text.message.sms.messaging.util.NavPerfTracer
 import text.message.sms.messaging.util.OtpDetector
 import text.message.sms.messaging.util.placeCall
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.TextStyle
+import java.time.temporal.ChronoUnit
 import java.util.Date
+import java.util.Locale
 import kotlin.math.abs
 
+/** Resource-id hooks for the baseline profile generator (`:baselineprofile` module) to drive this
+ * screen via UiAutomator as a black box -- see [text.message.sms.messaging.MainActivity]'s
+ * `testTagsAsResourceId`. Not read by anything else; purely a testing hook, invisible at runtime. */
+internal const val HomeSearchBarTestTag = "home_search_bar"
+internal const val ConversationRowTestTag = "conversation_row"
+
 /**
- * Inbox. A single rounded-top-corner surface holding every conversation, fed live from
- * [ConversationListViewModel.conversations] -- itself a direct view over
+ * Inbox. A flat list of every conversation on the screen background (no card behind it), fed live
+ * from [ConversationListViewModel.conversations] -- itself a direct view over
  * [text.message.sms.messaging.domain.repository.ConversationRepository.observeInbox], so rows
  * from an in-progress background sync appear as Room commits them, no manual refresh.
  */
@@ -137,17 +181,27 @@ fun ConversationListScreen(
     val swipeActionPreference by viewModel.swipeActionPreference.collectAsStateWithLifecycle()
     val archivedCount by viewModel.archivedCount.collectAsStateWithLifecycle()
     val selectedFilter by viewModel.filter.collectAsStateWithLifecycle()
+    val selectedThreadIds by viewModel.selectedThreadIds.collectAsStateWithLifecycle()
+    val selectedConversations by viewModel.selectedConversations.collectAsStateWithLifecycle()
+    val isSelectionMode = selectedThreadIds.isNotEmpty()
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val archivedLabel = stringResource(R.string.home_archived_snackbar)
     val deletedLabel = stringResource(R.string.home_deleted_snackbar)
     val undoLabel = stringResource(R.string.action_undo)
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showBlockConfirm by remember { mutableStateOf(false) }
 
-    // Each swipe emits exactly one event, resolved here by awaiting the snackbar's result before
-    // the next is processed -- SnackbarHostState already queues concurrent callers, so a rapid
-    // string of swipes just shows one undo-able snackbar after another rather than clobbering
-    // each other. See ConversationListViewModel.ConversationListEvent for what each branch means.
+    // System back and the selection top bar's close icon both exit selection mode first, rather
+    // than leaving the screen -- matching ChatScreen's own BackHandler for its selection mode.
+    BackHandler(enabled = isSelectionMode) { viewModel.clearSelection() }
+
+    // Each swipe (or selection action) emits exactly one event, resolved here by awaiting the
+    // snackbar's result before the next is processed -- SnackbarHostState already queues
+    // concurrent callers, so a rapid string of swipes just shows one undo-able snackbar after
+    // another rather than clobbering each other. See ConversationListViewModel.ConversationListEvent
+    // for what each branch means.
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
@@ -173,6 +227,31 @@ fun ConversationListScreen(
                     } else {
                         viewModel.confirmPendingDelete(event.conversation.threadId)
                     }
+                }
+
+                is ConversationListEvent.SelectionArchived -> {
+                    val message = context.resources.getQuantityString(
+                        R.plurals.home_selection_archived_snackbar,
+                        event.threadIds.size,
+                        event.threadIds.size,
+                    )
+                    val result = snackbarHostState.showSnackbar(
+                        message = message,
+                        actionLabel = undoLabel,
+                        duration = SnackbarDuration.Short,
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.undoSelectionArchive(event.threadIds)
+                    }
+                }
+
+                is ConversationListEvent.SelectionDeleted -> {
+                    val message = context.resources.getQuantityString(
+                        R.plurals.home_selection_deleted_snackbar,
+                        event.count,
+                        event.count,
+                    )
+                    snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
                 }
             }
         }
@@ -201,55 +280,53 @@ fun ConversationListScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = screenSurfaceColor(),
         topBar = {
-            Column {
-                TopAppBar(
-                    navigationIcon = {
-                        // No drawer/destination wired up yet -- purely visual to match the
-                        // reference until there's something for it to open.
-                        IconButton(onClick = {}) {
-                            Icon(
-                                imageVector = Icons.Filled.Menu,
-                                contentDescription = stringResource(R.string.action_menu),
-                            )
-                        }
-                    },
-                    title = {
-                        Text(
-                            text = stringResource(R.string.home_search_placeholder),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(onClickLabel = stringResource(R.string.action_search), onClick = onSearchClick),
-                        )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                        scrolledContainerColor = MaterialTheme.colorScheme.background,
-                    ),
-                    actions = {
-                        IconButton(onClick = onSettingsClick) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_settings),
-                                contentDescription = stringResource(R.string.action_settings),
-                            )
-                        }
-                    },
-                )
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                    thickness = 1.dp,
-                )
+            Crossfade(
+                targetState = isSelectionMode,
+                animationSpec = tween(durationMillis = 150),
+                label = "homeTopBar",
+            ) { selecting ->
+                if (selecting) {
+                    HomeSelectionTopBar(
+                        selectedCount = selectedThreadIds.size,
+                        totalCount = conversations.size,
+                        allRead = selectedConversations.isNotEmpty() && selectedConversations.all { !it.hasUnread },
+                        allPinned = selectedConversations.isNotEmpty() && selectedConversations.all { it.isPinned },
+                        onClose = viewModel::clearSelection,
+                        onArchive = viewModel::archiveSelection,
+                        onDelete = { showDeleteConfirm = true },
+                        onToggleRead = viewModel::toggleReadSelection,
+                        onTogglePin = viewModel::togglePinSelection,
+                        onBlock = { showBlockConfirm = true },
+                        onSelectAll = viewModel::selectAllLoaded,
+                    )
+                } else {
+                    ConversationListTopBar(onSearchClick = onSearchClick, onSettingsClick = onSettingsClick)
+                }
             }
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onNewMessageClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Message,
-                    contentDescription = stringResource(R.string.home_new_chat_label),
-                    modifier = Modifier.size(24.dp),
-                )
+            // Hides while selecting rather than disabling -- selection mode has no use for
+            // starting a brand-new conversation, and the reference design's FAB fades out rather
+            // than sitting there dead.
+            AnimatedVisibility(
+                visible = !isSelectionMode,
+                enter = fadeIn(tween(durationMillis = 120)),
+                exit = fadeOut(tween(durationMillis = 120)),
+            ) {
+                FloatingActionButton(
+                    onClick = onNewMessageClick,
+                    containerColor = ConversationFabBlue,
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Message,
+                        contentDescription = stringResource(R.string.home_new_chat_label),
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -277,12 +354,13 @@ fun ConversationListScreen(
                 ArchivedSummaryRow(count = archivedCount, onClick = onArchivedClick)
             }
 
-            Surface(
+            // Plain background, no rounded card behind the list -- matches the reference design,
+            // which sits the inbox directly on the screen background rather than a distinct
+            // surface underneath it.
+            Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             ) {
                 if (conversations.isEmpty()) {
                     if (syncProgress is SyncProgress.Running) {
@@ -300,7 +378,12 @@ fun ConversationListScreen(
                     ConversationList(
                         conversations = conversations,
                         swipeActionPreference = swipeActionPreference,
-                        onConversationClick = onConversationClick,
+                        isSelectionMode = isSelectionMode,
+                        selectedThreadIds = selectedThreadIds,
+                        onConversationClick = { threadId ->
+                            NavPerfTracer.markConversationClicked()
+                            onConversationClick(threadId)
+                        },
                         onSwipeAction = { action, conversation ->
                             when (action) {
                                 SwipeAction.ARCHIVE -> viewModel.archiveConversation(conversation)
@@ -311,18 +394,282 @@ fun ConversationListScreen(
                             }
                         },
                         onDeleteRequested = { conversation -> viewModel.requestDelete(conversation) },
+                        onToggleSelection = viewModel::toggleSelection,
+                        onStartSelection = viewModel::startSelection,
                     )
                 }
             }
         }
     }
+
+    if (showDeleteConfirm) {
+        DeleteConversationsDialog(
+            count = selectedThreadIds.size,
+            onConfirm = {
+                showDeleteConfirm = false
+                viewModel.deleteSelection()
+            },
+            onDismiss = { showDeleteConfirm = false },
+        )
+    }
+
+    if (showBlockConfirm) {
+        BlockConversationsDialog(
+            count = selectedThreadIds.size,
+            onConfirm = {
+                showBlockConfirm = false
+                viewModel.blockSelection()
+            },
+            onDismiss = { showBlockConfirm = false },
+        )
+    }
 }
 
-/** Light, theme-independent fill for an unselected filter chip -- deliberately not a
- * `surfaceContainer*` token: those default to M3's baseline (lavender-tinted) values wherever
- * [text.message.sms.messaging.ui.theme.Color.kt] leaves them unset, which is exactly the bug this
- * screen's TopAppBar fix worked around for its own container color. */
-private val FilterChipUnselectedContainer = Color(0xFFEEEEEE)
+/**
+ * Pure white in light theme -- [MaterialTheme.colorScheme.background]/`surface` are
+ * [text.message.sms.messaging.ui.theme.LightColors]'s `0xFFF9F9FF`, an off-white with the blue
+ * channel maxed relative to red/green, which reads as a faint lavender cast once it fills a whole
+ * screen. This screen needs genuinely flat white per the reference design, so it swaps in
+ * [Color.White] whenever the active scheme's background is light enough to be "white" in the first
+ * place -- falling back to the scheme's own (dark) background otherwise, so dark theme, a custom
+ * accent, and dynamic color all still render correctly. Scoped to this screen only, not
+ * [text.message.sms.messaging.ui.theme.LightColors] itself, so every other screen keeps its
+ * current background untouched.
+ */
+@Composable
+internal fun screenSurfaceColor(): Color {
+    val background = MaterialTheme.colorScheme.background
+    return if (background.luminance() > 0.5f) Color.White else background
+}
+
+/**
+ * The reference design's search affordance: a white, rounded-pill container (not a plain
+ * [androidx.compose.material3.TopAppBar]) holding a hamburger icon, the "Search Messages"
+ * placeholder, and the settings hexagon -- deliberately no ads-block icon and no overflow menu.
+ * The hamburger isn't wired to anything yet (no drawer exists): purely visual until there's
+ * something for it to open. Each icon relies on [IconButton]'s own default 48dp touch target
+ * around its 24dp icon to get the reference design's ~12dp visual inset for free, rather than
+ * hand-tuning padding around a smaller touch target.
+ */
+@Composable
+private fun ConversationListTopBar(
+    onSearchClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .height(56.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .background(screenSurfaceColor())
+            .border(1.dp, SearchBarBorder, RoundedCornerShape(28.dp)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = {}) {
+            Icon(
+                imageVector = Icons.Filled.Menu,
+                contentDescription = stringResource(R.string.action_menu),
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(24.dp),
+            )
+        }
+        Text(
+            text = stringResource(R.string.home_search_placeholder),
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 4.dp)
+                .testTag(HomeSearchBarTestTag)
+                .clickable(onClickLabel = stringResource(R.string.action_search), onClick = onSearchClick),
+        )
+        IconButton(onClick = onSettingsClick) {
+            Icon(
+                painter = painterResource(R.drawable.ic_settings),
+                contentDescription = stringResource(R.string.action_settings),
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(24.dp),
+            )
+        }
+    }
+}
+
+/** `true` whenever the active [MaterialTheme.colorScheme] reads as a light theme -- same
+ * luminance check [screenSurfaceColor] uses, so this screen's fixed reference-design selection
+ * colors only apply in light theme and dark theme keeps following [MaterialTheme.colorScheme] as
+ * usual, matching [text.message.sms.messaging.ui.screens.chat.ChatScreen]'s own
+ * `isLightChatTheme`. */
+@Composable
+private fun isLightHomeTheme(): Boolean = MaterialTheme.colorScheme.background.luminance() > 0.5f
+
+/**
+ * Replaces [ConversationListTopBar] while one or more conversations are selected -- same visual
+ * language as [text.message.sms.messaging.ui.screens.chat.ChatScreen]'s own selection top bar
+ * (56dp height, [screenSurfaceColor] background, [ChatTopBarDivider] hairline, [SelectionAccentBlue]
+ * tint), so switching between Home and Chat selection never feels like two different apps. Unlike
+ * Chat's bar, Copy/Forward/Share/Details have no equivalent here -- Archive and Delete are the
+ * only always-visible actions, with everything else (mark read/unread, pin, block, select all)
+ * behind the shared [SelectionOverflowMenu].
+ */
+@Composable
+private fun HomeSelectionTopBar(
+    selectedCount: Int,
+    totalCount: Int,
+    allRead: Boolean,
+    allPinned: Boolean,
+    onClose: () -> Unit,
+    onArchive: () -> Unit,
+    onDelete: () -> Unit,
+    onToggleRead: () -> Unit,
+    onTogglePin: () -> Unit,
+    onBlock: () -> Unit,
+    onSelectAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isLight = isLightHomeTheme()
+    val accentColor = if (isLight) SelectionAccentBlue else SelectionAccentBlueDark
+    val dividerColor = if (isLight) ChatTopBarDivider else MaterialTheme.colorScheme.outlineVariant
+    var showOverflow by remember { mutableStateOf(false) }
+
+    val markReadLabel = stringResource(R.string.home_selection_mark_read)
+    val markUnreadLabel = stringResource(R.string.home_selection_mark_unread)
+    val pinLabel = stringResource(R.string.home_selection_pin)
+    val unpinLabel = stringResource(R.string.home_selection_unpin)
+    val blockLabel = stringResource(R.string.home_selection_block)
+    val selectAllLabel = stringResource(R.string.home_selection_select_all)
+    val markReadIcon = rememberVectorPainter(if (allRead) Icons.Outlined.MarkChatUnread else Icons.Outlined.MarkChatRead)
+    val pinIcon = rememberVectorPainter(Icons.Outlined.PushPin)
+    val blockIcon = rememberVectorPainter(Icons.Outlined.Block)
+    val selectAllIcon = rememberVectorPainter(Icons.Outlined.SelectAll)
+
+    Column(modifier = modifier.background(screenSurfaceColor())) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .height(56.dp)
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_closes),
+                    contentDescription = stringResource(R.string.home_selection_close),
+                    tint = accentColor,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = stringResource(R.string.home_selection_count_format, selectedCount, totalCount),
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp, fontWeight = FontWeight.Normal),
+                color = accentColor,
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            IconButton(onClick = onArchive, modifier = Modifier.size(48.dp)) {
+                Icon(
+                    imageVector = Icons.Filled.Archive,
+                    contentDescription = stringResource(R.string.home_selection_archive),
+                    tint = accentColor,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            IconButton(onClick = onDelete, modifier = Modifier.size(48.dp)) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_delete),
+                    contentDescription = stringResource(R.string.home_selection_delete),
+                    tint = accentColor,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+
+            Box {
+                IconButton(onClick = { showOverflow = true }, modifier = Modifier.size(48.dp)) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = stringResource(R.string.home_selection_more),
+                        tint = accentColor,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                SelectionOverflowMenu(
+                    expanded = showOverflow,
+                    onDismiss = { showOverflow = false },
+                    items = listOf(
+                        SelectionMenuItem(markReadIcon, if (allRead) markUnreadLabel else markReadLabel) {
+                            showOverflow = false
+                            onToggleRead()
+                        },
+                        SelectionMenuItem(pinIcon, if (allPinned) unpinLabel else pinLabel) {
+                            showOverflow = false
+                            onTogglePin()
+                        },
+                        SelectionMenuItem(blockIcon, blockLabel) {
+                            showOverflow = false
+                            onBlock()
+                        },
+                        SelectionMenuItem(selectAllIcon, selectAllLabel) {
+                            showOverflow = false
+                            onSelectAll()
+                        },
+                    ),
+                )
+            }
+        }
+        HorizontalDivider(thickness = 1.dp, color = dividerColor)
+    }
+}
+
+/** Confirms the selection top bar's Delete action -- matches
+ * [text.message.sms.messaging.ui.screens.chat.ChatScreen]'s own multi-select delete dialog:
+ * plain [AlertDialog], destructive action colored [MaterialTheme.colorScheme.error]. */
+@Composable
+private fun DeleteConversationsDialog(count: Int, onConfirm: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = pluralStringResource(R.plurals.home_selection_delete_confirm_title, count, count)) },
+        text = { Text(text = stringResource(R.string.home_selection_delete_confirm_message)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = stringResource(R.string.home_selection_delete), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(text = stringResource(R.string.action_cancel)) }
+        },
+        modifier = modifier,
+    )
+}
+
+/** Confirms the selection top bar's overflow Block action -- same shape as
+ * [text.message.sms.messaging.ui.screens.conversationinfo.ConversationInfoScreen]'s single-thread
+ * block dialog, pluralized for a multi-thread selection. */
+@Composable
+private fun BlockConversationsDialog(count: Int, onConfirm: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = pluralStringResource(R.plurals.home_selection_block_confirm_title, count, count)) },
+        text = { Text(text = stringResource(R.string.home_selection_block_confirm_message)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = stringResource(R.string.home_selection_block), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(text = stringResource(R.string.action_cancel)) }
+        },
+        modifier = modifier,
+    )
+}
 
 /** [ConversationFilter.ALL] has no icon -- there's nothing to categorize, so a leading icon would
  * just be noise. The other three always show theirs, selected or not, so the row stays scannable
@@ -342,10 +689,10 @@ private fun ConversationFilter.labelRes(): Int = when (this) {
     ConversationFilter.OTP -> R.string.home_filter_otp
 }
 
-/** The selected chip renders as an outlined, unfilled pill in [MaterialTheme.colorScheme.primary]
- * (the user's picked accent, same as every other selection indicator in the app); an unselected
- * chip is a flat [FilterChipUnselectedContainer] fill with gray content -- see that constant's own
- * doc comment for why this can't just be `colorScheme.surfaceContainerHigh`.
+/** The selected chip renders as a filled [FilterChipSelectedContainer] pill with a matching blue
+ * outline and dark text/icon; an unselected chip is a flat [FilterChipUnselectedContainer] fill
+ * with gray content and no outline -- see those constants' own doc comments in Color.kt for why
+ * neither can just be a `colorScheme.surfaceContainer*`/`primaryContainer` token.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -358,7 +705,7 @@ private fun ConversationFilterRow(
         modifier = modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(start = 16.dp, top = 12.dp, bottom = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         ConversationFilter.entries.forEach { filter ->
@@ -366,32 +713,38 @@ private fun ConversationFilterRow(
             FilterChip(
                 selected = isSelected,
                 onClick = { onSelect(filter) },
-                label = { Text(stringResource(filter.labelRes())) },
+                label = {
+                    Text(
+                        text = stringResource(filter.labelRes()),
+                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
+                    )
+                },
                 leadingIcon = filter.iconOrNull()?.let { icon ->
                     {
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(18.dp),
                         )
                     }
                 },
+                modifier = Modifier.height(40.dp),
                 shape = RoundedCornerShape(50),
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = FilterChipUnselectedContainer,
-                    labelColor = UnreadBadgeGray,
-                    iconColor = UnreadBadgeGray,
-                    selectedContainerColor = Color.Transparent,
-                    selectedLabelColor = MaterialTheme.colorScheme.primary,
-                    selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                    labelColor = FilterChipContentGray,
+                    iconColor = FilterChipContentGray,
+                    selectedContainerColor = FilterChipSelectedContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onSurface,
+                    selectedLeadingIconColor = FilterChipSelectedBorder,
                 ),
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
                     selected = isSelected,
                     borderColor = Color.Transparent,
-                    selectedBorderColor = MaterialTheme.colorScheme.primary,
+                    selectedBorderColor = FilterChipSelectedBorder,
                     borderWidth = 0.dp,
-                    selectedBorderWidth = 1.dp,
+                    selectedBorderWidth = 1.5.dp,
                 ),
             )
         }
@@ -511,6 +864,16 @@ internal fun groupedByDate(conversations: List<Conversation>, zone: ZoneId): Lis
     return items
 }
 
+/** Left inset for the divider between rows -- lines up with the start of the title/snippet text
+ * (16dp row padding + 48dp avatar + 16dp spacer), not the row's own edge, matching the reference
+ * design's dividers. */
+private val RowDividerInset = 80.dp
+
+/**
+ * Flat, ungrouped inbox -- no date-section headers, matching the reference design. [ArchivedScreen]
+ * still wants those (see [groupedByDate]/[DateSectionHeader]), so this deliberately doesn't reuse
+ * that grouping here rather than changing it out from under that screen too.
+ */
 @Composable
 private fun ConversationList(
     conversations: List<Conversation>,
@@ -519,31 +882,35 @@ private fun ConversationList(
     onSwipeAction: (SwipeAction, Conversation) -> Unit,
     onDeleteRequested: (Conversation) -> Unit,
     modifier: Modifier = Modifier,
+    isSelectionMode: Boolean = false,
+    selectedThreadIds: Set<Long> = emptySet(),
+    onToggleSelection: (Long) -> Unit = {},
+    onStartSelection: (Long) -> Unit = {},
 ) {
-    val zone = remember { ZoneId.systemDefault() }
-    val items = remember(conversations, zone) { groupedByDate(conversations, zone) }
-
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 96.dp),
     ) {
         items(
-            items = items,
-            key = { item ->
-                when (item) {
-                    is ConversationListItem.SectionHeader -> "header_${item.date}"
-                    is ConversationListItem.Row -> item.conversation.threadId
-                }
-            },
-        ) { item ->
-            when (item) {
-                is ConversationListItem.SectionHeader -> DateSectionHeader(item.date)
-                is ConversationListItem.Row -> SwipeableConversationRow(
-                    conversation = item.conversation,
+            items = conversations,
+            key = { it.threadId },
+        ) { conversation ->
+            Column {
+                SwipeableConversationRow(
+                    conversation = conversation,
                     swipeActionPreference = swipeActionPreference,
-                    onClick = { onConversationClick(item.conversation.threadId) },
-                    onSwipeAction = { action -> onSwipeAction(action, item.conversation) },
-                    onDeleteRequested = { onDeleteRequested(item.conversation) },
+                    onClick = { onConversationClick(conversation.threadId) },
+                    onSwipeAction = { action -> onSwipeAction(action, conversation) },
+                    onDeleteRequested = { onDeleteRequested(conversation) },
+                    isSelectionMode = isSelectionMode,
+                    isSelected = conversation.threadId in selectedThreadIds,
+                    onToggleSelection = { onToggleSelection(conversation.threadId) },
+                    onStartSelection = { onStartSelection(conversation.threadId) },
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = RowDividerInset),
+                    thickness = 0.75.dp,
+                    color = ConversationRowDivider,
                 )
             }
         }
@@ -591,6 +958,10 @@ internal fun SwipeableConversationRow(
     onSwipeAction: (SwipeAction) -> Unit,
     onDeleteRequested: () -> Unit,
     modifier: Modifier = Modifier,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onToggleSelection: () -> Unit = {},
+    onStartSelection: () -> Unit = {},
 ) {
     // AnchoredDraggableState (which backs dismissState) re-evaluates confirmValueChange on every
     // drag-move frame for as long as the touch stays past the anchor's threshold, then once more
@@ -671,8 +1042,11 @@ internal fun SwipeableConversationRow(
     SwipeToDismissBox(
         state = dismissState,
         modifier = modifier.onSizeChanged { rowWidthPx = it.width.toFloat() },
-        enableDismissFromStartToEnd = swipeActionPreference.startToEnd != SwipeAction.NONE,
-        enableDismissFromEndToStart = swipeActionPreference.endToStart != SwipeAction.NONE,
+        // Swipe actions are disabled entirely while selecting -- a swipe gesture on a row the user
+        // is trying to tap-select would otherwise race the selection tap and archive/delete a row
+        // out from under an in-progress selection.
+        enableDismissFromStartToEnd = !isSelectionMode && swipeActionPreference.startToEnd != SwipeAction.NONE,
+        enableDismissFromEndToStart = !isSelectionMode && swipeActionPreference.endToStart != SwipeAction.NONE,
         backgroundContent = {
             // dismissDirection (unlike targetValue, which only flips once the drag crosses the
             // anchor's 50% midpoint) reacts to any nonzero drag offset, so the correct color/icon
@@ -702,7 +1076,14 @@ internal fun SwipeableConversationRow(
             SwipeActionBackground(action = action, alignment = alignment, progress = dragProgress)
         },
     ) {
-        ConversationRow(conversation = conversation, onClick = onClick)
+        ConversationRow(
+            conversation = conversation,
+            onClick = onClick,
+            isSelectionMode = isSelectionMode,
+            isSelected = isSelected,
+            onToggleSelection = onToggleSelection,
+            onStartSelection = onStartSelection,
+        )
     }
 }
 
@@ -725,7 +1106,12 @@ private fun SwipeActionBackground(
         SwipeAction.DELETE -> SwipeDeleteRed to Color.White
         SwipeAction.TOGGLE_READ -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
         SwipeAction.CALL -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-        SwipeAction.NONE -> MaterialTheme.colorScheme.surfaceContainer to MaterialTheme.colorScheme.surfaceContainer
+        // Settled/no-drag is the only state this branch ever renders (both swipe directions are
+        // gesture-gated off whenever their configured action is NONE, so dismissDirection can only
+        // report Settled while idle) -- transparent here, not a surface token, so the row's real
+        // background (this screen's flat white) shows through instead of an unset `surfaceContainer`
+        // baseline tint that reads as a second, lavender-tinted background behind every row.
+        SwipeAction.NONE -> Color.Transparent to Color.Transparent
     }
     Box(
         modifier = modifier
@@ -778,70 +1164,87 @@ internal fun DateSectionHeader(date: LocalDate, modifier: Modifier = Modifier) {
 }
 
 /** `internal` so [text.message.sms.messaging.ui.screens.archived.ArchivedScreen] can reuse the
- * same row rendering rather than duplicating it. */
+ * same row rendering rather than duplicating it -- [isSelectionMode]/[isSelected] both default to
+ * `false` and the two selection callbacks default to no-ops, so that screen (which has no
+ * multi-select of its own) needs no changes to keep compiling and behaving exactly as before.
+ *
+ * In selection mode a tap toggles [isSelected] instead of opening the chat, and a long-press does
+ * nothing further (the row is already part of a selection); outside selection mode a tap opens
+ * the chat as always and a long-press is what starts selection -- see [SwipeableConversationRow]'s
+ * caller for where [onToggleSelection]/[onStartSelection] are wired to
+ * [ConversationListViewModel.toggleSelection]/[ConversationListViewModel.startSelection].
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun ConversationRow(
     conversation: Conversation,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onToggleSelection: () -> Unit = {},
+    onStartSelection: () -> Unit = {},
 ) {
+    val haptics = LocalHapticFeedback.current
+    val isLight = isLightHomeTheme()
+    val selectedBackground = if (isLight) ConversationRowSelected else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+    val rowBackground by animateColorAsState(
+        targetValue = if (isSelected) selectedBackground else Color.Transparent,
+        animationSpec = tween(durationMillis = 120),
+        label = "conversationRowBackground",
+    )
+
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .background(rowBackground)
+            .testTag(ConversationRowTestTag)
             .combinedClickable(
-                onClick = onClick,
-                // TODO: long-press action sheet (archive/pin/mute/delete) -- deferred, needs its
-                // own design pass; this is just the gesture hook so it's not silently missing.
-                onLongClick = {},
+                onClick = { if (isSelectionMode) onToggleSelection() else onClick() },
+                onLongClick = {
+                    if (!isSelectionMode) {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onStartSelection()
+                    }
+                },
             )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ConversationAvatar(conversation)
+        Crossfade(
+            targetState = isSelected,
+            animationSpec = tween(durationMillis = 120),
+            label = "conversationRowAvatar",
+        ) { selected ->
+            if (selected) SelectedRowAvatar() else ConversationAvatar(conversation)
+        }
 
         Spacer(modifier = Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = conversation.title,
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
-                    fontWeight = if (conversation.hasUnread) FontWeight.Bold else FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = formatMessageTime(conversation.lastMessageAtMillis),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (conversation.hasUnread) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
-            }
+            Text(
+                text = conversation.title,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
+                fontWeight = if (conversation.hasUnread) FontWeight.Bold else FontWeight.Normal,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = conversation.snippet,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                if (conversation.hasUnread) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    UnreadCountBadge(count = conversation.unreadCount)
-                }
-            }
+            Text(
+                text = conversation.snippet,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                fontWeight = if (conversation.hasUnread) FontWeight.Bold else FontWeight.Normal,
+                color = if (conversation.hasUnread) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                maxLines = if (conversation.hasUnread) 3 else 1,
+                overflow = TextOverflow.Ellipsis,
+            )
 
             val otpCode = remember(conversation.snippet) { OtpDetector.extractCode(conversation.snippet) }
             if (otpCode != null) {
@@ -849,13 +1252,22 @@ internal fun ConversationRow(
                 OtpQuickCopyChip(code = otpCode)
             }
         }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = formatConversationDate(conversation.lastMessageAtMillis),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (conversation.hasUnread) {
+                Spacer(modifier = Modifier.height(4.dp))
+                UnreadCountBadge(count = conversation.unreadCount)
+            }
+        }
     }
 }
-
-/** Neutral, theme-independent gray -- the badge must read the same "unread count" regardless of
- * whichever accent color the Theme picker has set, the same reasoning behind [SwipeArchiveBlue]/
- * [SwipeDeleteRed] above. */
-private val UnreadBadgeGray = Color(0xFF757575)
 
 @Composable
 private fun UnreadCountBadge(count: Int, modifier: Modifier = Modifier) {
@@ -904,12 +1316,12 @@ private fun OtpQuickCopyChip(code: String, modifier: Modifier = Modifier) {
             imageVector = Icons.Filled.ContentCopy,
             contentDescription = null,
             tint = AccentBlue,
-            modifier = Modifier.size(14.dp),
+            modifier = Modifier.size(16.dp),
         )
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = copyLabel,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
             fontWeight = FontWeight.Bold,
             color = AccentBlue,
         )
@@ -937,6 +1349,27 @@ private fun initialsForAddress(address: String): String {
     if (letters.isNotEmpty()) return letters.take(2).uppercase()
     val digits = address.filter { it.isDigit() }
     return digits.take(1).ifEmpty { "#" }
+}
+
+/** Replaces [ConversationAvatar] for a selected row in Home's multi-select mode -- same 48dp
+ * footprint so the row's layout never shifts when a selection is toggled, see [ConversationRow]'s
+ * [Crossfade] between the two. */
+@Composable
+private fun SelectedRowAvatar(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(ConversationSelectedAvatar),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Check,
+            contentDescription = stringResource(R.string.chat_selection_selected_indicator),
+            tint = Color.White,
+            modifier = Modifier.size(26.dp),
+        )
+    }
 }
 
 @Composable
@@ -975,8 +1408,8 @@ private fun ConversationAvatar(conversation: Conversation, modifier: Modifier = 
             // per-sender, so it reads as "not a saved contact" at a glance.
             else -> Text(
                 text = initialsForAddress(recipient?.address.orEmpty()),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+                fontWeight = FontWeight.Medium,
                 color = Color.White,
             )
         }
@@ -1085,11 +1518,24 @@ private fun shimmerBrush(): Brush {
     )
 }
 
+/**
+ * Short-form date label for a row's right column -- never a clock time, matching the reference
+ * design: "Yesterday" for yesterday, a weekday abbreviation ("Thu", "Wed") for today and the rest
+ * of the last 7 days, and a locale-formatted date for anything older.
+ */
 @Composable
-private fun formatMessageTime(timestampMillis: Long): String {
+private fun formatConversationDate(timestampMillis: Long): String {
     val context = LocalContext.current
-    return remember(timestampMillis) {
-        DateFormat.getTimeFormat(context).format(Date(timestampMillis))
+    val yesterdayLabel = stringResource(R.string.home_date_yesterday)
+    return remember(timestampMillis, yesterdayLabel) {
+        val zone = ZoneId.systemDefault()
+        val date = Instant.ofEpochMilli(timestampMillis).atZone(zone).toLocalDate()
+        val daysBetween = ChronoUnit.DAYS.between(date, LocalDate.now(zone))
+        when {
+            daysBetween == 1L -> yesterdayLabel
+            daysBetween in 0L..6L -> date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+            else -> DateFormat.getMediumDateFormat(context).format(Date(timestampMillis))
+        }
     }
 }
 
