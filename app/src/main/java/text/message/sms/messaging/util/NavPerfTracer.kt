@@ -61,23 +61,27 @@ internal object NavPerfTracer {
         Log.d(BLINK_TAG, "thread=$threadId screenComposed at=${elapsedMillis}ms")
     }
 
-    /** [ChatViewModel.hasLoadedInitialMessages] flipped true -- the first real Room page for this
-     * thread arrived, so [ChatMessageList] is now eligible to compose. */
-    fun logChatListBlinkFirstPageArrived(threadId: Long) {
+    /** [ChatViewModel.chatMessagesState] emitted `Loaded` -- the first real Room page for this
+     * thread arrived and was grouped into [itemCount] items in that same emission, so
+     * [ChatMessageList] is now eligible to compose from those exact items (never a stale/empty
+     * list from a separately-timed flow -- see [ChatViewModel.chatMessagesState]'s doc comment). */
+    fun logChatListBlinkFirstPageArrived(threadId: Long, itemCount: Int) {
         val elapsedMillis = SystemClock.elapsedRealtime()
-        Log.d(BLINK_TAG, "thread=$threadId firstPageArrived at=${elapsedMillis}ms")
+        Log.d(BLINK_TAG, "thread=$threadId firstPageArrived at=${elapsedMillis}ms itemCount=$itemCount")
     }
 
     /** [ChatMessageList]'s [androidx.compose.foundation.lazy.LazyColumn] laid out for the first
      * time -- [firstVisibleItemIndex] and [lastVisibleItemKey] should already reflect the newest
      * message, since the fix bakes the initial scroll position into the list state instead of
-     * scrolling to it after the fact. */
-    fun logChatListBlinkFirstLayout(threadId: Long, firstVisibleItemIndex: Int, lastVisibleItemKey: Any?) {
+     * scrolling to it after the fact. [itemCount] should never be 0 here for a thread whose first
+     * page had messages -- see [logChatListBlinkFirstPageArrived]'s itemCount for what the loaded
+     * state actually carried. */
+    fun logChatListBlinkFirstLayout(threadId: Long, firstVisibleItemIndex: Int, lastVisibleItemKey: Any?, itemCount: Int) {
         val elapsedMillis = SystemClock.elapsedRealtime()
         Log.d(
             BLINK_TAG,
             "thread=$threadId firstLayout at=${elapsedMillis}ms firstVisibleItemIndex=$firstVisibleItemIndex " +
-                "lastVisibleItemKey=$lastVisibleItemKey",
+                "lastVisibleItemKey=$lastVisibleItemKey itemCount=$itemCount",
         )
     }
 

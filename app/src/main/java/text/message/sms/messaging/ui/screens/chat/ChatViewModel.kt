@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,9 +14,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -36,6 +37,7 @@ import text.message.sms.messaging.domain.usecase.SyncThreadPriority
 import text.message.sms.messaging.ui.navigation.MessagingDestination
 import text.message.sms.messaging.util.ChatOpenHint
 import text.message.sms.messaging.util.isPersonalChat
+import java.time.ZoneId
 import javax.inject.Inject
 
 /** [ChatScreen]'s personal/non-personal render mode -- see [ChatViewModel.chatMode]. Never
@@ -46,6 +48,17 @@ import javax.inject.Inject
 internal enum class ChatMode { UNKNOWN, PERSONAL, NON_PERSONAL }
 
 private fun Conversation.toChatMode(): ChatMode = if (isPersonalChat()) ChatMode.PERSONAL else ChatMode.NON_PERSONAL
+
+/** [ChatViewModel.chatMessagesState] -- the single value [ChatScreen] gates
+ * [text.message.sms.messaging.ui.screens.chat.ChatMessageList] on, replacing what used to be a
+ * separate `hasLoadedInitialMessages: Boolean` collected alongside (but independently of) the
+ * grouped list. [Loaded] is only ever produced together with the [ChatListItem]s it describes, in
+ * the same map step, so there's no frame where a collector can see "loaded" without also seeing
+ * the real list -- see [ChatViewModel.chatMessagesState]'s doc comment. */
+internal sealed interface ChatMessagesState {
+    data object Loading : ChatMessagesState
+    data class Loaded(val items: List<ChatListItem>) : ChatMessagesState
+}
 
 internal sealed interface ChatEvent {
     data object MessageSent : ChatEvent
@@ -117,23 +130,42 @@ class ChatViewModel @Inject constructor(
 
     private data class CoreState(val conversation: Conversation?, val messages: List<Message>)
 
-    // Flips true on the first real emission from observeThreadPage (whether or not that page
-    // turns out to be empty). Needed because `messages` itself can't tell a thread that's still
-    // loading apart from a thread that's genuinely empty -- both read as emptyList() from its
-    // seeded stateIn initial value below. ChatScreen holds off composing ChatMessageList (and
-    // its LazyColumn) until this is true, so the list is never first drawn before real data is
-    // there to draw -- see ChatMessageList's doc comment for why that matters.
-    private val hasLoadedInitialPage = MutableStateFlow(false)
+    private val zoneId: ZoneId = ZoneId.systemDefault()
+
+    // The single hot subscription behind both `chatMessagesState` and `coreState`/`messages`
+    // below -- `null` is a real, distinct third state ("no real page has arrived yet"), never
+    // confusable with `emptyList()` ("the page arrived and the thread is genuinely empty"), which
+    // a plain `List<Message>` can't represent on its own. WhileSubscribed(5_000) means both
+    // downstream collectors share the exact same Room query rather than each re-running it.
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val rawMessagePage: StateFlow<List<Message>?> = messagePageSize
+        .flatMapLatest { limit -> messageRepository.observeThreadPage(threadId, limit) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    // Carries the "has the first page loaded" decision and the grouped list it's based on as ONE
+    // value from ONE emission of `rawMessagePage`, so a collector can never observe one half
+    // without the other -- unlike a separate boolean flag (set as a side effect on one flow) next
+    // to a list derived through its own, differently-timed chain of combine/distinctUntilChanged/
+    // stateIn stages, which is exactly what let ChatScreen previously see the flag flip on a frame
+    // where the grouped list was still its emptyList() seed (see NavPerfTracer's "ChatListBlink"
+    // log). ChatScreen holds off composing ChatMessageList (and its LazyColumn) until this is
+    // Loaded, so the list is never first drawn before its real first-page contents are grouped and
+    // ready -- see ChatMessageList's doc comment for why that matters. Loaded(emptyList()) is a
+    // legitimate value (a genuinely empty thread), distinct from Loading (no real page yet).
+    // Built by the free function below (rather than inline) so the exact same operator chain can
+    // be driven directly by a fake `rawMessagePage` in a plain unit test -- see
+    // ChatMessagesStateFlowTest -- without needing a full ChatViewModel and its Android-framework
+    // dependencies (SimRepository/SimPreferences need a real or Robolectric Context).
+    internal val chatMessagesState: StateFlow<ChatMessagesState> =
+        chatMessagesStateFlow(viewModelScope, rawMessagePage, zoneId)
 
     // conversation and messages are combined into ONE upstream Flow, rather than each being its
     // own independent stateIn, so a screen collecting both (see ChatScreen) recomposes once per
     // meaningful change instead of once per Flow -- two Room queries that happen to resolve a few
     // milliseconds apart no longer show up as two separate partial frames.
-    @OptIn(ExperimentalCoroutinesApi::class)
     private val coreState: StateFlow<CoreState> = combine(
         conversationRepository.observeConversation(threadId),
-        messagePageSize.flatMapLatest { limit -> messageRepository.observeThreadPage(threadId, limit) }
-            .onEach { hasLoadedInitialPage.value = true },
+        rawMessagePage.filterNotNull(),
     ) { conversation, messages -> CoreState(conversation, messages) }
         .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CoreState(openHint, emptyList()))
@@ -141,8 +173,6 @@ class ChatViewModel @Inject constructor(
     val messages: StateFlow<List<Message>> = coreState.map { it.messages }
         .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    val hasLoadedInitialMessages: StateFlow<Boolean> = hasLoadedInitialPage.asStateFlow()
 
     val conversation: StateFlow<Conversation?> = coreState.map { it.conversation }
         .distinctUntilChanged()
@@ -428,6 +458,27 @@ class ChatViewModel @Inject constructor(
         _events.emit(ChatEvent.MessageSent)
     }
 }
+
+/** Builds [ChatViewModel.chatMessagesState] from [rawMessagePage] -- a free function (rather than
+ * inline in the class) so a unit test can drive this exact operator chain with a fake
+ * [rawMessagePage] and assert it never yields a [ChatMessagesState.Loaded] with an empty
+ * [ChatMessagesState.Loaded.items] for a page that actually had messages, without constructing a
+ * whole [ChatViewModel] (which needs Android-framework objects -- see
+ * [text.message.sms.messaging.data.local.telephony.SimRepository]/
+ * [text.message.sms.messaging.data.local.datastore.SimPreferences] -- unavailable to a plain JVM
+ * unit test in this project). [rawMessagePage] being `null` (not yet loaded) versus `emptyList()`
+ * (loaded, genuinely empty) is what lets this map step alone decide [ChatMessagesState.Loading]
+ * vs [ChatMessagesState.Loaded] -- see [ChatViewModel.rawMessagePage]'s doc comment. */
+internal fun chatMessagesStateFlow(
+    scope: CoroutineScope,
+    rawMessagePage: StateFlow<List<Message>?>,
+    zoneId: ZoneId,
+): StateFlow<ChatMessagesState> = rawMessagePage
+    .map<List<Message>?, ChatMessagesState> { page ->
+        if (page == null) ChatMessagesState.Loading else ChatMessagesState.Loaded(groupMessages(page, zoneId))
+    }
+    .distinctUntilChanged()
+    .stateIn(scope, SharingStarted.WhileSubscribed(5_000), ChatMessagesState.Loading)
 
 /** Messages loaded on a chat's very first frame -- enough to fill and comfortably overscroll a
  * typical screen without paying to load/map a long thread's entire history up front. */

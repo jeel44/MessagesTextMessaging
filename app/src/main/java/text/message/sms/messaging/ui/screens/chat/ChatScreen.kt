@@ -88,6 +88,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -223,12 +224,14 @@ fun ChatScreen(
     val conversation by viewModel.conversation.collectAsStateWithLifecycle()
     val chatMode by viewModel.chatMode.collectAsStateWithLifecycle()
 
-    // Gates ChatMessageList below -- see ChatViewModel.hasLoadedInitialMessages' doc comment.
-    // Flips true (once, ever, for this screen instance) the moment the first real Room page for
-    // this thread arrives, whether or not that page turns out to be empty.
-    val hasLoadedInitialMessages by viewModel.hasLoadedInitialMessages.collectAsStateWithLifecycle()
-    LaunchedEffect(hasLoadedInitialMessages) {
-        if (hasLoadedInitialMessages) NavPerfTracer.logChatListBlinkFirstPageArrived(viewModel.threadId)
+    // Gates ChatMessageList below -- see ChatViewModel.chatMessagesState's doc comment. Becomes
+    // Loaded (once, ever, for this screen instance) the moment the first real Room page for this
+    // thread arrives, already grouped into chatItems, whether or not that page turns out to be
+    // empty.
+    val chatMessagesState by viewModel.chatMessagesState.collectAsStateWithLifecycle()
+    LaunchedEffect(chatMessagesState) {
+        val loaded = chatMessagesState as? ChatMessagesState.Loaded ?: return@LaunchedEffect
+        NavPerfTracer.logChatListBlinkFirstPageArrived(viewModel.threadId, loaded.items.size)
     }
 
     // Frame-level breadcrumb for the "opening a chat" perf/glitch pass -- see NavPerfTracer's
@@ -281,9 +284,6 @@ fun ChatScreen(
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture(),
     ) { success -> if (success) pendingCameraUri?.let { viewModel.onAttachmentSelected(it.toString()) } }
-
-    val zone = remember { ZoneId.systemDefault() }
-    val chatItems = remember(messages, zone) { groupMessages(messages, zone) }
 
     // Nothing in the attachment picker's "coming soon" list is wired up yet -- the composer's new
     // Schedule button reuses this exact stub rather than getting its own, so both affordances stay
@@ -408,26 +408,32 @@ fun ChatScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         // Not composed at all until the first real page has arrived -- see
-        // ChatViewModel.hasLoadedInitialMessages' doc comment. Before that, this slot is just the
+        // ChatViewModel.chatMessagesState's doc comment. Before that, this slot is just the
         // Scaffold's background (top bar and composer stay visible above/below it), never an
-        // empty LazyColumn that visibly pops once content lands.
-        if (hasLoadedInitialMessages) {
-            ChatMessageList(
-                chatItems = chatItems,
-                messageSentEvents = viewModel.events,
-                onAttachmentClick = { attachment -> attachment.contentUri?.let(onAttachmentClick) },
-                onLoadOlder = viewModel::loadOlderMessages,
-                isPersonal = isPersonal,
-                latestOtpMessageId = latestOtpMessageId,
-                selectedIds = selectedIds,
-                isSelectionMode = isSelectionMode,
-                onToggleSelection = viewModel::toggleSelection,
-                onStartSelection = viewModel::startSelection,
-                threadId = viewModel.threadId,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-            )
+        // empty LazyColumn that visibly pops once content lands. `key(threadId)` around the whole
+        // branch (rather than just the listState default inside ChatMessageList) means a stale
+        // LazyListState from a previous thread can never be reused for this one, even if this
+        // composable instance were ever reused across a threadId change.
+        val loadedMessages = chatMessagesState as? ChatMessagesState.Loaded
+        if (loadedMessages != null) {
+            key(viewModel.threadId) {
+                ChatMessageList(
+                    chatItems = loadedMessages.items,
+                    messageSentEvents = viewModel.events,
+                    onAttachmentClick = { attachment -> attachment.contentUri?.let(onAttachmentClick) },
+                    onLoadOlder = viewModel::loadOlderMessages,
+                    isPersonal = isPersonal,
+                    latestOtpMessageId = latestOtpMessageId,
+                    selectedIds = selectedIds,
+                    isSelectionMode = isSelectionMode,
+                    onToggleSelection = viewModel::toggleSelection,
+                    onStartSelection = viewModel::startSelection,
+                    threadId = viewModel.threadId,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                )
+            }
         }
     }
 
@@ -562,13 +568,18 @@ internal fun ChatMessageList(
         if (hasLoggedFirstLayout) return@LaunchedEffect
         if (chatItems.isEmpty()) {
             hasLoggedFirstLayout = true
-            NavPerfTracer.logChatListBlinkFirstLayout(threadId, 0, null)
+            NavPerfTracer.logChatListBlinkFirstLayout(threadId, 0, null, 0)
             return@LaunchedEffect
         }
         snapshotFlow { listState.layoutInfo.visibleItemsInfo }.first { it.isNotEmpty() }
         hasLoggedFirstLayout = true
         val visible = listState.layoutInfo.visibleItemsInfo
-        NavPerfTracer.logChatListBlinkFirstLayout(threadId, listState.firstVisibleItemIndex, visible.lastOrNull()?.key)
+        NavPerfTracer.logChatListBlinkFirstLayout(
+            threadId,
+            listState.firstVisibleItemIndex,
+            visible.lastOrNull()?.key,
+            chatItems.size,
+        )
     }
 
     // Requests an older page once the user scrolls near the top of what's currently loaded --
@@ -955,7 +966,10 @@ private fun isRunBoundary(a: Message, b: Message, zone: ZoneId): Boolean {
     return aDate != bDate || bMillis - aMillis > DateSeparatorGapMillis
 }
 
-private fun groupMessages(messages: List<Message>, zone: ZoneId): List<ChatListItem> {
+/** `internal` (rather than `private`) so [ChatViewModel.chatMessagesState] can group the page it
+ * loads directly, in the same flow step that decides the page has loaded -- see that property's
+ * doc comment for why the grouping and the "loaded" decision must be one value, not two. */
+internal fun groupMessages(messages: List<Message>, zone: ZoneId): List<ChatListItem> {
     val items = mutableListOf<ChatListItem>()
     messages.forEachIndexed { index, message ->
         val previous = messages.getOrNull(index - 1)

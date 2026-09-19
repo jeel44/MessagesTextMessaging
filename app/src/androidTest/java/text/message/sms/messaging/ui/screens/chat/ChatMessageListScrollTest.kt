@@ -36,7 +36,7 @@ import text.message.sms.messaging.domain.model.MessageFolder
  *   top (index 0) before a second frame jumped to the bottom -- a visible flash of the wrong
  *   position. [ChatMessageList] no longer performs that scroll at all; its `listState` default
  *   bakes the correct initial index into the [LazyListState] itself, on the assumption -- upheld
- *   by [ChatScreen], see `ChatViewModel.hasLoadedInitialMessages` -- that this function is never
+ *   by [ChatScreen], see `ChatViewModel.chatMessagesState` -- that this function is never
  *   composed for the first time until [chatItems] already has its real first-page contents. So
  *   [initialComposition_scrollsToMostRecentMessage] below composes with [manyItems] already
  *   populated (not empty-then-filled, which was the old test's whole point but is no longer this
@@ -80,7 +80,7 @@ class ChatMessageListScrollTest {
      *
      * [manyItems] is passed from the very first composition, matching [ChatScreen]'s real
      * contract post-fix: it only composes [ChatMessageList] once [ChatViewModel
-     * .hasLoadedInitialMessages] is already true, so [chatItems] never starts empty and fills in
+     * .chatMessagesState] is already `Loaded`, so [chatItems] never starts empty and fills in
      * later the way it used to. [listState] mirrors [ChatMessageList]'s own default
      * (`initialFirstVisibleItemIndex = chatItems.lastIndex`) explicitly, so the assertions below
      * are checking the actual first-layout position, not a scroll that happened to catch up to it.
