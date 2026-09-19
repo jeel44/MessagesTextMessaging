@@ -28,6 +28,7 @@ import text.message.sms.messaging.data.local.datastore.SwipeAction
 import text.message.sms.messaging.data.local.datastore.SwipeActionPreference
 import text.message.sms.messaging.ui.components.icon
 import text.message.sms.messaging.ui.components.labelRes
+import text.message.sms.messaging.ui.screens.conversationlist.screenSurfaceColor
 
 /**
  * Settings' "Swipe actions" row opens this: lets the user rebind what a right-swipe and a
@@ -43,6 +44,8 @@ internal fun SwipeActionPickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = screenSurfaceColor(),
+        tonalElevation = 0.dp,
         title = { Text(stringResource(R.string.settings_swipe_actions_title)) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {

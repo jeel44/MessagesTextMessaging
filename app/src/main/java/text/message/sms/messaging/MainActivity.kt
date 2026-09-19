@@ -87,11 +87,13 @@ class MainActivity : ComponentActivity() {
             AppTheme(darkTheme = darkTheme, accentColor = themePreference.accentColor) {
                 // enableEdgeToEdge()'s own default style is fixed at onCreate and never reacts to
                 // an in-app theme override (ThemeMode.LIGHT/DARK against a differing system mode),
-                // so the status bar icon color is set explicitly here instead, recomputed
-                // whenever darkTheme itself changes -- dark icons for the light top bar, light
+                // so the status/navigation bar icon color is set explicitly here instead, recomputed
+                // whenever darkTheme itself changes -- dark icons over the light background, light
                 // icons once the app is actually in dark theme.
                 SideEffect {
-                    WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = !darkTheme
+                    val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+                    insetsController.isAppearanceLightStatusBars = !darkTheme
+                    insetsController.isAppearanceLightNavigationBars = !darkTheme
                 }
                 Surface(
                     // testTagsAsResourceId turns every Modifier.testTag below into a real

@@ -27,7 +27,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Delete
@@ -46,7 +45,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -72,7 +70,10 @@ import text.message.sms.messaging.domain.model.Attachment
 import text.message.sms.messaging.domain.model.Contact
 import text.message.sms.messaging.domain.model.Conversation
 import text.message.sms.messaging.domain.model.Recipient
+import text.message.sms.messaging.ui.components.AppTopBar
 import text.message.sms.messaging.ui.components.ContactAvatar
+import text.message.sms.messaging.ui.screens.conversationlist.screenSurfaceColor
+import text.message.sms.messaging.ui.theme.ConversationRowDivider
 
 /**
  * Details for a single thread: participant(s), the per-conversation mute toggle, shared media,
@@ -110,17 +111,7 @@ fun ConversationInfoScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.conversation_info_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
-                        )
-                    }
-                },
-            )
+            AppTopBar(title = stringResource(R.string.conversation_info_title), onBack = onBack)
         },
     ) { innerPadding ->
         val current = conversation
@@ -143,7 +134,7 @@ fun ConversationInfoScreen(
             }
 
             if (current.isGroup) {
-                fullWidth { HorizontalDivider() }
+                fullWidth { HorizontalDivider(color = ConversationRowDivider) }
                 fullWidth {
                     Text(
                         text = stringResource(R.string.conversation_info_participants_header, current.recipients.size),
@@ -159,7 +150,7 @@ fun ConversationInfoScreen(
                 ) { recipient -> ParticipantRow(recipient, context) }
             }
 
-            fullWidth { HorizontalDivider(modifier = Modifier.padding(top = 8.dp)) }
+            fullWidth { HorizontalDivider(modifier = Modifier.padding(top = 8.dp), color = ConversationRowDivider) }
             fullWidth {
                 Text(
                     text = stringResource(R.string.conversation_info_media_header),
@@ -184,7 +175,7 @@ fun ConversationInfoScreen(
                 }
             }
 
-            fullWidth { HorizontalDivider(modifier = Modifier.padding(top = 8.dp)) }
+            fullWidth { HorizontalDivider(modifier = Modifier.padding(top = 8.dp), color = ConversationRowDivider) }
             fullWidth {
                 DangerActionRow(
                     icon = if (current.isArchived) Icons.Filled.Unarchive else Icons.Filled.Archive,
@@ -440,6 +431,8 @@ private fun ConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = screenSurfaceColor(),
+        tonalElevation = 0.dp,
         title = { Text(title) },
         text = { Text(message) },
         confirmButton = {

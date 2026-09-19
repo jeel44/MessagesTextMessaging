@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import text.message.sms.messaging.R
 import text.message.sms.messaging.data.local.datastore.ThemeMode
+import text.message.sms.messaging.ui.screens.conversationlist.screenSurfaceColor
 import text.message.sms.messaging.ui.theme.AccentColorPresets
 import kotlin.math.roundToInt
 
@@ -80,6 +81,8 @@ internal fun ThemePickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = screenSurfaceColor(),
+        tonalElevation = 0.dp,
         title = { Text(stringResource(R.string.settings_theme_title)) },
         text = {
             Column {
@@ -282,6 +285,8 @@ private fun HsvColorPickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = screenSurfaceColor(),
+        tonalElevation = 0.dp,
         title = { Text(stringResource(R.string.theme_picker_custom_color_title)) },
         text = {
             Column {

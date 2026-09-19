@@ -105,7 +105,6 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -126,6 +125,7 @@ import text.message.sms.messaging.domain.repository.SyncProgress
 import text.message.sms.messaging.ui.components.SelectionMenuItem
 import text.message.sms.messaging.ui.components.SelectionOverflowMenu
 import text.message.sms.messaging.ui.components.icon
+import text.message.sms.messaging.ui.components.sharpIconPainter
 import text.message.sms.messaging.ui.theme.ChatTopBarDivider
 import text.message.sms.messaging.ui.theme.ConversationFabBlue
 import text.message.sms.messaging.ui.theme.ConversationRowDivider
@@ -487,7 +487,7 @@ private fun ConversationListTopBar(
         )
         IconButton(onClick = onSettingsClick) {
             Icon(
-                painter = painterResource(R.drawable.ic_settings),
+                painter = sharpIconPainter(R.drawable.ic_settings),
                 contentDescription = stringResource(R.string.action_settings),
                 tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(24.dp),
@@ -555,10 +555,10 @@ private fun HomeSelectionTopBar(
         ) {
             IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_closes),
+                    painter = sharpIconPainter(R.drawable.ic_closes),
                     contentDescription = stringResource(R.string.home_selection_close),
                     tint = accentColor,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(24.dp),
                 )
             }
 
@@ -577,15 +577,15 @@ private fun HomeSelectionTopBar(
                     imageVector = Icons.Filled.Archive,
                     contentDescription = stringResource(R.string.home_selection_archive),
                     tint = accentColor,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(24.dp),
                 )
             }
             IconButton(onClick = onDelete, modifier = Modifier.size(48.dp)) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_delete),
+                    painter = sharpIconPainter(R.drawable.ic_delete),
                     contentDescription = stringResource(R.string.home_selection_delete),
                     tint = accentColor,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(24.dp),
                 )
             }
 
@@ -595,7 +595,7 @@ private fun HomeSelectionTopBar(
                         imageVector = Icons.Filled.MoreVert,
                         contentDescription = stringResource(R.string.home_selection_more),
                         tint = accentColor,
-                        modifier = Modifier.size(22.dp),
+                        modifier = Modifier.size(24.dp),
                     )
                 }
                 SelectionOverflowMenu(
@@ -633,6 +633,8 @@ private fun HomeSelectionTopBar(
 private fun DeleteConversationsDialog(count: Int, onConfirm: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = screenSurfaceColor(),
+        tonalElevation = 0.dp,
         title = { Text(text = pluralStringResource(R.plurals.home_selection_delete_confirm_title, count, count)) },
         text = { Text(text = stringResource(R.string.home_selection_delete_confirm_message)) },
         confirmButton = {
@@ -654,6 +656,8 @@ private fun DeleteConversationsDialog(count: Int, onConfirm: () -> Unit, onDismi
 private fun BlockConversationsDialog(count: Int, onConfirm: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = screenSurfaceColor(),
+        tonalElevation = 0.dp,
         title = { Text(text = pluralStringResource(R.plurals.home_selection_block_confirm_title, count, count)) },
         text = { Text(text = stringResource(R.string.home_selection_block_confirm_message)) },
         confirmButton = {

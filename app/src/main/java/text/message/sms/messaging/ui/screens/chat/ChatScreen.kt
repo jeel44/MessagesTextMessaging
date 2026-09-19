@@ -47,7 +47,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
@@ -108,7 +107,6 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -141,9 +139,11 @@ import text.message.sms.messaging.domain.model.DeliveryState
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.model.MessageChannel
 import text.message.sms.messaging.domain.model.SimInfo
+import text.message.sms.messaging.ui.components.AppBackButton
 import text.message.sms.messaging.ui.components.MessageBubble
 import text.message.sms.messaging.ui.components.SelectionMenuItem
 import text.message.sms.messaging.ui.components.SelectionOverflowMenu
+import text.message.sms.messaging.ui.components.sharpIconPainter
 import text.message.sms.messaging.ui.screens.conversationlist.screenSurfaceColor
 import text.message.sms.messaging.ui.theme.ChatAvatarAccentBlue
 import text.message.sms.messaging.ui.theme.ChatAvatarPlaceholderGray
@@ -590,14 +590,7 @@ private fun ChatTopBar(
                 .padding(end = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.action_back),
-                    tint = contentColor,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
+            AppBackButton(onClick = onBack)
 
             Row(
                 modifier = Modifier
@@ -684,7 +677,7 @@ private fun ChatSelectionTopBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SelectionTopBarIconButton(
-                painter = painterResource(R.drawable.ic_closes),
+                painter = sharpIconPainter(R.drawable.ic_closes),
                 contentDescription = stringResource(R.string.chat_selection_close),
                 tint = accentColor,
                 onClick = onClose,
@@ -701,14 +694,14 @@ private fun ChatSelectionTopBar(
             Spacer(modifier = Modifier.weight(1f))
 
             SelectionTopBarIconButton(
-                painter = painterResource(R.drawable.ic_copy),
+                painter = sharpIconPainter(R.drawable.ic_copy),
                 contentDescription = stringResource(R.string.chat_selection_copy),
                 tint = accentColor,
                 enabled = copyEnabled,
                 onClick = onCopy,
             )
             SelectionTopBarIconButton(
-                painter = painterResource(R.drawable.ic_delete),
+                painter = sharpIconPainter(R.drawable.ic_delete),
                 contentDescription = stringResource(R.string.chat_selection_delete),
                 tint = accentColor,
                 onClick = onDelete,
@@ -718,10 +711,10 @@ private fun ChatSelectionTopBar(
             val forwardLabel = stringResource(R.string.chat_selection_forward)
             val shareLabel = stringResource(R.string.chat_selection_share)
             val detailsLabel = stringResource(R.string.chat_selection_details)
-            val selectAllIcon = painterResource(R.drawable.ic_select_all)
-            val forwardIcon = painterResource(R.drawable.ic_forward)
-            val shareIcon = painterResource(R.drawable.ic_share)
-            val detailsIcon = painterResource(R.drawable.ic_info_outline)
+            val selectAllIcon = sharpIconPainter(R.drawable.ic_select_all)
+            val forwardIcon = sharpIconPainter(R.drawable.ic_forward)
+            val shareIcon = sharpIconPainter(R.drawable.ic_share)
+            val detailsIcon = sharpIconPainter(R.drawable.ic_info_outline)
 
             Box {
                 IconButton(onClick = { showOverflow = true }, modifier = Modifier.size(48.dp)) {
@@ -729,7 +722,7 @@ private fun ChatSelectionTopBar(
                         imageVector = Icons.Filled.MoreVert,
                         contentDescription = stringResource(R.string.chat_selection_more),
                         tint = accentColor,
-                        modifier = Modifier.size(22.dp),
+                        modifier = Modifier.size(24.dp),
                     )
                 }
                 SelectionOverflowMenu(
@@ -764,7 +757,7 @@ private fun SelectionTopBarIconButton(
             painter = painter,
             contentDescription = contentDescription,
             tint = if (enabled) tint else tint.copy(alpha = 0.38f),
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(24.dp),
         )
     }
 }
@@ -1400,6 +1393,8 @@ private fun NonPersonalBottomBar(onLearnMoreClick: () -> Unit, modifier: Modifie
 private fun LearnMoreDialog(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = screenSurfaceColor(),
+        tonalElevation = 0.dp,
         confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(R.string.chat_learn_more_ok))
@@ -1418,6 +1413,8 @@ private fun LearnMoreDialog(onDismiss: () -> Unit, modifier: Modifier = Modifier
 private fun DeleteMessagesDialog(count: Int, onConfirm: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = screenSurfaceColor(),
+        tonalElevation = 0.dp,
         title = { Text(text = pluralStringResource(R.plurals.chat_selection_delete_confirm_title, count, count)) },
         text = { Text(text = stringResource(R.string.chat_selection_delete_confirm_message)) },
         confirmButton = {
@@ -1500,6 +1497,8 @@ private fun MessageDetailsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = screenSurfaceColor(),
+        tonalElevation = 0.dp,
         title = { Text(text = stringResource(R.string.message_details_title)) },
         text = {
             SelectionContainer {

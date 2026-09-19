@@ -35,7 +35,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,7 +56,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.R
+import text.message.sms.messaging.ui.components.AppTopBar
 import text.message.sms.messaging.ui.components.ContactAvatar
+import text.message.sms.messaging.ui.theme.ConversationRowDivider
 
 /**
  * Recipient picker: a "To" field that live-filters the device contact list as the user types,
@@ -100,8 +101,9 @@ fun NewMessageScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.screen_new_message)) },
+            AppTopBar(
+                title = stringResource(R.string.screen_new_message),
+                onBack = onBack,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -119,7 +121,7 @@ fun NewMessageScreen(
                 .padding(innerPadding),
         ) {
             ToField(value = queryText, onValueChange = viewModel::onQueryChanged)
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = ConversationRowDivider)
 
             if (!hasContactsPermission) {
                 ContactsPermissionNotice(

@@ -26,7 +26,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.History
@@ -69,6 +68,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import text.message.sms.messaging.R
 import text.message.sms.messaging.domain.model.Contact
 import text.message.sms.messaging.domain.model.Conversation
+import text.message.sms.messaging.ui.components.AppBackButton
 import text.message.sms.messaging.ui.screens.conversationlist.screenSurfaceColor
 import text.message.sms.messaging.ui.theme.ConversationRowDivider
 import text.message.sms.messaging.ui.theme.FilterChipContentGray
@@ -173,7 +173,6 @@ private fun SearchBar(
     // icon text and #5F6368 hint/clear gray are only correct against a genuinely light background,
     // so dark theme falls back to theme-aware onSurface/onSurfaceVariant instead.
     val isLightSurface = MaterialTheme.colorScheme.background.luminance() > 0.5f
-    val iconTint = if (isLightSurface) Color.Black else MaterialTheme.colorScheme.onSurface
     val hintColor = if (isLightSurface) FilterChipContentGray else MaterialTheme.colorScheme.onSurfaceVariant
     val textColor = if (isLightSurface) Color.Black else MaterialTheme.colorScheme.onSurface
 
@@ -188,14 +187,7 @@ private fun SearchBar(
             .border(1.dp, SearchBarBorder, RoundedCornerShape(28.dp)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onBack) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.action_back),
-                tint = iconTint,
-                modifier = Modifier.size(24.dp),
-            )
-        }
+        AppBackButton(onClick = onBack)
 
         Spacer(modifier = Modifier.width(12.dp))
 

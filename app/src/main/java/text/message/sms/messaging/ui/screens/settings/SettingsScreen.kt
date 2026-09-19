@@ -40,7 +40,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,7 +53,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -66,8 +64,11 @@ import text.message.sms.messaging.data.local.datastore.SimSendPreference
 import text.message.sms.messaging.data.local.datastore.SwipeAction
 import text.message.sms.messaging.data.local.datastore.ThemeMode
 import text.message.sms.messaging.domain.model.SimInfo
+import text.message.sms.messaging.ui.components.AppTopBar
 import text.message.sms.messaging.ui.components.labelRes
+import text.message.sms.messaging.ui.components.sharpIconPainter
 import text.message.sms.messaging.ui.screens.onboarding.currentLanguageOption
+import text.message.sms.messaging.ui.theme.ConversationRowDivider
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -314,18 +315,7 @@ fun SettingsScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.screen_settings)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_arrow_back),
-                            contentDescription = stringResource(R.string.action_back),
-                            modifier = Modifier.size(24.dp),
-                        )
-                    }
-                },
-            )
+            AppTopBar(title = stringResource(R.string.screen_settings), onBack = onBack)
         },
     ) { innerPadding ->
         Column(
@@ -447,7 +437,7 @@ private fun SettingsList(sections: List<SettingsSection>, modifier: Modifier = M
                 item(key = "divider_${section.title}") {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 8.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant,
+                        color = ConversationRowDivider,
                     )
                 }
             }
@@ -490,7 +480,7 @@ private fun SettingsRowItem(row: SettingsRow, modifier: Modifier = Modifier) {
                 modifier = Modifier.size(24.dp),
             )
             is SettingsIcon.Drawable -> Icon(
-                painter = painterResource(icon.resId),
+                painter = sharpIconPainter(icon.resId),
                 contentDescription = null,
                 tint = iconTint,
                 modifier = Modifier.size(24.dp),

@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import text.message.sms.messaging.R
 import text.message.sms.messaging.data.local.datastore.SimSendPreference
 import text.message.sms.messaging.domain.model.SimInfo
+import text.message.sms.messaging.ui.screens.conversationlist.screenSurfaceColor
 
 /**
  * Settings' "SIM for sending messages" row opens this: the three ways a dual-SIM device can pick
@@ -42,6 +43,8 @@ internal fun SimSendPreferenceDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = screenSurfaceColor(),
+        tonalElevation = 0.dp,
         title = { Text(stringResource(R.string.settings_sim_for_sending_title)) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {

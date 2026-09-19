@@ -27,6 +27,12 @@ internal val SeedBlueOnPrimaryDark = Color(0xFF062E6F)
 internal val SeedBluePrimaryContainerDark = Color(0xFF0842A0)
 internal val SeedBlueOnPrimaryContainerDark = Color(0xFFD3E3FD)
 
+/** Light theme's flat neutral gray for elevated cards/inputs that still need contrast against a
+ * pure-white screen (dialog swatch backdrops, media-grid placeholder tiles, attachment-sheet
+ * option chips) -- [LightColors]' `surfaceContainerHigh`/`surfaceContainerHighest`, the two
+ * container tones deliberately left non-white below. */
+internal val SurfaceContainerGray = Color(0xFFF1F3F4)
+
 internal val LightColors = lightColorScheme(
     primary = SeedBlueLight,
     onPrimary = Color.White,
@@ -49,12 +55,19 @@ internal val LightColors = lightColorScheme(
     errorContainer = Color(0xFFF9DEDC),
     onErrorContainer = Color(0xFF410E0B),
 
-    background = Color(0xFFF9F9FF),
+    background = Color.White,
     onBackground = Color(0xFF1A1B20),
-    surface = Color(0xFFF9F9FF),
+    surface = Color.White,
     onSurface = Color(0xFF1A1B20),
     surfaceVariant = Color(0xFFE1E2EC),
     onSurfaceVariant = Color(0xFF44474E),
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Color.White,
+    surfaceContainer = Color.White,
+    surfaceContainerHigh = SurfaceContainerGray,
+    surfaceContainerHighest = SurfaceContainerGray,
+    surfaceBright = Color.White,
+    surfaceDim = Color.White,
 
     outline = Color(0xFF74777F),
     outlineVariant = Color(0xFFC4C6D0),
