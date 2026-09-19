@@ -41,6 +41,12 @@ interface ConversationRepository {
      * of jumping straight to the final order. */
     suspend fun refreshCountersBatch(updates: Map<Long, ConversationCounterUpdate>)
 
+    /** Unconditionally sets [threadId]'s snippet/last-message time -- unlike
+     * [refreshCountersBatch], which only ever moves those forward, this can also move them
+     * *backward*. Used after deleting one or more messages from a thread that still has others
+     * left, where the previous last message is simply gone. */
+    suspend fun setLastMessage(threadId: Long, snippet: String, timestampMillis: Long)
+
     suspend fun delete(threadIds: Collection<Long>)
 
     fun search(query: String): Flow<List<Conversation>>

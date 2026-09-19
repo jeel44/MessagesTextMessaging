@@ -206,7 +206,26 @@ class LocalMessageRepository @Inject constructor(
         messageDao.setSeen(threadIds)
     }
 
-    override suspend fun delete(messageIds: Collection<Long>) {
+    override suspend fun countForThread(threadId: Long): Int = messageDao.countForThread(threadId)
+
+    override suspend fun findLatestForThread(threadId: Long): Message? =
+        messageDao.findLatestForThread(threadId)?.toDomain()
+
+    override suspend fun delete(messageIds: Collection<Long>): Unit = withContext(Dispatchers.IO) {
+        if (messageIds.isEmpty()) return@withContext
+        messageIds.forEach { id ->
+            val row = messageDao.findById(id) ?: return@forEach
+            val providerId = row.message.providerId
+            if (providerId != 0L) {
+                when (row.message.channel) {
+                    MessageChannel.SMS -> smsProviderGateway.delete(providerId)
+                    MessageChannel.MMS -> mmsProviderGateway.delete(providerId)
+                }
+            }
+            if (row.message.channel == MessageChannel.MMS) {
+                attachmentStorage.deleteMessageDir(providerId)
+            }
+        }
         messageDao.delete(messageIds)
     }
 

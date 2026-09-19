@@ -112,6 +112,10 @@ class LocalConversationRepository @Inject constructor(
         }
     }
 
+    override suspend fun setLastMessage(threadId: Long, snippet: String, timestampMillis: Long) {
+        conversationDao.setLastMessage(threadId, snippet, timestampMillis)
+    }
+
     override suspend fun delete(threadIds: Collection<Long>) {
         conversationDao.delete(threadIds)
     }

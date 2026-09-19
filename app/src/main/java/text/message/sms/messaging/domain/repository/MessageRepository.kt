@@ -74,6 +74,19 @@ interface MessageRepository {
 
     suspend fun setSeen(threadIds: Collection<Long>)
 
+    /** How many messages [threadId] has left -- used after [delete] to tell whether the thread
+     * is now empty. */
+    suspend fun countForThread(threadId: Long): Int
+
+    /** The newest remaining message in [threadId], or `null` if none -- used after [delete] to
+     * recompute the conversation's snippet/last-message time. */
+    suspend fun findLatestForThread(threadId: Long): Message?
+
+    /** Deletes [messageIds] from the local cache, and -- for any row already written to the
+     * system Telephony provider (a non-zero [Message.providerId]) -- from `content://sms`/
+     * `content://mms` too, so an incremental sync never re-imports a message the user just
+     * deleted. A row with no provider id yet (e.g. a still-queued local draft) is removed from
+     * the cache only. */
     suspend fun delete(messageIds: Collection<Long>)
 
     suspend fun deleteOlderThan(timestampMillis: Long)

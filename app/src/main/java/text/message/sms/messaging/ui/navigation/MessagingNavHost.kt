@@ -115,7 +115,7 @@ fun MessagingNavHost(
                     navController.navigate(MessagingDestination.Chat.routeFor(threadId))
                 },
                 onNewMessageClick = {
-                    navController.navigate(MessagingDestination.NewMessage.route)
+                    navController.navigate(MessagingDestination.NewMessage.routeFor())
                 },
                 onSearchClick = {
                     navController.navigate(MessagingDestination.Search.route)
@@ -142,6 +142,11 @@ fun MessagingNavHost(
             route = MessagingDestination.Chat.route,
             arguments = listOf(
                 navArgument(MessagingDestination.ARG_THREAD_ID) { type = NavType.LongType },
+                navArgument(MessagingDestination.ARG_INITIAL_TEXT) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
             ),
         ) { entry ->
             val threadId = entry.arguments?.getLong(MessagingDestination.ARG_THREAD_ID) ?: 0L
@@ -152,6 +157,9 @@ fun MessagingNavHost(
                 },
                 onConversationInfoClick = {
                     navController.navigate(MessagingDestination.ConversationInfo.routeFor(threadId))
+                },
+                onForwardClick = { text ->
+                    navController.navigate(MessagingDestination.NewMessage.routeFor(prefillText = text))
                 },
             )
         }
@@ -183,11 +191,22 @@ fun MessagingNavHost(
             )
         }
 
-        composable(MessagingDestination.NewMessage.route) {
+        composable(
+            route = MessagingDestination.NewMessage.route,
+            arguments = listOf(
+                navArgument(MessagingDestination.ARG_PREFILL_TEXT) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) { entry ->
+            val prefillText = entry.arguments?.getString(MessagingDestination.ARG_PREFILL_TEXT)
+                ?.let(MessagingDestination.NewMessage::decodePrefill)
             NewMessageScreen(
                 onBack = navController::popBackStack,
                 onConversationStarted = { threadId ->
-                    navController.navigate(MessagingDestination.Chat.routeFor(threadId)) {
+                    navController.navigate(MessagingDestination.Chat.routeFor(threadId, initialText = prefillText)) {
                         popUpTo(MessagingDestination.ConversationList.route)
                     }
                 },

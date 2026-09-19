@@ -63,6 +63,24 @@ interface MessageDao {
     @Query("SELECT COUNT(*) FROM messages WHERE thread_id = :threadId AND is_read = 0")
     suspend fun countUnread(threadId: Long): Int
 
+    @Query("SELECT COUNT(*) FROM messages WHERE thread_id = :threadId")
+    suspend fun countForThread(threadId: Long): Int
+
+    /** The single newest message left in [threadId] -- used after a selection delete to recompute
+     * the conversation's snippet/last-message time, since deleting rows out from under it can
+     * leave [text.message.sms.messaging.data.local.db.entity.ConversationEntity] pointing at a
+     * message that no longer exists. */
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM messages
+        WHERE thread_id = :threadId
+        ORDER BY received_at DESC
+        LIMIT 1
+        """
+    )
+    suspend fun findLatestForThread(threadId: Long): MessageWithAttachments?
+
     /** `EXISTS` rather than `COUNT(*)` so this can short-circuit on the very first row instead
      * of scanning the whole table -- used only to distinguish "empty" from "not empty", never a
      * real count. */

@@ -19,7 +19,19 @@ sealed class MessagingDestination(val route: String) {
 
     data object ConversationList : MessagingDestination("conversations")
 
-    data object NewMessage : MessagingDestination("conversations/new")
+    /** [ARG_PREFILL_TEXT] carries a Forward's prefilled body text (see [Chat]'s own
+     * `initialText`) through the contact picker to whichever thread the user ends up picking --
+     * [NewMessageScreen][text.message.sms.messaging.ui.screens.newmessage.NewMessageScreen]
+     * itself never reads it, only the nav host, which closes over it when building the [Chat]
+     * route it navigates to next. */
+    data object NewMessage : MessagingDestination("conversations/new?prefill={$ARG_PREFILL_TEXT}") {
+        fun routeFor(prefillText: String? = null): String {
+            val base = "conversations/new"
+            return if (prefillText.isNullOrEmpty()) base else "$base?prefill=${URLEncoder.encode(prefillText, "UTF-8")}"
+        }
+
+        fun decodePrefill(encoded: String): String = URLDecoder.decode(encoded, "UTF-8")
+    }
 
     data object Search : MessagingDestination("search")
 
@@ -31,8 +43,22 @@ sealed class MessagingDestination(val route: String) {
      * differently (a back arrow, not a "Continue" bar; see [text.message.sms.messaging.ui.screens.onboarding.LanguageScreen]). */
     data object LanguageSettings : MessagingDestination("settings/language")
 
-    data object Chat : MessagingDestination("conversations/{$ARG_THREAD_ID}") {
-        fun routeFor(threadId: Long): String = "conversations/$threadId"
+    /** [ARG_INITIAL_TEXT] seeds the composer with a Forward's prefilled text -- see
+     * [ChatViewModel][text.message.sms.messaging.ui.screens.chat.ChatViewModel]'s `init`, which
+     * reads it straight off `SavedStateHandle` (the same way it already reads [ARG_THREAD_ID]),
+     * so [text.message.sms.messaging.ui.screens.chat.ChatScreen] itself needs no new parameter. */
+    data object Chat : MessagingDestination("conversations/{$ARG_THREAD_ID}?initialText={$ARG_INITIAL_TEXT}") {
+        fun routeFor(threadId: Long, initialText: String? = null): String {
+            val base = "conversations/$threadId"
+            return if (initialText.isNullOrEmpty()) base else "$base?initialText=${URLEncoder.encode(initialText, "UTF-8")}"
+        }
+
+        /** [ChatViewModel][text.message.sms.messaging.ui.screens.chat.ChatViewModel] reads
+         * [ARG_INITIAL_TEXT] straight off its `SavedStateHandle`, same as every other argument
+         * here -- Navigation Compose hands a `String` `NavType` argument through exactly as it
+         * appears in the route (see [MediaViewer]'s own `decodeContentUri`), so that raw value
+         * still needs this decode. */
+        fun decodeInitialText(encoded: String): String = URLDecoder.decode(encoded, "UTF-8")
     }
 
     data object ConversationInfo : MessagingDestination("conversations/{$ARG_THREAD_ID}/info") {
@@ -49,5 +75,7 @@ sealed class MessagingDestination(val route: String) {
     companion object {
         const val ARG_THREAD_ID: String = "threadId"
         const val ARG_CONTENT_URI: String = "contentUri"
+        const val ARG_INITIAL_TEXT: String = "initialText"
+        const val ARG_PREFILL_TEXT: String = "prefill"
     }
 }

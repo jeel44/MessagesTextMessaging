@@ -122,6 +122,13 @@ interface ConversationDao {
     @Query("UPDATE conversations SET unread_count = :count WHERE thread_id = :threadId")
     suspend fun setUnreadCount(threadId: Long, count: Int)
 
+    /** Unlike [upsert]/[upsertAll]'s "only if newer" counterparts in
+     * [text.message.sms.messaging.data.repository.LocalMessageRepository]/[text.message.sms.messaging.data.repository.LocalConversationRepository],
+     * this sets the snippet/timestamp unconditionally -- used after deleting messages, where the
+     * new value must be able to move *backward* in time (the old last message is simply gone). */
+    @Query("UPDATE conversations SET snippet = :snippet, last_message_at = :timestampMillis WHERE thread_id = :threadId")
+    suspend fun setLastMessage(threadId: Long, snippet: String, timestampMillis: Long)
+
     @Query("DELETE FROM conversations WHERE thread_id IN (:threadIds)")
     suspend fun delete(threadIds: Collection<Long>)
 

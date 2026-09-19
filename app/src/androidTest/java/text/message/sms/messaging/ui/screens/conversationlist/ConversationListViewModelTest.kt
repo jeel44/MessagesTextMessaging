@@ -118,6 +118,8 @@ class ConversationListViewModelTest {
             override suspend fun setDeliveryState(messageId: Long, state: DeliveryState, errorCode: Int) = Unit
             override suspend fun setRead(threadIds: Collection<Long>, read: Boolean) = Unit
             override suspend fun setSeen(threadIds: Collection<Long>) = Unit
+            override suspend fun countForThread(threadId: Long): Int = 0
+            override suspend fun findLatestForThread(threadId: Long): Message? = null
             override suspend fun delete(messageIds: Collection<Long>) = Unit
             override suspend fun deleteOlderThan(timestampMillis: Long) = Unit
             override fun search(query: String): Flow<List<Message>> = MutableStateFlow(emptyList())

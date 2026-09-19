@@ -301,6 +301,16 @@ class MmsProviderGateway @Inject constructor(
         return providerId
     }
 
+    /** Deletes an MMS row (and, per the platform provider's own cascade, its addr/part rows)
+     * from the system provider -- mirrors [SmsProviderGateway.delete]. */
+    fun delete(providerId: Long) {
+        contentResolver.delete(
+            Telephony.Mms.CONTENT_URI,
+            "${Telephony.Mms._ID} = ?",
+            arrayOf(providerId.toString()),
+        )
+    }
+
     fun updateMessageBox(providerId: Long, folder: MessageFolder) {
         val values = ContentValues().apply { put(Telephony.Mms.MESSAGE_BOX, folder.providerValue) }
         contentResolver.update(
