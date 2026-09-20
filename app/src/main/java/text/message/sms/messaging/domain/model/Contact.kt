@@ -1,6 +1,9 @@
 package text.message.sms.messaging.domain.model
 
+import androidx.compose.runtime.Immutable
+
 /** An entry resolved from the system contacts provider. */
+@Immutable
 data class Contact(
     val id: Long,
     val lookupKey: String,

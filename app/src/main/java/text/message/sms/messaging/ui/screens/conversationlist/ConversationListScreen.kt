@@ -86,6 +86,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -184,7 +186,11 @@ fun ConversationListScreen(
     val swipeActionPreference by viewModel.swipeActionPreference.collectAsStateWithLifecycle()
     val archivedCount by viewModel.archivedCount.collectAsStateWithLifecycle()
     val selectedFilter by viewModel.filter.collectAsStateWithLifecycle()
-    val selectedThreadIds by viewModel.selectedThreadIds.collectAsStateWithLifecycle()
+    // Kept as a State object (not unwrapped with `by` here) so it can be passed down to
+    // ConversationList/each row without forcing every row to recompose whenever any one row's
+    // selection changes -- see ConversationRow's own derivedStateOf read of it.
+    val selectedThreadIdsState = viewModel.selectedThreadIds.collectAsStateWithLifecycle()
+    val selectedThreadIds = selectedThreadIdsState.value
     val selectedConversations by viewModel.selectedConversations.collectAsStateWithLifecycle()
     val isSelectionMode = selectedThreadIds.isNotEmpty()
 
@@ -377,7 +383,7 @@ fun ConversationListScreen(
                         conversations = conversations,
                         swipeActionPreference = swipeActionPreference,
                         isSelectionMode = isSelectionMode,
-                        selectedThreadIds = selectedThreadIds,
+                        selectedThreadIds = selectedThreadIdsState,
                         onConversationClick = { threadId ->
                             NavPerfTracer.markConversationClicked()
                             onConversationClick(threadId)
@@ -890,7 +896,7 @@ private fun ConversationList(
     onDeleteRequested: (Conversation) -> Unit,
     modifier: Modifier = Modifier,
     isSelectionMode: Boolean = false,
-    selectedThreadIds: Set<Long> = emptySet(),
+    selectedThreadIds: State<Set<Long>> = remember { mutableStateOf(emptySet()) },
     onToggleSelection: (Long) -> Unit = {},
     onStartSelection: (Long) -> Unit = {},
 ) {
@@ -905,6 +911,7 @@ private fun ConversationList(
         items(
             items = conversations,
             key = { it.threadId },
+            contentType = { "conversation" },
         ) { conversation ->
             Column {
                 SwipeableConversationRow(
@@ -917,7 +924,7 @@ private fun ConversationList(
                     onSwipeAction = { action -> onSwipeAction(action, conversation) },
                     onDeleteRequested = { onDeleteRequested(conversation) },
                     isSelectionMode = isSelectionMode,
-                    isSelected = conversation.threadId in selectedThreadIds,
+                    selectedThreadIds = selectedThreadIds,
                     onToggleSelection = { onToggleSelection(conversation.threadId) },
                     onStartSelection = { onStartSelection(conversation.threadId) },
                 )
@@ -1024,7 +1031,7 @@ internal fun SwipeableConversationRow(
     onDeleteRequested: () -> Unit,
     modifier: Modifier = Modifier,
     isSelectionMode: Boolean = false,
-    isSelected: Boolean = false,
+    selectedThreadIds: State<Set<Long>> = remember { mutableStateOf(emptySet()) },
     onToggleSelection: () -> Unit = {},
     onStartSelection: () -> Unit = {},
 ) {
@@ -1145,7 +1152,7 @@ internal fun SwipeableConversationRow(
             conversation = conversation,
             onClick = onClick,
             isSelectionMode = isSelectionMode,
-            isSelected = isSelected,
+            selectedThreadIds = selectedThreadIds,
             onToggleSelection = onToggleSelection,
             onStartSelection = onStartSelection,
         )
@@ -1238,10 +1245,17 @@ internal fun ConversationRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isSelectionMode: Boolean = false,
-    isSelected: Boolean = false,
+    selectedThreadIds: State<Set<Long>> = remember { mutableStateOf(emptySet()) },
     onToggleSelection: () -> Unit = {},
     onStartSelection: () -> Unit = {},
 ) {
+    // Reads selectedThreadIds.value inside derivedStateOf rather than as a plain boolean
+    // parameter, so this row only recomposes when its own membership actually flips -- not on
+    // every selection change elsewhere in the list, which a plain `Boolean` (or reading the raw
+    // Set directly here without derivedStateOf) would cause for every currently-composed row.
+    val isSelected by remember(conversation.threadId) {
+        derivedStateOf { conversation.threadId in selectedThreadIds.value }
+    }
     val haptics = LocalHapticFeedback.current
     val isLight = isLightHomeTheme()
     val selectedBackground = if (isLight) ConversationRowSelected else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
@@ -1279,8 +1293,9 @@ internal fun ConversationRow(
         Spacer(modifier = Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
+            val title = remember(conversation.recipients) { conversation.title }
             Text(
-                text = conversation.title,
+                text = title,
                 style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
                 fontWeight = if (conversation.hasUnread) FontWeight.Bold else FontWeight.Normal,
                 color = MaterialTheme.colorScheme.onSurface,

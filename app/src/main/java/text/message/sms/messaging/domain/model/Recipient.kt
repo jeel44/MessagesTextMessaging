@@ -1,6 +1,9 @@
 package text.message.sms.messaging.domain.model
 
+import androidx.compose.runtime.Immutable
+
 /** A phone number taking part in a conversation, optionally resolved to a contact. */
+@Immutable
 data class Recipient(
     val id: Long,
     val address: String,

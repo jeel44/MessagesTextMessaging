@@ -1,6 +1,9 @@
 package text.message.sms.messaging.domain.model
 
+import androidx.compose.runtime.Immutable
+
 /** A message thread, keyed by the system provider's thread id. */
+@Immutable
 data class Conversation(
     val id: Long,
     val threadId: Long,
