@@ -57,13 +57,24 @@ import javax.inject.Inject
  * personal/non-personal mode). */
 internal enum class ConversationFilter { ALL, PERSONAL, TRANSACTIONS, OTP }
 
-/** Home's body region, gated on [ConversationListViewModel.hasLoadedOnce] so that no wrong screen
- * (in particular [NotDefault] or [EmptyInbox]) can ever render before the first real
- * [text.message.sms.messaging.domain.repository.ConversationRepository.observeInbox] emission is
- * known -- see [ConversationListViewModel.homeBodyState]. */
+/** [ConversationListViewModel.inboxState] -- the single value [homeBodyState] (and [conversations])
+ * is derived from, replacing what used to be a separate `hasLoadedOnce: Boolean` computed
+ * alongside (but independently of, via its own `.onEach`) the filtered list -- that let a collector
+ * see "loaded" on a frame where [conversations] itself still held its `emptyList()` seed, flashing
+ * [HomeBodyState.EmptyInbox] before the real (possibly non-empty) first page was reflected. [Loaded]
+ * is only ever produced together with the items it describes, in the same map step, so that frame
+ * can't happen -- same pattern as [text.message.sms.messaging.ui.screens.chat.ChatViewModel
+ * .ChatMessagesState]. */
+internal sealed interface InboxState {
+    data object Loading : InboxState
+    data class Loaded(val items: List<Conversation>) : InboxState
+}
+
+/** Home's body region -- see [ConversationListViewModel.homeBodyState]. [Loading]/[EmptyInbox]/
+ * [NotDefault] can only be reached from [InboxState.Loaded] (or, for [Loading], the pre-load
+ * [InboxState.Loading]) -- never from a stale seed -- so no wrong screen can render before the
+ * first real inbox emission is known. */
 internal sealed interface HomeBodyState {
-    /** Nothing real known yet (or a sync is actively running with nothing loaded) -- render the
-     * shimmer, never [NotDefault]/[EmptyInbox]/[List]. */
     data object Loading : HomeBodyState
     data object NotDefault : HomeBodyState
     data object EmptyInbox : HomeBodyState
@@ -170,17 +181,29 @@ class ConversationListViewModel @Inject constructor(
     private val _events = MutableSharedFlow<ConversationListEvent>(extraBufferCapacity = 1)
     internal val events: SharedFlow<ConversationListEvent> = _events
 
-    /** Flips true on [ConversationRepository.observeInbox]'s first real emission -- not the
-     * `emptyList()` seed [conversations] starts with as a [StateFlow] -- and never flips back.
-     * Gates [homeBodyState] so a not-yet-loaded inbox can never be mistaken for a genuinely empty
-     * one or for "not the default SMS app." */
-    private val hasLoadedOnce = MutableStateFlow(false)
+    /** The single source of truth for "has the inbox loaded, and with what" -- see [InboxState].
+     * [conversations] and [homeBodyState] both derive from this one flow instead of each racing
+     * their own view of [ConversationRepository.observeInbox]. */
+    internal val inboxState: StateFlow<InboxState> = conversationRepository.observeInbox()
+        .map<List<Conversation>, InboxState> { InboxState.Loaded(it) }
+        .onEach {
+            if (!hasLoggedFirstLoad) {
+                hasLoggedFirstLoad = true
+                Log.d("NavPerf", "Home first data load: ${SystemClock.elapsedRealtime() - createdAtMillis}ms")
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = InboxState.Loading,
+        )
 
     val conversations: StateFlow<List<Conversation>> = combine(
-        conversationRepository.observeInbox().onEach { hasLoadedOnce.value = true },
+        inboxState,
         selectedFilter,
         pendingDeleteThreadIds,
-    ) { inbox, filter, pendingDeletes ->
+    ) { inboxStateValue, filter, pendingDeletes ->
+        val inbox = (inboxStateValue as? InboxState.Loaded)?.items.orEmpty()
         val visible = inbox.filterNot { it.threadId in pendingDeletes }
         when (filter) {
             ConversationFilter.ALL -> visible
@@ -188,38 +211,38 @@ class ConversationListViewModel @Inject constructor(
             ConversationFilter.TRANSACTIONS -> visible.filter { it.isTransaction() }
             ConversationFilter.OTP -> visible.filter { it.isOtp() }
         }
-    }.onEach {
-        if (!hasLoggedFirstLoad) {
-            hasLoggedFirstLoad = true
-            Log.d("NavPerf", "Home first data load: ${SystemClock.elapsedRealtime() - createdAtMillis}ms")
-        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = emptyList(),
     )
 
-    /** Backs [ConversationListScreen]'s body `when` -- see [HomeBodyState]. Re-reads
-     * [DefaultSmsAppGuard.isDefault] fresh on every recomputation rather than trusting
-     * [isDefaultSmsApp]'s possibly-stale constructor-time seed, since that [StateFlow] only
-     * updates on [refreshDefaultSmsAppStatus] (screen resume), not on every emission here. */
+    /** Backs [ConversationListScreen]'s body `when` -- see [HomeBodyState]. [EmptyInbox]/[NotDefault]
+     * can only be reached from [InboxState.Loaded] with an empty list, i.e. a REAL empty emission --
+     * never from [InboxState.Loading]. Re-reads [DefaultSmsAppGuard.isDefault] fresh on every
+     * recomputation rather than trusting [isDefaultSmsApp]'s possibly-stale constructor-time seed,
+     * since that [StateFlow] only updates on [refreshDefaultSmsAppStatus] (screen resume), not on
+     * every emission here. */
     internal val homeBodyState: StateFlow<HomeBodyState> = combine(
-        conversations,
+        inboxState,
         syncProgress,
         isDefaultSmsApp,
-        hasLoadedOnce,
-    ) { conversationList, sync, _, loadedOnce ->
+    ) { inboxStateValue, sync, _ ->
         val isDefaultNow = defaultSmsAppGuard.isDefault
-        val state = when {
-            !loadedOnce -> HomeBodyState.Loading
-            conversationList.isNotEmpty() -> HomeBodyState.List
-            sync is SyncProgress.Running -> HomeBodyState.Loading
-            !isDefaultNow -> HomeBodyState.NotDefault
-            else -> HomeBodyState.EmptyInbox
+        val state = when (inboxStateValue) {
+            InboxState.Loading -> HomeBodyState.Loading
+            is InboxState.Loaded -> when {
+                inboxStateValue.items.isNotEmpty() -> HomeBodyState.List
+                sync is SyncProgress.Running -> HomeBodyState.Loading
+                !isDefaultNow -> HomeBodyState.NotDefault
+                else -> HomeBodyState.EmptyInbox
+            }
         }
         Log.d(
             "HomeState",
-            "t=${SystemClock.elapsedRealtime()} state=$state conversations=${conversationList.size} " +
+            "t=${SystemClock.elapsedRealtime()} state=$state " +
+                "inboxState=${inboxStateValue::class.simpleName} " +
+                "items=${(inboxStateValue as? InboxState.Loaded)?.items?.size ?: 0} " +
                 "syncProgress=$sync isDefaultSmsApp=$isDefaultNow",
         )
         state
