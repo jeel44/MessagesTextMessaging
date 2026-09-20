@@ -36,7 +36,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -88,7 +90,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -103,6 +107,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -866,6 +871,11 @@ internal fun groupedByDate(conversations: List<Conversation>, zone: ZoneId): Lis
  * design's dividers. */
 private val RowDividerInset = 80.dp
 
+/** How close to the very top (in px) [ConversationList] still counts the user as "at the top" for
+ * [rememberStayAtTopOnArrival]'s purposes -- a small tolerance rather than requiring an exact
+ * `offset == 0`, since a resting scroll position is rarely pixel-perfect. */
+private val AtTopOffsetThreshold = 48.dp
+
 /**
  * Flat, ungrouped inbox -- no date-section headers, matching the reference design. [ArchivedScreen]
  * still wants those (see [groupedByDate]/[DateSectionHeader]), so this deliberately doesn't reuse
@@ -884,7 +894,11 @@ private fun ConversationList(
     onToggleSelection: (Long) -> Unit = {},
     onStartSelection: (Long) -> Unit = {},
 ) {
+    val listState = rememberLazyListState()
+    rememberStayAtTopOnArrival(listState, conversations, isSelectionMode)
+
     LazyColumn(
+        state = listState,
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 96.dp),
     ) {
@@ -914,6 +928,57 @@ private fun ConversationList(
                 )
             }
         }
+    }
+}
+
+/**
+ * Keeps [listState] pinned to the top when a new conversation is prepended (a new SMS arrives),
+ * but only if the user was already at/near the top *before* that happened -- someone scrolled down
+ * reading older threads shouldn't get yanked back up. Skipped entirely in selection mode, so an
+ * in-progress multi-select never jumps under the user's thumb.
+ *
+ * The tricky part is "before": [conversations]' first item's key changing is itself what causes
+ * [androidx.compose.foundation.lazy.LazyColumn]'s own key-based scroll anchoring to silently shift
+ * [listState]'s `firstVisibleItemIndex` from 0 to 1 (the item that used to be on top is anchored in
+ * place, so the new item above it ends up scrolled just out of view) -- exactly the bug this fixes.
+ * Reading [listState] *after* that shift would always see "not at top" and never fire. So [wasAtTop]
+ * is tracked continuously by its own effect, gated to stop updating the instant the top key changes
+ * (`latestTopKey.value == previousTopKey`) until [previousTopKey] catches up again below -- freezing
+ * it at whatever it last was *before* the arrival, which is the value this function needs.
+ *
+ * A changed top key only counts as a genuine arrival (not a filter chip switch or a search) when
+ * the previous top item is still present somewhere further down [conversations] -- a filter/search
+ * swap tends to drop or reorder items wholesale rather than just prepending one.
+ */
+@Composable
+private fun rememberStayAtTopOnArrival(
+    listState: LazyListState,
+    conversations: List<Conversation>,
+    isSelectionMode: Boolean,
+) {
+    val topKey = conversations.firstOrNull()?.threadId
+    val latestTopKey = rememberUpdatedState(topKey)
+    val latestIsSelectionMode = rememberUpdatedState(isSelectionMode)
+    var previousTopKey by remember { mutableStateOf(topKey) }
+    var wasAtTop by remember { mutableStateOf(true) }
+    val atTopOffsetThresholdPx = with(LocalDensity.current) { AtTopOffsetThreshold.toPx() }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+            .collect { (index, offset) ->
+                if (latestTopKey.value == previousTopKey) {
+                    wasAtTop = index <= 1 && offset < atTopOffsetThresholdPx
+                }
+            }
+    }
+
+    LaunchedEffect(topKey) {
+        val isGenuineArrival = previousTopKey != null && topKey != null && topKey != previousTopKey &&
+            conversations.any { it.threadId == previousTopKey }
+        if (isGenuineArrival && wasAtTop && !latestIsSelectionMode.value) {
+            listState.animateScrollToItem(0)
+        }
+        previousTopKey = topKey
     }
 }
 
