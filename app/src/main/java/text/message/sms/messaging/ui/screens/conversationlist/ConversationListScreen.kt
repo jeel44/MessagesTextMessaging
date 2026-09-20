@@ -174,7 +174,7 @@ fun ConversationListScreen(
     viewModel: ConversationListViewModel = hiltViewModel(),
 ) {
     val conversations by viewModel.conversations.collectAsStateWithLifecycle()
-    val isDefaultSmsApp by viewModel.isDefaultSmsApp.collectAsStateWithLifecycle()
+    val homeBodyState by viewModel.homeBodyState.collectAsStateWithLifecycle()
     val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
     val swipeActionPreference by viewModel.swipeActionPreference.collectAsStateWithLifecycle()
     val archivedCount by viewModel.archivedCount.collectAsStateWithLifecycle()
@@ -360,20 +360,15 @@ fun ConversationListScreen(
                     .weight(1f)
                     .fillMaxWidth(),
             ) {
-                if (conversations.isEmpty()) {
-                    if (syncProgress is SyncProgress.Running) {
-                        ShimmerConversationList()
-                    } else if (isDefaultSmsApp) {
-                        EmptyInbox()
-                    } else {
-                        NotDefaultSmsAppEmptyState(
-                            onRequestDefault = {
-                                roleRequestLauncher.launch(viewModel.defaultSmsAppRoleRequestIntent())
-                            },
-                        )
-                    }
-                } else {
-                    ConversationList(
+                when (homeBodyState) {
+                    HomeBodyState.Loading -> ShimmerConversationList()
+                    HomeBodyState.EmptyInbox -> EmptyInbox()
+                    HomeBodyState.NotDefault -> NotDefaultSmsAppEmptyState(
+                        onRequestDefault = {
+                            roleRequestLauncher.launch(viewModel.defaultSmsAppRoleRequestIntent())
+                        },
+                    )
+                    HomeBodyState.List -> ConversationList(
                         conversations = conversations,
                         swipeActionPreference = swipeActionPreference,
                         isSelectionMode = isSelectionMode,

@@ -57,6 +57,19 @@ import javax.inject.Inject
  * personal/non-personal mode). */
 internal enum class ConversationFilter { ALL, PERSONAL, TRANSACTIONS, OTP }
 
+/** Home's body region, gated on [ConversationListViewModel.hasLoadedOnce] so that no wrong screen
+ * (in particular [NotDefault] or [EmptyInbox]) can ever render before the first real
+ * [text.message.sms.messaging.domain.repository.ConversationRepository.observeInbox] emission is
+ * known -- see [ConversationListViewModel.homeBodyState]. */
+internal sealed interface HomeBodyState {
+    /** Nothing real known yet (or a sync is actively running with nothing loaded) -- render the
+     * shimmer, never [NotDefault]/[EmptyInbox]/[List]. */
+    data object Loading : HomeBodyState
+    data object NotDefault : HomeBodyState
+    data object EmptyInbox : HomeBodyState
+    data object List : HomeBodyState
+}
+
 /** A swipe just happened and needs an undo-able snackbar -- see [ConversationListScreen]'s
  * `LaunchedEffect` for how each is resolved (either undone, or left to take effect). */
 internal sealed interface ConversationListEvent {
@@ -157,8 +170,14 @@ class ConversationListViewModel @Inject constructor(
     private val _events = MutableSharedFlow<ConversationListEvent>(extraBufferCapacity = 1)
     internal val events: SharedFlow<ConversationListEvent> = _events
 
+    /** Flips true on [ConversationRepository.observeInbox]'s first real emission -- not the
+     * `emptyList()` seed [conversations] starts with as a [StateFlow] -- and never flips back.
+     * Gates [homeBodyState] so a not-yet-loaded inbox can never be mistaken for a genuinely empty
+     * one or for "not the default SMS app." */
+    private val hasLoadedOnce = MutableStateFlow(false)
+
     val conversations: StateFlow<List<Conversation>> = combine(
-        conversationRepository.observeInbox(),
+        conversationRepository.observeInbox().onEach { hasLoadedOnce.value = true },
         selectedFilter,
         pendingDeleteThreadIds,
     ) { inbox, filter, pendingDeletes ->
@@ -178,6 +197,36 @@ class ConversationListViewModel @Inject constructor(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = emptyList(),
+    )
+
+    /** Backs [ConversationListScreen]'s body `when` -- see [HomeBodyState]. Re-reads
+     * [DefaultSmsAppGuard.isDefault] fresh on every recomputation rather than trusting
+     * [isDefaultSmsApp]'s possibly-stale constructor-time seed, since that [StateFlow] only
+     * updates on [refreshDefaultSmsAppStatus] (screen resume), not on every emission here. */
+    internal val homeBodyState: StateFlow<HomeBodyState> = combine(
+        conversations,
+        syncProgress,
+        isDefaultSmsApp,
+        hasLoadedOnce,
+    ) { conversationList, sync, _, loadedOnce ->
+        val isDefaultNow = defaultSmsAppGuard.isDefault
+        val state = when {
+            !loadedOnce -> HomeBodyState.Loading
+            conversationList.isNotEmpty() -> HomeBodyState.List
+            sync is SyncProgress.Running -> HomeBodyState.Loading
+            !isDefaultNow -> HomeBodyState.NotDefault
+            else -> HomeBodyState.EmptyInbox
+        }
+        Log.d(
+            "HomeState",
+            "t=${SystemClock.elapsedRealtime()} state=$state conversations=${conversationList.size} " +
+                "syncProgress=$sync isDefaultSmsApp=$isDefaultNow",
+        )
+        state
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = HomeBodyState.Loading,
     )
 
     /** Backs the "Archived" entry point at the top of the inbox -- hidden entirely when there's

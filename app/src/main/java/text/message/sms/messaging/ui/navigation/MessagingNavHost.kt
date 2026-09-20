@@ -1,5 +1,7 @@
 package text.message.sms.messaging.ui.navigation
 
+import android.os.SystemClock
+import android.util.Log
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -7,11 +9,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import text.message.sms.messaging.ui.screens.archived.ArchivedScreen
@@ -55,6 +59,11 @@ fun MessagingNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    LaunchedEffect(currentRoute) {
+        Log.d("NavRoute", "t=${SystemClock.elapsedRealtime()} route=$currentRoute")
+    }
+
     NavHost(
         navController = navController,
         startDestination = MessagingDestination.Splash.route,
