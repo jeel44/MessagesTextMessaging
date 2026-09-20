@@ -6,12 +6,14 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.app.RemoteInput
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import text.message.sms.messaging.MainActivity
 import text.message.sms.messaging.R
 import text.message.sms.messaging.data.receiver.NotificationActionReceiver
@@ -46,33 +48,44 @@ class DefaultIncomingMessageNotifier @Inject constructor(
 ) : IncomingMessageNotifier {
 
     override suspend fun notify(message: Message) {
-        if (!canPostNotifications()) return
-        if (activeThreadTracker.isActive(message.threadId)) return
+        // A notification is never allowed to crash the app or block message insertion -- the
+        // message is already committed to Room by the time this runs (see ReceiveSms/ReceiveMms),
+        // so the worst a failure here can do is silently skip the notification. Regression: a
+        // MessagingStyle Person built with an empty name throws IllegalArgumentException and
+        // killed the process on every incoming SMS -- see safeName's doc.
+        try {
+            if (!canPostNotifications()) return
+            if (activeThreadTracker.isActive(message.threadId)) return
 
-        val conversation = conversationRepository.findByThreadId(message.threadId) ?: return
-        val senderName = conversation.senderDisplayName(message.address)
+            val conversation = conversationRepository.findByThreadId(message.threadId) ?: return
+            val senderName = safeName(conversation.senderDisplayName(message.address), message.address)
 
-        val style = restoreOrCreateStyle(message.threadId)
-            .setGroupConversation(conversation.isGroup)
-            .addMessage(
-                message.displayText(),
-                message.receivedAtMillis,
-                Person.Builder().setName(senderName).build(),
-            )
-        if (conversation.isGroup) style.conversationTitle = conversation.title
+            val style = restoreOrCreateStyle(message.threadId)
+                .setGroupConversation(conversation.isGroup)
+                .addMessage(
+                    message.displayText(),
+                    message.receivedAtMillis,
+                    Person.Builder().setName(senderName).build(),
+                )
+            if (conversation.isGroup) style.conversationTitle = conversation.title
 
-        val notification = NotificationCompat.Builder(context, NotificationChannels.INCOMING_MESSAGES)
-            .setSmallIcon(R.drawable.ic_notifications)
-            .setStyle(style)
-            .setContentIntent(openChatPendingIntent(message.threadId))
-            .setAutoCancel(true)
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            .setWhen(message.receivedAtMillis)
-            .addAction(markAsReadAction(message.threadId))
-            .addAction(replyAction(message.threadId))
-            .build()
+            val notification = NotificationCompat.Builder(context, NotificationChannels.INCOMING_MESSAGES)
+                .setSmallIcon(R.drawable.ic_notifications)
+                .setStyle(style)
+                .setContentIntent(openChatPendingIntent(message.threadId))
+                .setAutoCancel(true)
+                .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                .setWhen(message.receivedAtMillis)
+                .addAction(markAsReadAction(message.threadId))
+                .addAction(replyAction(message.threadId))
+                .build()
 
-        notificationManager.notify(notificationId(message.threadId), notification)
+            notificationManager.notify(notificationId(message.threadId), notification)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            Log.e(TAG, "Failed to post incoming-message notification for thread ${message.threadId}", error)
+        }
     }
 
     /** Called when a thread's chat screen is opened/resumed, or its "Mark as read" action is
@@ -93,7 +106,13 @@ class DefaultIncomingMessageNotifier @Inject constructor(
             ?.notification
         val restored = activeNotification
             ?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
-        return restored ?: NotificationCompat.MessagingStyle(Person.Builder().setName("").build())
+        // The platform requires this Person's name to be non-empty (IllegalArgumentException,
+        // crashing the process, otherwise) -- a plain "" here is what caused the crash this fixes.
+        // A constant, never anything derived from a value that could itself be blank.
+        return restored
+            ?: NotificationCompat.MessagingStyle(
+                Person.Builder().setName(context.getString(R.string.notification_self_name)).build(),
+            )
     }
 
     private fun canPostNotifications(): Boolean =
@@ -171,6 +190,15 @@ class DefaultIncomingMessageNotifier @Inject constructor(
         return match?.displayName ?: title
     }
 
+    /** Guarantees a non-blank [Person] name -- required by the platform, which throws
+     * `IllegalArgumentException` (crashing the process) for an empty one. [name] is a resolved
+     * contact/conversation display name that can legitimately come back blank (e.g. a
+     * zero-recipient conversation, or a contact saved with no name and a blank address); this
+     * falls back to [address], then to a fixed "Unknown" string if that's blank too. */
+    private fun safeName(name: String, address: String?): String =
+        name.ifBlank { address?.takeIf { it.isNotBlank() } }
+            ?: context.getString(R.string.notification_unknown_sender)
+
     private fun Message.displayText(): String = body.ifBlank {
         if (channel == MessageChannel.MMS && attachments.any { it.isImage }) {
             context.getString(R.string.notification_mms_photo_placeholder)
@@ -180,6 +208,7 @@ class DefaultIncomingMessageNotifier @Inject constructor(
     }
 
     private companion object {
+        const val TAG = "IncomingMessageNotifier"
         const val REQUEST_CODE_OFFSET_OPEN = 0
         const val REQUEST_CODE_OFFSET_MARK_READ = 1
         const val REQUEST_CODE_OFFSET_REPLY = 2
