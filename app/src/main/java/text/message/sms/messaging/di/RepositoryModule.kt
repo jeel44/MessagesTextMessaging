@@ -18,10 +18,12 @@ import text.message.sms.messaging.domain.repository.BackupRepository
 import text.message.sms.messaging.domain.repository.BlockedNumberRepository
 import text.message.sms.messaging.domain.repository.ContactRepository
 import text.message.sms.messaging.domain.repository.ConversationRepository
+import text.message.sms.messaging.domain.repository.IncomingMessageNotifier
 import text.message.sms.messaging.domain.repository.IncomingMessageSource
 import text.message.sms.messaging.domain.repository.MessageRepository
 import text.message.sms.messaging.domain.repository.MessageTransmitter
 import text.message.sms.messaging.domain.repository.SyncRepository
+import text.message.sms.messaging.service.DefaultIncomingMessageNotifier
 import javax.inject.Singleton
 
 /** Binds every domain interface to its data-layer implementation. */
@@ -68,4 +70,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindBackupRepository(impl: LocalBackupRepository): BackupRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindIncomingMessageNotifier(
+        impl: DefaultIncomingMessageNotifier,
+    ): IncomingMessageNotifier
 }

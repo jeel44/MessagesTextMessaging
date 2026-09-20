@@ -54,6 +54,20 @@ class SmsProviderGateway @Inject constructor(
         )
     }
 
+    /** Marks every unread row in [threadId] read in the system provider -- the incoming-message
+     * notification's "Mark as read" action calls this alongside the local
+     * [text.message.sms.messaging.domain.usecase.MarkRead] write (which only ever touches this
+     * app's own Room cache), so the platform's own read state agrees with this app's. */
+    fun markThreadRead(threadId: Long) {
+        val values = ContentValues().apply { put(Telephony.Sms.READ, 1) }
+        contentResolver.update(
+            Telephony.Sms.CONTENT_URI,
+            values,
+            "${Telephony.Sms.THREAD_ID} = ? AND ${Telephony.Sms.READ} = 0",
+            arrayOf(threadId.toString()),
+        )
+    }
+
     fun delete(providerId: Long) {
         contentResolver.delete(
             Telephony.Sms.CONTENT_URI,

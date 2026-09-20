@@ -243,6 +243,12 @@
     <string name="channel_incoming_messages">Incoming messages</string>
     <string name="channel_send_failures">Send failures</string>
 
+    <!-- Incoming-message notification -->
+    <string name="notification_mms_photo_placeholder">Photo</string>
+    <string name="notification_mms_placeholder">MMS</string>
+    <string name="notification_action_mark_read">Mark as read</string>
+    <string name="notification_action_reply">Reply</string>
+
     <!-- Settings -->
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_section_general">General</string>

@@ -33,7 +33,9 @@ import text.message.sms.messaging.domain.usecase.MarkRead
 import text.message.sms.messaging.domain.usecase.ResolveSendSubscription
 import text.message.sms.messaging.domain.usecase.SendMessage
 import text.message.sms.messaging.domain.usecase.SendSubscriptionResult
+import text.message.sms.messaging.domain.repository.IncomingMessageNotifier
 import text.message.sms.messaging.domain.usecase.SyncThreadPriority
+import text.message.sms.messaging.service.ActiveThreadTracker
 import text.message.sms.messaging.ui.navigation.MessagingDestination
 import text.message.sms.messaging.util.ChatOpenHint
 import text.message.sms.messaging.util.isPersonalChat
@@ -109,6 +111,8 @@ class ChatViewModel @Inject constructor(
     private val resolveSendSubscription: ResolveSendSubscription,
     private val simRepository: SimRepository,
     private val deleteMessages: DeleteMessages,
+    private val activeThreadTracker: ActiveThreadTracker,
+    private val incomingMessageNotifier: IncomingMessageNotifier,
     simPreferences: SimPreferences,
 ) : ViewModel() {
 
@@ -247,6 +251,24 @@ class ChatViewModel @Inject constructor(
         // INITIAL_MESSAGE_PAGE_SIZE below so nothing beyond the first frame's needs is imported
         // just to open the thread.
         viewModelScope.launch { syncThreadPriority(threadId, INITIAL_MESSAGE_PAGE_SIZE) }
+    }
+
+    /** Called from [ChatScreen]'s `LifecycleResumeEffect`, i.e. Activity-level resume, not this
+     * ViewModel's own (differently timed) creation -- navigating to a different destination that
+     * still keeps this one on the back stack, or the app being backgrounded, must not count as
+     * "still looking at this thread". Marks this thread active for
+     * [IncomingMessageNotifier.notify] to suppress against, and clears any notification already
+     * posted for it -- the same "opening it clears it" behavior as tapping the notification
+     * itself, since either way it's now on screen. */
+    fun onScreenResumed() {
+        activeThreadTracker.setActive(threadId)
+        incomingMessageNotifier.cancel(threadId)
+    }
+
+    /** Pair of [onScreenResumed] -- called from the same `LifecycleResumeEffect`'s
+     * `onPauseOrDispose`. */
+    fun onScreenPaused() {
+        activeThreadTracker.clear(threadId)
     }
 
     /** Long-press on a bubble that isn't already in selection mode: enters selection mode with

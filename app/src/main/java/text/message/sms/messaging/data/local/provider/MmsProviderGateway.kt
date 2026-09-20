@@ -321,6 +321,17 @@ class MmsProviderGateway @Inject constructor(
         )
     }
 
+    /** Mms-side counterpart to [SmsProviderGateway.markThreadRead] -- see its doc. */
+    fun markThreadRead(threadId: Long) {
+        val values = ContentValues().apply { put(Telephony.Mms.READ, 1) }
+        contentResolver.update(
+            Telephony.Mms.CONTENT_URI,
+            values,
+            "${Telephony.Mms.THREAD_ID} = ? AND ${Telephony.Mms.READ} = 0",
+            arrayOf(threadId.toString()),
+        )
+    }
+
     /** Provider id plus native (seconds) date of every MMS newer than [sinceDateSeconds], oldest
      * first -- the shape [text.message.sms.messaging.data.repository.TelephonySyncRepository]
      * needs for an incremental sync. [dateSeconds] rides along in this same single query so an

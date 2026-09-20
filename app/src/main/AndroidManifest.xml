@@ -146,6 +146,12 @@
             android:name=".data.receiver.MmsDownloadResultReceiver"
             android:exported="false" />
 
+        <!-- "Mark as read"/"Reply" actions on an IncomingMessageNotifier notification; only
+             this app's own explicit-component PendingIntents ever target it. -->
+        <receiver
+            android:name=".data.receiver.NotificationActionReceiver"
+            android:exported="false" />
+
         <!-- WorkManager's own persisted jobs already survive a reboot; this only re-verifies
              that survival, see the note on ScheduledSendWorker. BOOT_COMPLETED is a protected
              broadcast the system alone can send, so exporting it is not a write surface. -->

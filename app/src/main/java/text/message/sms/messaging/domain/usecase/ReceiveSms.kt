@@ -5,6 +5,7 @@ import text.message.sms.messaging.data.local.db.MessagingDatabase
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.repository.BlockedNumberRepository
 import text.message.sms.messaging.domain.repository.ConversationRepository
+import text.message.sms.messaging.domain.repository.IncomingMessageNotifier
 import text.message.sms.messaging.domain.repository.MessageRepository
 import javax.inject.Inject
 
@@ -17,15 +18,22 @@ class ReceiveSms @Inject constructor(
     private val conversationRepository: ConversationRepository,
     private val messageRepository: MessageRepository,
     private val blockedNumberRepository: BlockedNumberRepository,
+    private val incomingMessageNotifier: IncomingMessageNotifier,
 ) : UseCase {
 
     suspend operator fun invoke(params: Params): Message? {
         if (blockedNumberRepository.isBlocked(params.address)) return null
 
-        return database.withTransaction {
+        // The notifier runs after the transaction commits, and only for a genuinely new row
+        // (insertIncoming returns null for a duplicate) -- never inside it, since it does its own
+        // suspending reads (conversation lookup, active-notification lookup) that have no
+        // business holding a database transaction open.
+        val inserted = database.withTransaction {
             val threadId = conversationRepository.resolveThreadId(setOf(params.address))
             messageRepository.insertIncoming(params.toMessage(threadId))
         }
+        if (inserted != null) incomingMessageNotifier.notify(inserted)
+        return inserted
     }
 
     data class Params(

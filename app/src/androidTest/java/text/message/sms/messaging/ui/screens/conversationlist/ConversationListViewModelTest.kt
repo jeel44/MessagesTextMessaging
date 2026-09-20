@@ -120,7 +120,7 @@ class ConversationListViewModelTest {
                 attachmentUris: List<String>,
                 folder: MessageFolder,
             ): Message = throw UnsupportedOperationException("not used by this test")
-            override suspend fun insertIncoming(message: Message, notifyConversation: Boolean): Message =
+            override suspend fun insertIncoming(message: Message, notifyConversation: Boolean): Message? =
                 throw UnsupportedOperationException("not used by this test")
             override suspend fun setDeliveryState(messageId: Long, state: DeliveryState, errorCode: Int) = Unit
             override suspend fun setRead(threadIds: Collection<Long>, read: Boolean) = Unit

@@ -5,6 +5,7 @@ import text.message.sms.messaging.data.local.db.MessagingDatabase
 import text.message.sms.messaging.domain.repository.IncomingMessageSource
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.repository.BlockedNumberRepository
+import text.message.sms.messaging.domain.repository.IncomingMessageNotifier
 import text.message.sms.messaging.domain.repository.MessageRepository
 import javax.inject.Inject
 
@@ -17,6 +18,7 @@ class ReceiveMms @Inject constructor(
     private val incomingMessageSource: IncomingMessageSource,
     private val messageRepository: MessageRepository,
     private val blockedNumberRepository: BlockedNumberRepository,
+    private val incomingMessageNotifier: IncomingMessageNotifier,
 ) : UseCase {
 
     suspend operator fun invoke(providerUri: String): Message? {
@@ -24,8 +26,12 @@ class ReceiveMms @Inject constructor(
         val sender = pending.address
         if (sender != null && blockedNumberRepository.isBlocked(sender)) return null
 
-        return database.withTransaction {
+        // See ReceiveSms for why this runs after the transaction commits and only for a
+        // genuinely new (non-duplicate) row.
+        val inserted = database.withTransaction {
             messageRepository.insertIncoming(pending)
         }
+        if (inserted != null) incomingMessageNotifier.notify(inserted)
+        return inserted
     }
 }

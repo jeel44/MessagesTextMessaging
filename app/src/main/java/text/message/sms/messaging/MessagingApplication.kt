@@ -3,6 +3,7 @@ package text.message.sms.messaging
 import android.Manifest
 import android.app.Application
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
@@ -90,12 +91,31 @@ class MessagingApplication : Application(), Configuration.Provider {
             applicationScope.launch { syncContacts() }
         }
 
-        if (!defaultSmsAppGuard.isDefault) return // reads/writes below need the default-SMS role
+        // The observer only needs READ_SMS (it just watches content://sms/content://mms), unlike
+        // the sync/alarm work below, which needs the default-SMS role to actually write anything
+        // -- registering it whenever READ_SMS is granted means a message another app or the
+        // platform writes into the provider still reaches this app's Room cache even before (or
+        // without) this app ever holding the role. [ProviderChangeObserver.register] no-ops if
+        // already registered, so this can never double-register alongside the false->true
+        // transition path in [MainActivity.onResume]/[text.message.sms.messaging.ui.screens
+        // .conversationlist.ConversationListViewModel.refreshDefaultSmsAppStatus].
+        val isDefault = defaultSmsAppGuard.isDefault
+        val hasReadSms = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) ==
+            PackageManager.PERMISSION_GRANTED
+        if (hasReadSms) {
+            providerChangeObserver.register()
+        }
+        Log.d(TAG, "defaultSms=$isDefault observerRegistered=$hasReadSms")
 
-        providerChangeObserver.register()
+        if (!isDefault) return // writes below need the default-SMS role
+
         applicationScope.launch {
             syncMessages()
             rearmScheduledMessageAlarms()
         }
+    }
+
+    private companion object {
+        const val TAG = "MessagingApplication"
     }
 }

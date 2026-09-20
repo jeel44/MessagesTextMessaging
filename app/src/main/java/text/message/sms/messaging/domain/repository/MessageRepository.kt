@@ -47,10 +47,15 @@ interface MessageRepository {
     ): Message
 
     /** Persists an inbound message, including any [Message.attachments] it already carries
-     * (remapped onto the row's real id), and returns the stored row. [notifyConversation]
-     * controls whether the conversation's counters (snippet/last-message-time/unread-count) are
-     * updated as part of this call, or deferred to a caller doing a batched update. */
-    suspend fun insertIncoming(message: Message, notifyConversation: Boolean = true): Message
+     * (remapped onto the row's real id), and returns the stored row -- or `null` if it turned out
+     * to be a duplicate of a row already cached (a conflict on the same provider id/channel),
+     * in which case nothing about the existing row is touched. [notifyConversation] controls
+     * whether the conversation's counters (snippet/last-message-time/unread-count) are updated as
+     * part of this call, or deferred to a caller doing a batched update; it has no effect on a
+     * duplicate, which never updates the conversation. [text.message.sms.messaging.domain.usecase
+     * .ReceiveSms]/[text.message.sms.messaging.domain.usecase.ReceiveMms] rely on the `null` to
+     * know whether to post a notification for it. */
+    suspend fun insertIncoming(message: Message, notifyConversation: Boolean = true): Message?
 
     /** Bulk form of [insertIncoming] for a sync pass: every entry in [messages] is written inside
      * a single transaction instead of one commit per row, and none of them are written back to
@@ -60,7 +65,7 @@ interface MessageRepository {
      * not override this; [text.message.sms.messaging.data.repository.LocalMessageRepository]
      * overrides it with a real single-transaction batch insert. */
     suspend fun insertIncomingBatch(messages: List<Message>): List<Message> =
-        messages.map { insertIncoming(it, notifyConversation = false) }
+        messages.mapNotNull { insertIncoming(it, notifyConversation = false) }
 
     /** Which of [providerIds] (all the same [channel]) already have a cached row, in one call --
      * lets a bulk sync skip already-synced rows without a [findByProviderId] round trip per row.

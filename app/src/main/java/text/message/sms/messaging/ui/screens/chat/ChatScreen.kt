@@ -129,6 +129,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
@@ -218,6 +219,15 @@ fun ChatScreen(
     LaunchedEffect(viewModel.threadId) {
         NavPerfTracer.logChatFirstFrame(viewModel.threadId)
         NavPerfTracer.logChatListBlinkScreenComposed(viewModel.threadId)
+    }
+
+    // Activity-level resume/pause (backgrounding included), not this composable's own
+    // enter/leave -- see ChatViewModel.onScreenResumed's doc. Keyed on threadId so a screen
+    // instance somehow reused across threads (never happens today, ChatScreen is `key`-wrapped by
+    // threadId below) would still track the right one.
+    LifecycleResumeEffect(viewModel.threadId) {
+        viewModel.onScreenResumed()
+        onPauseOrDispose { viewModel.onScreenPaused() }
     }
 
     val messages by viewModel.messages.collectAsStateWithLifecycle()

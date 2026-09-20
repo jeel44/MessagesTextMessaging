@@ -132,10 +132,11 @@ class LocalMessageRepository @Inject constructor(
         draft.copy(id = localId, attachments = attachments)
     }
 
-    override suspend fun insertIncoming(message: Message, notifyConversation: Boolean): Message = withContext(Dispatchers.IO) {
+    override suspend fun insertIncoming(message: Message, notifyConversation: Boolean): Message? = withContext(Dispatchers.IO) {
         database.withTransaction {
             var localId = messageDao.insert(message.toEntity())
-            if (localId == -1L) {
+            val wasDuplicate = localId == -1L
+            if (wasDuplicate) {
                 localId = messageDao.findByProviderId(message.providerId, message.channel)?.message?.id ?: localId
             }
             val providerId = message.providerId.takeIf { it != 0L }
@@ -154,7 +155,7 @@ class LocalMessageRepository @Inject constructor(
             if (notifyConversation) {
                 refreshConversationCounters(message.threadId, message.body, message.receivedAtMillis)
             }
-            message.copy(id = localId, providerId = providerId, attachments = attachments)
+            if (wasDuplicate) null else message.copy(id = localId, providerId = providerId, attachments = attachments)
         }
     }
 
