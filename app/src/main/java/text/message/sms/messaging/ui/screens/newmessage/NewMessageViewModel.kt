@@ -8,10 +8,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.domain.model.Contact
 import text.message.sms.messaging.domain.repository.ContactRepository
+import text.message.sms.messaging.domain.repository.ContactsState
 import text.message.sms.messaging.domain.repository.ConversationRepository
 import text.message.sms.messaging.domain.usecase.SyncContacts
 import javax.inject.Inject
@@ -30,15 +32,18 @@ internal data class ContactRow(
 )
 
 /**
- * Backs [NewMessageScreen]. [ContactRepository.observeAll] is a live view over the local
- * contacts cache; nothing else in the app currently triggers [SyncContacts], so this screen
- * kicks off one refresh itself the first time contacts access is confirmed (see
- * [onContactsPermissionGranted]). The full contact list is then filtered in memory as the user
- * types -- cheap for a typical device contact list, and avoids re-querying Room per keystroke.
+ * Backs [NewMessageScreen]. [ContactRepository.contactsState] is a single, app-scoped hot cache
+ * (see [text.message.sms.messaging.data.repository.LocalContactRepository]) that outlives this
+ * ViewModel -- this class never runs its own contacts query, it only collects that shared state
+ * and filters it in memory as the user types, cheap for a typical device contact list and avoids
+ * re-querying Room per keystroke. [contactRows] and [isContactsLoading] both seed from
+ * [ContactRepository.contactsState]'s CURRENT value (a real [kotlinx.coroutines.flow.StateFlow]
+ * always has one), not `emptyList()`/`true` placeholders, so a screen opened well after launch --
+ * the overwhelmingly common case -- renders its first frame with the real list already in hand.
  */
 @HiltViewModel
 class NewMessageViewModel @Inject constructor(
-    contactRepository: ContactRepository,
+    private val contactRepository: ContactRepository,
     private val conversationRepository: ConversationRepository,
     private val syncContacts: SyncContacts,
 ) : ViewModel() {
@@ -46,12 +51,27 @@ class NewMessageViewModel @Inject constructor(
     private val _queryText = MutableStateFlow("")
     val queryText: StateFlow<String> = _queryText.asStateFlow()
 
-    private val allContacts: StateFlow<List<Contact>> = contactRepository.observeAll()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    /** Backs [NewMessageScreen]'s loading gate -- true only while
+     * [ContactRepository.contactsState] has never completed a refresh this process, so the
+     * screen can withhold "No contacts found" until a real, possibly non-empty, result is known. */
+    internal val isContactsLoading: StateFlow<Boolean> = contactRepository.contactsState
+        .map { it is ContactsState.Loading }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            contactRepository.contactsState.value is ContactsState.Loading,
+        )
 
-    internal val contactRows: StateFlow<List<ContactRow>> = combine(_queryText, allContacts) { query, contacts ->
-        buildRows(query.trim(), contacts)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    internal val contactRows: StateFlow<List<ContactRow>> = combine(
+        _queryText,
+        contactRepository.contactsState,
+    ) { query, state ->
+        buildRows(query.trim(), (state as? ContactsState.Loaded)?.contacts.orEmpty())
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        buildRows("", (contactRepository.contactsState.value as? ContactsState.Loaded)?.contacts.orEmpty()),
+    )
 
     private var hasSyncedContacts = false
 

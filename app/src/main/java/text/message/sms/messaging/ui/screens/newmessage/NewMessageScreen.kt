@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -78,6 +79,7 @@ fun NewMessageScreen(
 
     val queryText by viewModel.queryText.collectAsStateWithLifecycle()
     val contactRows by viewModel.contactRows.collectAsStateWithLifecycle()
+    val isContactsLoading by viewModel.isContactsLoading.collectAsStateWithLifecycle()
 
     var hasContactsPermission by remember { mutableStateOf(hasReadContactsPermission(context)) }
 
@@ -129,10 +131,13 @@ fun NewMessageScreen(
                 )
             }
 
-            if (hasContactsPermission && contactRows.isEmpty() && queryText.isBlank()) {
-                EmptyContacts()
-            } else {
-                LazyColumn(
+            when {
+                // Withheld until the first real ContactRepository.observeAll emission is known,
+                // so a not-yet-loaded contact list can never be mistaken for a genuinely empty
+                // one -- see ContactsLoadState.
+                hasContactsPermission && isContactsLoading -> LoadingContacts()
+                hasContactsPermission && contactRows.isEmpty() && queryText.isBlank() -> EmptyContacts()
+                else -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(vertical = 8.dp),
                 ) {
@@ -205,6 +210,16 @@ private fun ContactsPermissionNotice(onOpenSettings: () -> Unit, modifier: Modif
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun LoadingContacts(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator()
     }
 }
 

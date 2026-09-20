@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -15,6 +16,7 @@ import org.junit.Test
 import text.message.sms.messaging.domain.model.Contact
 import text.message.sms.messaging.domain.model.ContactGroup
 import text.message.sms.messaging.domain.repository.ContactRepository
+import text.message.sms.messaging.domain.repository.ContactsState
 import text.message.sms.messaging.domain.usecase.SyncContacts
 
 /**
@@ -43,7 +45,8 @@ class WelcomeViewModelTest {
     fun onContactsPermissionGranted_refreshesContactsFromProvider() = runTest {
         var refreshCalled = false
         val contactRepository = object : ContactRepository {
-            override fun observeAll(): Flow<List<Contact>> = MutableStateFlow(emptyList())
+            override val contactsState: StateFlow<ContactsState> =
+                MutableStateFlow(ContactsState.Loaded(emptyList()))
             override suspend fun findByAddress(address: String): Contact? = null
             override fun search(query: String): Flow<List<Contact>> = MutableStateFlow(emptyList())
             override fun observeGroups(): Flow<List<ContactGroup>> = MutableStateFlow(emptyList())

@@ -13,6 +13,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -44,6 +45,7 @@ import text.message.sms.messaging.domain.model.BlockReason
 import text.message.sms.messaging.domain.model.BlockedNumber
 import text.message.sms.messaging.domain.repository.BlockedNumberRepository
 import text.message.sms.messaging.domain.repository.ContactRepository
+import text.message.sms.messaging.domain.repository.ContactsState
 import text.message.sms.messaging.domain.repository.ConversationRepository
 import text.message.sms.messaging.domain.repository.MessageRepository
 import text.message.sms.messaging.domain.repository.SyncProgress
@@ -137,7 +139,8 @@ class ConversationListViewModelTest {
         // exercised by the delete/undo flow this test covers, so a stub ContactRepository is
         // enough to satisfy the constructor.
         val contactRepository = object : ContactRepository {
-            override fun observeAll(): Flow<List<Contact>> = MutableStateFlow(emptyList())
+            override val contactsState: StateFlow<ContactsState> =
+                MutableStateFlow(ContactsState.Loaded(emptyList()))
             override suspend fun findByAddress(address: String): Contact? = null
             override fun search(query: String): Flow<List<Contact>> = MutableStateFlow(emptyList())
             override fun observeGroups(): Flow<List<ContactGroup>> = MutableStateFlow(emptyList())
