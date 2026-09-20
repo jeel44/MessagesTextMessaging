@@ -4,6 +4,8 @@ import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import text.message.sms.messaging.data.local.db.MessagingDatabase
@@ -126,7 +128,10 @@ class LocalConversationRepository @Inject constructor(
     private fun Flow<List<ConversationWithRecipients>>.withContacts(): Flow<List<Conversation>> =
         combine(contactsByComparableSuffix()) { conversations, contacts ->
             conversations.map { it.toDomain(contacts) }
-        }.flowOn(Dispatchers.Default)
+        }
+            .reuseUnchangedInstances()
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.Default)
 
     /**
      * Contacts keyed by [PhoneNumbers.comparableSuffix], not [PhoneNumbers.normalize].
@@ -170,4 +175,32 @@ class LocalConversationRepository @Inject constructor(
                 }
             }
         }
+}
+
+/**
+ * Room's Flow invalidation is table-level: any write to `conversations` or `contacts` re-runs the
+ * whole query, and [text.message.sms.messaging.data.mapper.toDomain] remaps every row into a
+ * brand-new [Conversation]/[Recipient] instance -- even for rows nothing actually changed about.
+ * [Conversation] is `@Immutable` with structural `equals()`, so this keeps a per-collection
+ * threadId->[Conversation] cache and swaps a freshly-mapped instance back for the previous
+ * emission's own instance whenever it's content-equal, letting Compose's row-level skip actually
+ * engage for every row that didn't change (an unstable-but-immutable parameter still skips on
+ * instance equality). The cache lives inside this [flow] builder's block, so it's created fresh
+ * per collector -- no state shared across two observers of the same flow, or leaking across
+ * tests. Rebuilding it from just the current emission each call (rather than mutating in place)
+ * also means a thread that disappeared from the list is naturally dropped from the cache instead
+ * of lingering as a stale entry.
+ */
+internal fun Flow<List<Conversation>>.reuseUnchangedInstances(): Flow<List<Conversation>> = flow {
+    val cache = mutableMapOf<Long, Conversation>()
+    collect { conversations ->
+        val reused = conversations.map { conversation ->
+            cache[conversation.threadId]?.takeIf { it == conversation } ?: conversation
+        }
+        cache.clear()
+        for (conversation in reused) {
+            cache[conversation.threadId] = conversation
+        }
+        emit(reused)
+    }
 }
