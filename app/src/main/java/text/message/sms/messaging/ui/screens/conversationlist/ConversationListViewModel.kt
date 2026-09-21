@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.data.local.datastore.SwipeActionPreference
 import text.message.sms.messaging.data.local.datastore.SwipeActionPreferences
 import text.message.sms.messaging.data.local.provider.ProviderChangeObserver
@@ -244,13 +245,15 @@ class ConversationListViewModel @Inject constructor(
                 else -> HomeBodyState.EmptyInbox
             }
         }
-        Log.d(
-            "HomeState",
-            "t=${SystemClock.elapsedRealtime()} state=$state " +
-                "inboxState=${inboxStateValue::class.simpleName} " +
-                "items=${(inboxStateValue as? InboxState.Loaded)?.items?.size ?: 0} " +
-                "syncProgress=$sync isDefaultSmsApp=$isDefaultNow",
-        )
+        if (BuildConfig.DEBUG) {
+            Log.d(
+                "HomeState",
+                "t=${SystemClock.elapsedRealtime()} state=$state " +
+                    "inboxState=${inboxStateValue::class.simpleName} " +
+                    "items=${(inboxStateValue as? InboxState.Loaded)?.items?.size ?: 0} " +
+                    "syncProgress=$sync isDefaultSmsApp=$isDefaultNow",
+            )
+        }
         state
     }.stateIn(
         scope = viewModelScope,

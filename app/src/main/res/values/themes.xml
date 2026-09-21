@@ -6,4 +6,17 @@
       MessagingTheme in ui/theme.
     -->
     <style name="Theme.Messaging" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!--
+      MainActivity's manifest theme, used only for the instant between process start and
+      installSplashScreen() taking over (see MainActivity.onCreate). postSplashScreenTheme hands
+      control back to Theme.Messaging automatically once that call runs, so nothing else in the app
+      ever observes this theme. windowSplashScreenAnimatedIcon reuses the launcher icon rather than
+      a dedicated asset; there isn't one yet.
+    -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.Messaging</item>
+    </style>
 </resources>

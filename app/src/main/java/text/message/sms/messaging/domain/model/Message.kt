@@ -1,6 +1,9 @@
 package text.message.sms.messaging.domain.model
 
+import androidx.compose.runtime.Immutable
+
 /** A single SMS or MMS entry belonging to a [Conversation]. */
+@Immutable
 data class Message(
     val id: Long,
     val threadId: Long,

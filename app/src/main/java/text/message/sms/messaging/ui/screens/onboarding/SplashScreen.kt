@@ -34,15 +34,18 @@ import androidx.compose.ui.unit.dp
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import text.message.sms.messaging.R
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 
 /**
- * The app's first screen. Shows the brand mark for at least [SPLASH_DELAY_MILLIS], then hands off
- * to [onOnboardingComplete] if onboarding already finished on a previous launch, or
- * [onOnboardingIncomplete] otherwise.
+ * The app's first destination, but no longer its first *visible* screen -- MainActivity's
+ * `installSplashScreen()` keeps the system splash (brand icon, see `Theme.App.Starting` in
+ * themes.xml) on screen for exactly as long as this composable takes to read the onboarding flag
+ * and navigate, so this UI is a fallback for that brief gap rather than something a user is
+ * expected to actually see. It hands off to [onOnboardingComplete] if onboarding already finished
+ * on a previous launch, or [onOnboardingIncomplete] otherwise -- with no artificial delay, so a
+ * returning user reaches the conversation list as soon as the flag read resolves.
  *
  * The full-bleed background is [MaterialTheme.colorScheme.primary] rather than
  * `primaryContainer`: `primary`/`onPrimary` is the pairing Material 3 guarantees legible contrast
@@ -56,7 +59,6 @@ fun SplashScreen(onOnboardingComplete: () -> Unit, onOnboardingIncomplete: () ->
 
     LaunchedEffect(Unit) {
         val isOnboardingComplete = onboardingPreferences.isOnboardingComplete.first()
-        delay(SPLASH_DELAY_MILLIS)
         if (isOnboardingComplete) onOnboardingComplete() else onOnboardingIncomplete()
     }
 
@@ -148,4 +150,3 @@ private fun SplashFallbackMark(modifier: Modifier = Modifier) {
 }
 
 private val SPLASH_MARK_SIZE = 180.dp
-private const val SPLASH_DELAY_MILLIS = 2_000L

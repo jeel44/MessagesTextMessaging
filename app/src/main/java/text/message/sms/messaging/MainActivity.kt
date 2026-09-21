@@ -2,6 +2,7 @@ package text.message.sms.messaging
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -13,10 +14,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
@@ -35,6 +38,7 @@ import text.message.sms.messaging.service.DefaultSmsAppGuard
 import text.message.sms.messaging.ui.navigation.MessagingDestination
 import text.message.sms.messaging.ui.navigation.MessagingNavHost
 import text.message.sms.messaging.ui.theme.AppTheme
+import text.message.sms.messaging.util.ColdStartTracer
 import javax.inject.Inject
 
 /**
@@ -81,8 +85,23 @@ class MainActivity : ComponentActivity() {
      * tree, exactly like [text.message.sms.messaging.util.ChatOpenHint]. */
     private var pendingThreadId by mutableStateOf<Long?>(null)
 
+    /** True until navigation has moved off [MessagingDestination.Splash] -- see the
+     * `setKeepOnScreenCondition` call below. Starts true so the system splash installed by
+     * [installSplashScreen] (see `Theme.App.Starting` in themes.xml) stays up across the whole
+     * gap between process start and [text.message.sms.messaging.ui.screens.onboarding.SplashScreen]
+     * resolving the onboarding flag and navigating away, instead of a blank frame or a second,
+     * separately-timed Compose splash ever being visible. */
+    private var keepSystemSplashOnScreen by mutableStateOf(true)
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        ColdStartTracer.mark("MainActivity.onCreate:start")
+        // Must run before super.onCreate() -- this is what lets the OS keep showing the themed
+        // splash (icon + background from Theme.App.Starting) instead of a blank window while the
+        // rest of onCreate/setContent below runs.
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+        ColdStartTracer.mark("MainActivity.onCreate:afterSuper")
+        splashScreen.setKeepOnScreenCondition { keepSystemSplashOnScreen }
         // Seeded here, before the onCreate-following onResume ever runs, so that first onResume
         // never mistakes an already-granted role for a fresh grant and fires a redundant sync.
         wasDefaultSmsApp = defaultSmsAppGuard.isDefault
@@ -94,8 +113,24 @@ class MainActivity : ComponentActivity() {
         // AppTheme below) already reflects it, instead of momentarily showing
         // collectAsStateWithLifecycle's own initialValue default before the flow's first real
         // emission lands (a visible light/dark flash on the app's first frame otherwise).
+        ColdStartTracer.mark("MainActivity.onCreate:beforeThemeRunBlocking")
         val initialThemePreference = runBlocking { themePreferences.themePreference.first() }
+        ColdStartTracer.mark("MainActivity.onCreate:afterThemeRunBlocking")
+        // First (and only, for this investigation) OnPreDrawListener on the root view: fires just
+        // before the window's first real draw pass, the same signal `adb shell am start -W`'s
+        // TotalTime is itself based on -- see ColdStartTracer's doc comment.
+        window.decorView.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                window.decorView.viewTreeObserver.removeOnPreDrawListener(this)
+                ColdStartTracer.mark("MainActivity:firstFrame(OnPreDraw)")
+                return true
+            }
+        })
+        ColdStartTracer.mark("MainActivity.onCreate:beforeSetContent")
         setContent {
+            remember {
+                ColdStartTracer.mark("MainActivity:firstComposition(setContent root)")
+            }
             // Live over ThemePreferences.themePreference, not a one-shot read -- a change made in
             // Settings' theme picker recomposes this the moment DataStore commits it, so the
             // whole app recolors immediately rather than only on the next cold start.
@@ -134,6 +169,17 @@ class MainActivity : ComponentActivity() {
                     // is already showing.
                     val navController = rememberNavController()
 
+                    // Dismisses the system splash (see keepSystemSplashOnScreen/installSplashScreen
+                    // above) the moment the graph moves off Splash -- whichever of
+                    // onOnboardingComplete/onOnboardingIncomplete it took. Runs once per
+                    // composition, not once per back-stack change: by the time this has fired the
+                    // splash is gone for good, and Splash is never navigated back to.
+                    LaunchedEffect(navController) {
+                        navController.currentBackStackEntryFlow
+                            .first { it.destination.route != MessagingDestination.Splash.route }
+                        keepSystemSplashOnScreen = false
+                    }
+
                     // Waits for the graph to actually reach ConversationList before pushing Chat
                     // on top -- at a cold start the graph begins at Splash and only gets there
                     // asynchronously (it awaits onboarding's own DataStore read), and navigating
@@ -153,6 +199,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        ColdStartTracer.mark("MainActivity.onCreate:end (afterSetContent)")
     }
 
     override fun onNewIntent(intent: Intent) {

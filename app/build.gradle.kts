@@ -30,6 +30,19 @@ android {
                 enable = false
             }
         }
+
+        // Release-shaped but locally installable, for on-device performance measurement only (see
+        // the Phase 2 cold-start investigation) -- initWith(release) so it inherits release's
+        // settings, including optimization.enable=false above, unchanged: R8 is deliberately NOT
+        // enabled here, that is a separate, riskier change tracked on its own. Only debuggable and
+        // signing differ from release, so this measures the same dex/resource shape a release
+        // build would actually ship without needing a real release signing key on this machine.
+        create("benchmark") {
+            initWith(getByName("release"))
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+        }
     }
 
     compileOptions {
@@ -39,6 +52,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     // MigrationTestHelper (see MessagingDatabaseMigrationTest) reads each version's exported
@@ -70,6 +84,7 @@ baselineProfile {
 dependencies {
     // AndroidX foundation
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Dark-theme counterpart of values/colors.xml's splash_background: matches
+         ui/theme/Color.kt's SeedBlueDark, the dark-theme primary seed. -->
+    <color name="splash_background">#FFA8C7FA</color>
+
+</resources>

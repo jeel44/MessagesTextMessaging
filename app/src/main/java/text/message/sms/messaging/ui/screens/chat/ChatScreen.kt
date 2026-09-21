@@ -89,7 +89,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -266,6 +268,13 @@ fun ChatScreen(
     val simPickerVisible by viewModel.simPickerVisible.collectAsStateWithLifecycle()
     val selectedIds by viewModel.selectedIds.collectAsStateWithLifecycle()
     val isSelectionMode = selectedIds.isNotEmpty()
+
+    // A stable-identity State handle for the message list below, so toggling one message's
+    // selection doesn't force every visible ChatMessageRow to re-execute -- see ChatMessageRow's
+    // own derivedStateOf read, mirroring ConversationListScreen's selectedThreadIds pattern.
+    // rememberUpdatedState (rather than re-collecting viewModel.selectedIds a second time) keeps
+    // this in sync with the selectedIds above without a second flow collector.
+    val selectedIdsState = rememberUpdatedState(selectedIds)
 
     var showAttachmentSheet by remember { mutableStateOf(false) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
@@ -447,7 +456,7 @@ fun ChatScreen(
                     onLoadOlder = viewModel::loadOlderMessages,
                     isPersonal = isPersonal,
                     latestOtpMessageId = latestOtpMessageId,
-                    selectedIds = selectedIds,
+                    selectedIds = selectedIdsState,
                     isSelectionMode = isSelectionMode,
                     onToggleSelection = viewModel::toggleSelection,
                     onStartSelection = viewModel::startSelection,
@@ -575,7 +584,11 @@ internal fun ChatMessageList(
     ),
     isPersonal: Boolean = true,
     latestOtpMessageId: Long? = null,
-    selectedIds: Set<Long> = emptySet(),
+    // State<Set<Long>>, not a plain Set -- so toggling one message's selection doesn't force this
+    // whole list (and therefore every visible row) to recompose; each ChatMessageRow reads
+    // .value itself, scoped to only its own membership, mirroring ConversationListScreen's
+    // selectedThreadIds parameter on SwipeableConversationRow.
+    selectedIds: State<Set<Long>> = remember { mutableStateOf(emptySet()) },
     isSelectionMode: Boolean = false,
     onToggleSelection: (Long) -> Unit = {},
     onStartSelection: (Long) -> Unit = {},
@@ -667,7 +680,15 @@ internal fun ChatMessageList(
             .testTag(ChatMessageListTestTag),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 16.dp),
     ) {
-        items(chatItems, key = { it.key }) { item ->
+        items(
+            items = chatItems,
+            key = { it.key },
+            // Both branches below emit the same composable shape regardless of isOutgoing/
+            // attachments (ChatMessageRow -> one shared MessageBubble call, just with different
+            // parameter values) -- so "bubble" is the real structural granularity here, matching
+            // ConversationListScreen's own single contentType per row shape, not per data variant.
+            contentType = { if (it is ChatListItem.DateHeader) "header" else "bubble" },
+        ) { item ->
             when (item) {
                 is ChatListItem.DateHeader -> ChatDateSeparator(item.timestampMillis)
                 is ChatListItem.Bubble -> ChatMessageRow(
@@ -677,7 +698,7 @@ internal fun ChatMessageList(
                     onAttachmentClick = onAttachmentClick,
                     showOtpCopy = !isPersonal && item.message.id == latestOtpMessageId,
                     isSelectionMode = isSelectionMode,
-                    isSelected = item.message.id in selectedIds,
+                    selectedIds = selectedIds,
                     onToggleSelection = { onToggleSelection(item.message.id) },
                     onStartSelection = { onStartSelection(item.message.id) },
                 )
@@ -1037,9 +1058,11 @@ private fun ChatPeerAvatar(conversation: Conversation?, size: Dp, modifier: Modi
 /** One [Message], or a date-section label in front of a run of messages sharing a day.
  * `internal` (rather than `private`) so [ChatMessageListScrollTest] can build a plain list of
  * these directly, without a [ChatViewModel] or real [Message] data. */
+@Immutable
 internal sealed interface ChatListItem {
     val key: Any
 
+    @Immutable
     data class DateHeader(val timestampMillis: Long) : ChatListItem {
         override val key: Any get() = "header_$timestampMillis"
     }
@@ -1047,6 +1070,7 @@ internal sealed interface ChatListItem {
     /** [isFirstInRun] and [isLastInRun] both flip at the same run boundaries as the date
      * separators ([groupMessages]'s `isRunBoundary`) -- a run never spans a date-separator, so a
      * bubble right after one always opens a fresh run too. */
+    @Immutable
     data class Bubble(val message: Message, val isFirstInRun: Boolean = true, val isLastInRun: Boolean = true) : ChatListItem {
         override val key: Any get() = message.id
     }
@@ -1102,10 +1126,16 @@ private fun ChatMessageRow(
     modifier: Modifier = Modifier,
     showOtpCopy: Boolean = false,
     isSelectionMode: Boolean = false,
-    isSelected: Boolean = false,
+    selectedIds: State<Set<Long>> = remember { mutableStateOf(emptySet()) },
     onToggleSelection: () -> Unit = {},
     onStartSelection: () -> Unit = {},
 ) {
+    // Reads selectedIds.value inside derivedStateOf rather than as a plain Boolean parameter, so
+    // this row only recomposes when its own membership actually flips -- not on every selection
+    // change elsewhere in the list. Mirrors ConversationListScreen's SwipeableConversationRow.
+    val isSelected by remember(message.id) {
+        derivedStateOf { message.id in selectedIds.value }
+    }
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+      System splash background (see MainActivity's installSplashScreen() and Theme.App.Starting
+      below). The OS draws this before the process/Compose exists, so it must be a static color:
+      matches ui/theme/Color.kt's SeedBlueLight, the light-theme primary/Google-Messages-blue seed
+      every accent-independent brand surface uses.
+    -->
+    <color name="splash_background">#FF0B57D0</color>
+
+</resources>

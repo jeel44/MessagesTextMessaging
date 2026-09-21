@@ -18,6 +18,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.ui.screens.archived.ArchivedScreen
 import text.message.sms.messaging.ui.screens.chat.ChatScreen
 import text.message.sms.messaging.ui.screens.chat.MediaViewerScreen
@@ -60,8 +61,10 @@ fun MessagingNavHost(
     navController: NavHostController = rememberNavController(),
 ) {
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-    LaunchedEffect(currentRoute) {
-        Log.d("NavRoute", "t=${SystemClock.elapsedRealtime()} route=$currentRoute")
+    if (BuildConfig.DEBUG) {
+        LaunchedEffect(currentRoute) {
+            Log.d("NavRoute", "t=${SystemClock.elapsedRealtime()} route=$currentRoute")
+        }
     }
 
     NavHost(

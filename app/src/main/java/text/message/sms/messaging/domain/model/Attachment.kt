@@ -1,6 +1,9 @@
 package text.message.sms.messaging.domain.model
 
+import androidx.compose.runtime.Immutable
+
 /** A single MMS part: an image, video, audio clip, vCard or text segment. */
+@Immutable
 data class Attachment(
     val id: Long,
     val messageId: Long,
