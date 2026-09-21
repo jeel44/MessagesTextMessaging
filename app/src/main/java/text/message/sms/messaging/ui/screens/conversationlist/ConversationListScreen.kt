@@ -262,6 +262,15 @@ fun ConversationListScreen(
                     )
                     snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
                 }
+
+                is ConversationListEvent.SelectionBlockSkippedGroups -> {
+                    val message = context.resources.getQuantityString(
+                        R.plurals.home_selection_block_skipped_groups_snackbar,
+                        event.skippedCount,
+                        event.skippedCount,
+                    )
+                    snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
+                }
             }
         }
     }
@@ -302,6 +311,11 @@ fun ConversationListScreen(
                     totalCount = conversations.size,
                     allRead = selectedConversations.isNotEmpty() && selectedConversations.all { !it.hasUnread },
                     allPinned = selectedConversations.isNotEmpty() && selectedConversations.all { it.isPinned },
+                    // A pure-group selection has nothing blockable in it (see MarkBlocked's doc) --
+                    // disabled rather than silently doing nothing on tap. A mixed selection stays
+                    // enabled: blockSelection() blocks just the non-group threads and the ViewModel
+                    // surfaces the rest via ConversationListEvent.SelectionBlockSkippedGroups.
+                    blockEnabled = selectedConversations.any { !it.isGroup },
                     onClose = viewModel::clearSelection,
                     onArchive = viewModel::archiveSelection,
                     onDelete = { showDeleteConfirm = true },
@@ -525,6 +539,7 @@ private fun HomeSelectionTopBar(
     totalCount: Int,
     allRead: Boolean,
     allPinned: Boolean,
+    blockEnabled: Boolean,
     onClose: () -> Unit,
     onArchive: () -> Unit,
     onDelete: () -> Unit,
@@ -616,7 +631,7 @@ private fun HomeSelectionTopBar(
                             showOverflow = false
                             onTogglePin()
                         },
-                        SelectionMenuItem(blockIcon, blockLabel) {
+                        SelectionMenuItem(blockIcon, blockLabel, enabled = blockEnabled) {
                             showOverflow = false
                             onBlock()
                         },
@@ -1327,6 +1342,15 @@ internal fun ConversationRow(
         Spacer(modifier = Modifier.width(8.dp))
 
         Column(horizontalAlignment = Alignment.End) {
+            if (conversation.isPinned) {
+                Icon(
+                    imageVector = Icons.Outlined.PushPin,
+                    contentDescription = stringResource(R.string.home_pinned_content_description),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(12.dp),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
             Text(
                 text = formatConversationDate(conversation.lastMessageAtMillis),
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),

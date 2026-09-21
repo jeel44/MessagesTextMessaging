@@ -129,6 +129,93 @@ class LocalConversationRepositoryTest {
         assertEquals(listOf(2L, 4L, 1L, 3L), inbox.map { it.conversation.threadId })
     }
 
+    /** [ConversationDao.observeInbox]'s `ORDER BY is_pinned DESC, pinned_at DESC, last_message_at
+     * DESC` -- pinned threads sort by when they were pinned (newest pin first), never by their own
+     * `last_message_at`, and unpinned threads still fall back to `last_message_at DESC` among
+     * themselves. Rows inserted in a deliberately scrambled order so the assertion can't pass by
+     * accident. */
+    @Test
+    fun observeInbox_pinnedThreadsSortByPinTimeAheadOfUnpinnedByMessageTime() = runBlocking {
+        database.conversationDao().upsertAll(
+            listOf(
+                ConversationEntity(threadId = 1L, lastMessageAtMillis = 9_000L, isPinned = false),
+                ConversationEntity(threadId = 2L, lastMessageAtMillis = 1_000L, isPinned = true, pinnedAtMillis = 5_000L),
+                ConversationEntity(threadId = 3L, lastMessageAtMillis = 2_000L, isPinned = true, pinnedAtMillis = 8_000L),
+                ConversationEntity(threadId = 4L, lastMessageAtMillis = 6_000L, isPinned = false),
+            ),
+        )
+
+        val inbox = database.conversationDao().observeInbox().first()
+
+        // 3 pinned most recently, then 2 (also pinned, but earlier), then the two unpinned threads
+        // by their own last_message_at -- 1 (9_000) before 4 (6_000).
+        assertEquals(listOf(3L, 2L, 1L, 4L), inbox.map { it.conversation.threadId })
+    }
+
+    /** [LocalConversationRepository.setPinned] sets `pinned_at` to "now" on pin and resets it to 0
+     * on unpin -- the DAO write itself ([ConversationDao.setPinned]) is a plain, deterministic
+     * column set, so the "now" has to come from the repository layer this test exercises. */
+    @Test
+    fun setPinned_setsPinnedAtOnPinAndClearsItOnUnpin() = runBlocking {
+        database.conversationDao().upsert(ConversationEntity(threadId = existingThreadId, lastMessageAtMillis = 1L))
+
+        repository.setPinned(listOf(existingThreadId), pinned = true)
+        val pinned = database.conversationDao().findByThreadId(existingThreadId)?.conversation
+        assertTrue(pinned?.isPinned == true)
+        assertTrue((pinned?.pinnedAtMillis ?: 0L) > 0L)
+
+        repository.setPinned(listOf(existingThreadId), pinned = false)
+        val unpinned = database.conversationDao().findByThreadId(existingThreadId)?.conversation
+        assertTrue(unpinned?.isPinned == false)
+        assertEquals(0L, unpinned?.pinnedAtMillis)
+    }
+
+    /** [TelephonySyncRepository.flushConversationUpdates] (via [refreshCountersBatch]) must never
+     * reset a thread's pin/block state back to its defaults -- it only ever updates
+     * snippet/last-message-time/unread-count, `.copy()`-ing off the row already in the database
+     * rather than constructing a fresh [ConversationEntity]. Regression coverage for the same bug
+     * class [resolveThreadId_doesNotDisturbExistingConversation] guards for `resolveThreadId`. */
+    @Test
+    fun refreshCountersBatch_preservesPinnedAndBlockedState() = runBlocking {
+        database.conversationDao().upsert(
+            ConversationEntity(
+                threadId = existingThreadId,
+                lastMessageAtMillis = 1_000L,
+                isPinned = true,
+                pinnedAtMillis = 5_000L,
+                isBlocked = true,
+            ),
+        )
+
+        repository.refreshCountersBatch(
+            mapOf(existingThreadId to ConversationCounterUpdate(snippet = "new message", lastMessageAtMillis = 2_000L)),
+        )
+
+        val conversation = database.conversationDao().findByThreadId(existingThreadId)?.conversation
+        assertTrue(conversation?.isPinned == true)
+        assertEquals(5_000L, conversation?.pinnedAtMillis)
+        assertTrue(conversation?.isBlocked == true)
+        assertEquals("new message", conversation?.snippet)
+    }
+
+    /** [ConversationDao.getBlockedConversations] backs the eventual Blocked list screen (Part 3) --
+     * excluded from [ConversationDao.observeInbox] but still queryable on its own. */
+    @Test
+    fun getBlockedConversations_returnsOnlyBlockedThreads() = runBlocking {
+        database.conversationDao().upsertAll(
+            listOf(
+                ConversationEntity(threadId = 1L, lastMessageAtMillis = 1_000L, isBlocked = true),
+                ConversationEntity(threadId = 2L, lastMessageAtMillis = 2_000L, isBlocked = false),
+            ),
+        )
+
+        val blocked = database.conversationDao().getBlockedConversations().first()
+
+        assertEquals(listOf(1L), blocked.map { it.conversation.threadId })
+        val inbox = database.conversationDao().observeInbox().first()
+        assertTrue(inbox.none { it.conversation.threadId == 1L })
+    }
+
     /**
      * Regression test for the bug [LocalConversationRepository.refreshCountersBatch] exists to
      * fix: [text.message.sms.messaging.data.repository.TelephonySyncRepository.syncAll] used to

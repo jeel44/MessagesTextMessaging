@@ -15,12 +15,12 @@ import text.message.sms.messaging.data.local.provider.MmsProviderGateway
 import text.message.sms.messaging.data.local.provider.SmsProviderGateway
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.model.MessageChannel
-import text.message.sms.messaging.domain.repository.BlockedNumberRepository
 import text.message.sms.messaging.domain.repository.ConversationCounterUpdate
 import text.message.sms.messaging.domain.repository.ConversationRepository
 import text.message.sms.messaging.domain.repository.MessageRepository
 import text.message.sms.messaging.domain.repository.SyncProgress
 import text.message.sms.messaging.domain.repository.SyncRepository
+import text.message.sms.messaging.domain.usecase.BlockedSenderGate
 import text.message.sms.messaging.service.DefaultSmsAppGuard
 import text.message.sms.messaging.util.PhoneNumbers
 import javax.inject.Inject
@@ -50,7 +50,7 @@ class TelephonySyncRepository @Inject constructor(
     private val mmsProviderGateway: MmsProviderGateway,
     private val messageRepository: MessageRepository,
     private val conversationRepository: ConversationRepository,
-    private val blockedNumberRepository: BlockedNumberRepository,
+    private val blockedSenderGate: BlockedSenderGate,
     private val syncStateDao: SyncStateDao,
     private val defaultSmsAppGuard: DefaultSmsAppGuard,
 ) : SyncRepository {
@@ -232,10 +232,12 @@ class TelephonySyncRepository @Inject constructor(
 
     /**
      * Prepares a chunk of raw SMS rows -- skipping already-cached ones (one batched existence
-     * check for the whole chunk, not one query per row), blocked senders, and addressless rows --
-     * then inserts everything that survived in a single transaction via
-     * [MessageRepository.insertIncomingBatch]. [stats] is mutated in place for the caller's
-     * running completed/failed/watermark bookkeeping across chunks.
+     * check for the whole chunk, not one query per row) and addressless rows -- then inserts
+     * everything that survived in a single transaction via [MessageRepository.insertIncomingBatch].
+     * A blocked sender's row is still inserted (see [BlockedSenderGate]'s doc); its resolved thread
+     * is marked blocked in one batched [BlockedSenderGate.markThreadsBlocked] call after the insert
+     * rather than one write per row. [stats] is mutated in place for the caller's running
+     * completed/failed/watermark bookkeeping across chunks.
      */
     private suspend fun prepareAndInsertSmsChunk(
         chunk: List<Message>,
@@ -245,21 +247,20 @@ class TelephonySyncRepository @Inject constructor(
         if (chunk.isEmpty()) return emptyList()
         val existing = messageRepository.findExistingProviderIds(chunk.map { it.providerId }, MessageChannel.SMS)
         val toInsert = mutableListOf<Message>()
+        val blockedThreadIds = mutableSetOf<Long>()
 
         for (raw in chunk) {
             try {
                 if (raw.providerId !in existing) {
-                    val blocked = raw.address != null && blockedNumberRepository.isBlocked(raw.address)
-                    if (!blocked) {
-                        val addresses = setOfNotNull(raw.address)
-                        if (addresses.isEmpty()) {
-                            // No address means there is nothing to resolve a thread from -- see
-                            // the class doc on TelephonySyncRepository's original syncSms.
-                            Log.w(TAG, "Skipping SMS provider id ${raw.providerId}: no address, cannot resolve a thread")
-                        } else {
-                            val resolvedThreadId = resolveThreadIdCached(threadIdCache, addresses)
-                            toInsert += raw.copy(threadId = resolvedThreadId)
-                        }
+                    val addresses = setOfNotNull(raw.address)
+                    if (addresses.isEmpty()) {
+                        // No address means there is nothing to resolve a thread from -- see
+                        // the class doc on TelephonySyncRepository's original syncSms.
+                        Log.w(TAG, "Skipping SMS provider id ${raw.providerId}: no address, cannot resolve a thread")
+                    } else {
+                        val resolvedThreadId = resolveThreadIdCached(threadIdCache, addresses)
+                        toInsert += raw.copy(threadId = resolvedThreadId)
+                        if (blockedSenderGate.isBlocked(raw.address)) blockedThreadIds += resolvedThreadId
                     }
                 }
                 if (!stats.smsWatermarkStalled) {
@@ -275,7 +276,9 @@ class TelephonySyncRepository @Inject constructor(
             stats.completed++
         }
 
-        return insertChunkSafely(toInsert)
+        val inserted = insertChunkSafely(toInsert)
+        blockedSenderGate.markThreadsBlocked(blockedThreadIds)
+        return inserted
     }
 
     /** MMS equivalent of [prepareAndInsertSmsChunk]. The existence check runs *before*
@@ -289,11 +292,15 @@ class TelephonySyncRepository @Inject constructor(
         if (chunk.isEmpty()) return emptyList()
         val existing = messageRepository.findExistingProviderIds(chunk.map { it.providerId }, MessageChannel.MMS)
         val toInsert = mutableListOf<Message>()
+        val blockedThreadIds = mutableSetOf<Long>()
 
         for (ref in chunk) {
             try {
                 if (ref.providerId !in existing) {
-                    readAndPrepareMms(ref.providerId, threadIdCache)?.let { toInsert += it }
+                    readAndPrepareMms(ref.providerId, threadIdCache)?.let { message ->
+                        toInsert += message
+                        if (blockedSenderGate.isBlocked(message.address)) blockedThreadIds += message.threadId
+                    }
                 }
                 if (!stats.mmsWatermarkStalled) {
                     stats.newestMmsSeconds = maxOf(stats.newestMmsSeconds, ref.dateSeconds)
@@ -308,12 +315,16 @@ class TelephonySyncRepository @Inject constructor(
             stats.completed++
         }
 
-        return insertChunkSafely(toInsert)
+        val inserted = insertChunkSafely(toInsert)
+        blockedSenderGate.markThreadsBlocked(blockedThreadIds)
+        return inserted
     }
 
-    /** Reads, resolves and blocked-filters one MMS row -- everything [prepareAndInsertMmsChunk]
-     * needs before a row can join the chunk's batch insert. Returns `null` for a row that should
-     * be skipped (no recipients, or a blocked sender), same as the old per-row `syncMms`. */
+    /** Reads and resolves one MMS row -- everything [prepareAndInsertMmsChunk] needs before a row
+     * can join the chunk's batch insert. Returns `null` only for a row that genuinely can't be
+     * resolved (no recipients) -- a blocked sender's row is still returned (see
+     * [BlockedSenderGate]'s doc), [prepareAndInsertMmsChunk] itself decides whether to mark the
+     * thread blocked. */
     private suspend fun readAndPrepareMms(providerId: Long, threadIdCache: MutableMap<Set<String>, Long>): Message? {
         val message = mmsProviderGateway.readMessage("content://mms/$providerId") ?: return null
 
@@ -327,8 +338,6 @@ class TelephonySyncRepository @Inject constructor(
         // like `agent@rbm.goog` must not count as a participant.
         val recipients = PhoneNumbers.realParticipantsOnly(rawRecipients)
         val resolvedThreadId = resolveThreadIdCached(threadIdCache, recipients)
-        val blocked = message.address != null && blockedNumberRepository.isBlocked(message.address)
-        if (blocked) return null
 
         return message.copy(threadId = resolvedThreadId)
     }
@@ -392,7 +401,6 @@ class TelephonySyncRepository @Inject constructor(
      */
     private suspend fun syncSms(message: Message, threadIdCache: MutableMap<Set<String>, Long>): Message? {
         if (messageRepository.findByProviderId(message.providerId, MessageChannel.SMS) != null) return null
-        if (message.address != null && blockedNumberRepository.isBlocked(message.address)) return null
 
         val addresses = setOfNotNull(message.address)
         if (addresses.isEmpty()) {
@@ -401,7 +409,11 @@ class TelephonySyncRepository @Inject constructor(
         }
 
         val resolvedThreadId = resolveThreadIdCached(threadIdCache, addresses)
-        return messageRepository.insertIncoming(message.copy(threadId = resolvedThreadId), notifyConversation = false)
+        val inserted = messageRepository.insertIncoming(message.copy(threadId = resolvedThreadId), notifyConversation = false)
+        if (inserted != null && blockedSenderGate.isBlocked(message.address)) {
+            blockedSenderGate.markThreadsBlocked(listOf(resolvedThreadId))
+        }
+        return inserted
     }
 
     /**
@@ -428,12 +440,12 @@ class TelephonySyncRepository @Inject constructor(
 
             val recipients = PhoneNumbers.realParticipantsOnly(rawRecipients)
             val resolvedThreadId = resolveThreadIdCached(threadIdCache, recipients)
-            val blocked = message.address != null && blockedNumberRepository.isBlocked(message.address)
-            if (!blocked) {
-                insertedMessage = messageRepository.insertIncoming(
-                    message.copy(threadId = resolvedThreadId),
-                    notifyConversation = false,
-                )
+            insertedMessage = messageRepository.insertIncoming(
+                message.copy(threadId = resolvedThreadId),
+                notifyConversation = false,
+            )
+            if (insertedMessage != null && blockedSenderGate.isBlocked(message.address)) {
+                blockedSenderGate.markThreadsBlocked(listOf(resolvedThreadId))
             }
         }
 

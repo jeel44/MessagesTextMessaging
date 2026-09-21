@@ -106,6 +106,12 @@ internal sealed interface ConversationListEvent {
      * screen's own confirmation dialog already ran -- no further undo offered, matching
      * [text.message.sms.messaging.ui.screens.chat.ChatScreen]'s own confirmed-delete snackbar. */
     data class SelectionDeleted(val count: Int) : ConversationListEvent
+
+    /** The selection top bar's Block action left [skippedCount] group threads out of the block --
+     * see [MarkBlocked]'s doc for why a group thread is never blocked. Only ever emitted when
+     * [skippedCount] is positive, i.e. the selection was a mix of blockable and group threads;
+     * a selection with no group threads blocks everything silently, same as before. */
+    data class SelectionBlockSkippedGroups(val skippedCount: Int) : ConversationListEvent
 }
 
 /**
@@ -456,12 +462,18 @@ class ConversationListViewModel @Inject constructor(
     }
 
     /** Selection top bar's overflow Block action -- [ConversationListScreen] already ran a
-     * confirmation dialog before calling this, same reasoning as [deleteSelection]. */
+     * confirmation dialog before calling this, same reasoning as [deleteSelection]. Any group
+     * thread in the selection is left unblocked by [markBlockedUseCase] itself (see [MarkBlocked]'s
+     * doc); this only surfaces that via [ConversationListEvent.SelectionBlockSkippedGroups] when it
+     * actually happened. */
     internal fun blockSelection() {
         val ids = _selectedThreadIds.value
         if (ids.isEmpty()) return
         viewModelScope.launch {
-            markBlockedUseCase(ids)
+            val outcome = markBlockedUseCase(ids)
+            if (outcome.skippedGroupThreadIds.isNotEmpty()) {
+                _events.emit(ConversationListEvent.SelectionBlockSkippedGroups(outcome.skippedGroupThreadIds.size))
+            }
             clearSelection()
         }
     }

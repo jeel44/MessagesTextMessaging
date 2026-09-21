@@ -41,6 +41,9 @@ class LocalConversationRepository @Inject constructor(
     override fun observeArchived(): Flow<List<Conversation>> =
         conversationDao.observeArchived().withContacts()
 
+    override fun getBlockedConversations(): Flow<List<Conversation>> =
+        conversationDao.getBlockedConversations().withContacts()
+
     override fun observeConversation(threadId: Long): Flow<Conversation?> =
         combine(
             conversationDao.observeByThreadId(threadId),
@@ -79,7 +82,7 @@ class LocalConversationRepository @Inject constructor(
     }
 
     override suspend fun setPinned(threadIds: Collection<Long>, pinned: Boolean) {
-        conversationDao.setPinned(threadIds, pinned)
+        conversationDao.setPinned(threadIds, pinned, pinnedAtMillis = if (pinned) System.currentTimeMillis() else 0L)
     }
 
     override suspend fun setMuted(threadIds: Collection<Long>, muted: Boolean) {

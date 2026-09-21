@@ -36,6 +36,13 @@ data class ConversationEntity(
     @ColumnInfo(name = "is_pinned")
     val isPinned: Boolean = false,
 
+    /** When [isPinned] was last set `true` (`0` while unpinned) -- the secondary sort key behind
+     * `is_pinned DESC` in [text.message.sms.messaging.data.local.db.dao.ConversationDao
+     * .observeInbox], so pinning several threads orders them newest-pin-first rather than by
+     * whatever their `last_message_at` happened to already be. */
+    @ColumnInfo(name = "pinned_at")
+    val pinnedAtMillis: Long = 0L,
+
     @ColumnInfo(name = "is_blocked")
     val isBlocked: Boolean = false,
 

@@ -41,6 +41,12 @@ android {
         compose = true
     }
 
+    // MigrationTestHelper (see MessagingDatabaseMigrationTest) reads each version's exported
+    // schema JSON as a test asset to build the "before" database it migrates from.
+    sourceSets {
+        getByName("androidTest").assets.srcDirs("$projectDir/schemas")
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"

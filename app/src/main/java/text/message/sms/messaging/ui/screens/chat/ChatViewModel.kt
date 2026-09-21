@@ -29,7 +29,13 @@ import text.message.sms.messaging.domain.model.SimInfo
 import text.message.sms.messaging.domain.repository.ConversationRepository
 import text.message.sms.messaging.domain.repository.MessageRepository
 import text.message.sms.messaging.domain.usecase.DeleteMessages
+import text.message.sms.messaging.domain.usecase.MarkArchived
+import text.message.sms.messaging.domain.usecase.MarkBlocked
+import text.message.sms.messaging.domain.usecase.MarkPinned
 import text.message.sms.messaging.domain.usecase.MarkRead
+import text.message.sms.messaging.domain.usecase.MarkUnarchived
+import text.message.sms.messaging.domain.usecase.MarkUnblocked
+import text.message.sms.messaging.domain.usecase.MarkUnpinned
 import text.message.sms.messaging.domain.usecase.ResolveSendSubscription
 import text.message.sms.messaging.domain.usecase.SendMessage
 import text.message.sms.messaging.domain.usecase.SendSubscriptionResult
@@ -89,6 +95,13 @@ internal sealed interface ChatEvent {
     /** The selection top bar's Delete action emptied the whole thread -- the conversation itself
      * was removed too (see [ChatViewModel.deleteSelected]), so [ChatScreen] navigates back out. */
     data object ThreadDeleted : ChatEvent
+
+    /** The top bar's overflow menu archived or blocked this thread -- either way it just left the
+     * main list, so staying on its chat screen would show a broken or pointless view, same as
+     * [text.message.sms.messaging.ui.screens.conversationinfo.ConversationInfoViewModel
+     * .ConversationInfoEvent.LeaveConversation]. Never emitted for Pin/Unpin (the thread stays
+     * exactly where the user is) or for a block that [MarkBlocked] no-opped (a group thread). */
+    data object LeaveConversation : ChatEvent
 }
 
 /** A send the user asked for but that's waiting on [ChatViewModel.simPickerVisible] to resolve
@@ -113,6 +126,12 @@ class ChatViewModel @Inject constructor(
     private val deleteMessages: DeleteMessages,
     private val activeThreadTracker: ActiveThreadTracker,
     private val incomingMessageNotifier: IncomingMessageNotifier,
+    private val markPinned: MarkPinned,
+    private val markUnpinned: MarkUnpinned,
+    private val markBlocked: MarkBlocked,
+    private val markUnblocked: MarkUnblocked,
+    private val markArchived: MarkArchived,
+    private val markUnarchived: MarkUnarchived,
     simPreferences: SimPreferences,
 ) : ViewModel() {
 
@@ -269,6 +288,41 @@ class ChatViewModel @Inject constructor(
      * `onPauseOrDispose`. */
     fun onScreenPaused() {
         activeThreadTracker.clear(threadId)
+    }
+
+    /** Top bar overflow menu's Pin/Unpin -- unlike Archive/Block, pinning never leaves this
+     * thread's own chat screen. */
+    internal fun togglePin() {
+        val pinning = conversation.value?.isPinned != true
+        viewModelScope.launch {
+            if (pinning) markPinned(listOf(threadId)) else markUnpinned(listOf(threadId))
+        }
+    }
+
+    /** Top bar overflow menu's Block/Unblock -- same asymmetry as [toggleArchived]: blocking hides
+     * the thread and stops it receiving new messages, so it leaves the screen; unblocking doesn't.
+     * The menu item is disabled for a group conversation (see [MarkBlocked]'s doc), so [markBlocked]
+     * no-oping for one here is defensive, not an expected path. */
+    internal fun toggleBlocked() {
+        val blocking = conversation.value?.isBlocked != true
+        viewModelScope.launch {
+            if (blocking) {
+                val outcome = markBlocked(listOf(threadId))
+                if (outcome.blockedThreadIds.isNotEmpty()) _events.emit(ChatEvent.LeaveConversation)
+            } else {
+                markUnblocked(listOf(threadId))
+            }
+        }
+    }
+
+    /** Top bar overflow menu's Archive/Unarchive -- archiving hides the thread from the inbox, so
+     * only that direction leaves the screen. */
+    internal fun toggleArchived() {
+        val archiving = conversation.value?.isArchived != true
+        viewModelScope.launch {
+            if (archiving) markArchived(listOf(threadId)) else markUnarchived(listOf(threadId))
+            if (archiving) _events.emit(ChatEvent.LeaveConversation)
+        }
     }
 
     /** Long-press on a bubble that isn't already in selection mode: enters selection mode with

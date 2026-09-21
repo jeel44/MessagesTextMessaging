@@ -77,6 +77,7 @@
     <string name="home_selection_mark_unread">Mark as unread</string>
     <string name="home_selection_pin">Pin</string>
     <string name="home_selection_unpin">Unpin</string>
+    <string name="home_pinned_content_description">Pinned</string>
     <string name="home_selection_block">Block</string>
     <plurals name="home_selection_archived_snackbar">
         <item quantity="one">%1$d conversation archived</item>
@@ -96,6 +97,10 @@
         <item quantity="other">Block %1$d conversations?</item>
     </plurals>
     <string name="home_selection_block_confirm_message">You won\'t receive messages or calls from these senders. You can unblock them later from each conversation.</string>
+    <plurals name="home_selection_block_skipped_groups_snackbar">
+        <item quantity="one">%1$d group chat can\'t be blocked</item>
+        <item quantity="other">%1$d group chats can\'t be blocked</item>
+    </plurals>
 
     <!-- Archived -->
     <string name="archived_unarchive">Unarchive</string>
@@ -134,6 +139,14 @@
     <string name="chat_status_failed">Failed</string>
     <string name="chat_status_failed_retry">Failed. Tap to retry</string>
     <string name="chat_conversation_info">Conversation info</string>
+    <string name="chat_topbar_pin">Pin conversation</string>
+    <string name="chat_topbar_unpin">Unpin conversation</string>
+    <string name="chat_topbar_block">Block number</string>
+    <string name="chat_topbar_unblock">Unblock number</string>
+    <string name="chat_topbar_archive">Archive</string>
+    <string name="chat_topbar_unarchive">Unarchive</string>
+    <string name="chat_topbar_block_confirm_title">Block this conversation?</string>
+    <string name="chat_topbar_block_confirm_message">You won\'t receive messages or calls from this number. You can unblock it later from here.</string>
     <string name="chat_attachment_sheet_title">Add to your message</string>
     <string name="chat_attachment_gallery">Gallery</string>
     <string name="chat_attachment_camera">Camera</string>
@@ -210,6 +223,8 @@
     <string name="conversation_info_media_header">Shared media</string>
     <string name="conversation_info_media_empty">No photos or videos yet</string>
     <string name="conversation_info_video_content_description">Video</string>
+    <string name="conversation_info_pin">Pin conversation</string>
+    <string name="conversation_info_unpin">Unpin conversation</string>
     <string name="conversation_info_archive">Archive</string>
     <string name="conversation_info_unarchive">Unarchive</string>
     <string name="conversation_info_block">Block number</string>

@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -178,6 +179,15 @@ fun ConversationInfoScreen(
             fullWidth { HorizontalDivider(modifier = Modifier.padding(top = 8.dp), color = ConversationRowDivider) }
             fullWidth {
                 DangerActionRow(
+                    icon = Icons.Filled.PushPin,
+                    label = stringResource(
+                        if (current.isPinned) R.string.conversation_info_unpin else R.string.conversation_info_pin,
+                    ),
+                    onClick = viewModel::togglePinned,
+                )
+            }
+            fullWidth {
+                DangerActionRow(
                     icon = if (current.isArchived) Icons.Filled.Unarchive else Icons.Filled.Archive,
                     label = stringResource(
                         if (current.isArchived) R.string.conversation_info_unarchive else R.string.conversation_info_archive,
@@ -186,11 +196,16 @@ fun ConversationInfoScreen(
                 )
             }
             fullWidth {
+                // Disabled (not hidden) for a group conversation -- BlockedNumberRepository blocks
+                // by a single address, and every participant's address here would otherwise get
+                // blocked too, taking out their unrelated 1:1 threads along with it. See
+                // MarkBlocked's doc.
                 DangerActionRow(
                     icon = Icons.Filled.Block,
                     label = stringResource(
                         if (current.isBlocked) R.string.conversation_info_unblock else R.string.conversation_info_block,
                     ),
+                    enabled = !current.isGroup,
                     onClick = {
                         if (current.isBlocked) viewModel.toggleBlocked() else showBlockConfirm = true
                     },
@@ -407,17 +422,19 @@ private fun DangerActionRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     tint: Color = MaterialTheme.colorScheme.onSurface,
+    enabled: Boolean = true,
 ) {
+    val alpha = if (enabled) 1f else 0.38f
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = tint)
+        Icon(imageVector = icon, contentDescription = null, tint = tint.copy(alpha = alpha))
         Spacer(modifier = Modifier.width(24.dp))
-        Text(text = label, style = MaterialTheme.typography.bodyLarge, color = tint)
+        Text(text = label, style = MaterialTheme.typography.bodyLarge, color = tint.copy(alpha = alpha))
     }
 }
 

@@ -10,6 +10,10 @@ interface ConversationRepository {
 
     fun observeArchived(): Flow<List<Conversation>>
 
+    /** Every blocked thread -- see [text.message.sms.messaging.data.local.db.dao.ConversationDao
+     * .getBlockedConversations]. Backs the eventual Blocked list screen. */
+    fun getBlockedConversations(): Flow<List<Conversation>>
+
     fun observeConversation(threadId: Long): Flow<Conversation?>
 
     suspend fun findByThreadId(threadId: Long): Conversation?

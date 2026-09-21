@@ -18,8 +18,10 @@ import text.message.sms.messaging.domain.usecase.DeleteConversation
 import text.message.sms.messaging.domain.usecase.MarkArchived
 import text.message.sms.messaging.domain.usecase.MarkBlocked
 import text.message.sms.messaging.domain.usecase.MarkMuted
+import text.message.sms.messaging.domain.usecase.MarkPinned
 import text.message.sms.messaging.domain.usecase.MarkUnarchived
 import text.message.sms.messaging.domain.usecase.MarkUnblocked
+import text.message.sms.messaging.domain.usecase.MarkUnpinned
 import text.message.sms.messaging.ui.navigation.MessagingDestination
 import javax.inject.Inject
 
@@ -45,6 +47,8 @@ class ConversationInfoViewModel @Inject constructor(
     private val markMuted: MarkMuted,
     private val markArchived: MarkArchived,
     private val markUnarchived: MarkUnarchived,
+    private val markPinned: MarkPinned,
+    private val markUnpinned: MarkUnpinned,
     private val markBlocked: MarkBlocked,
     private val markUnblocked: MarkUnblocked,
     private val deleteConversation: DeleteConversation,
@@ -76,13 +80,27 @@ class ConversationInfoViewModel @Inject constructor(
         }
     }
 
+    internal fun togglePinned() {
+        val pinning = conversation.value?.isPinned != true
+        viewModelScope.launch {
+            if (pinning) markPinned(listOf(threadId)) else markUnpinned(listOf(threadId))
+        }
+    }
+
     /** Same asymmetry as [toggleArchived]: blocking hides the thread and stops it receiving new
-     * messages, so it leaves the screen; unblocking doesn't. */
+     * messages, so it leaves the screen; unblocking doesn't. The Block row is disabled for a group
+     * conversation (see [MarkBlocked]'s doc), so [markBlocked] no-oping for one here is defensive,
+     * not an expected path -- guarded anyway so [ConversationInfoEvent.LeaveConversation] is never
+     * emitted for a thread that in fact stayed unblocked. */
     internal fun toggleBlocked() {
         val blocking = conversation.value?.isBlocked != true
         viewModelScope.launch {
-            if (blocking) markBlocked(listOf(threadId)) else markUnblocked(listOf(threadId))
-            if (blocking) _events.emit(ConversationInfoEvent.LeaveConversation)
+            if (blocking) {
+                val outcome = markBlocked(listOf(threadId))
+                if (outcome.blockedThreadIds.isNotEmpty()) _events.emit(ConversationInfoEvent.LeaveConversation)
+            } else {
+                markUnblocked(listOf(threadId))
+            }
         }
     }
 

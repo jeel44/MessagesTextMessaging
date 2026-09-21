@@ -45,7 +45,7 @@ import text.message.sms.messaging.data.local.db.entity.SyncStateEntity
         SyncStateEntity::class,
         ScheduledMessageEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(MessagingConverters::class)

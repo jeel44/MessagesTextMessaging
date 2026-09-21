@@ -50,6 +50,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Close
@@ -59,9 +61,11 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SimCard
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
@@ -104,6 +108,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -266,6 +271,7 @@ fun ChatScreen(
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
     var showLearnMoreDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showBlockConfirm by remember { mutableStateOf(false) }
     var detailsMessageId by remember { mutableStateOf<Long?>(null) }
 
     // System back and the selection top bar's close icon both exit selection mode first, rather
@@ -358,6 +364,8 @@ fun ChatScreen(
                 }
 
                 ChatEvent.ThreadDeleted -> onBack()
+
+                ChatEvent.LeaveConversation -> onBack()
             }
         }
     }
@@ -390,6 +398,11 @@ fun ChatScreen(
                         isPersonal = isPersonal,
                         onBack = onBack,
                         onInfoClick = onConversationInfoClick,
+                        onTogglePin = viewModel::togglePin,
+                        onToggleBlock = {
+                            if (conversation?.isBlocked == true) viewModel.toggleBlocked() else showBlockConfirm = true
+                        },
+                        onToggleArchive = viewModel::toggleArchived,
                     )
                 }
             }
@@ -459,6 +472,16 @@ fun ChatScreen(
                 viewModel.deleteSelected()
             },
             onDismiss = { showDeleteConfirm = false },
+        )
+    }
+
+    if (showBlockConfirm) {
+        BlockConversationDialog(
+            onConfirm = {
+                showBlockConfirm = false
+                viewModel.toggleBlocked()
+            },
+            onDismiss = { showBlockConfirm = false },
         )
     }
 
@@ -669,6 +692,9 @@ private fun ChatTopBar(
     isPersonal: Boolean,
     onBack: () -> Unit,
     onInfoClick: () -> Unit,
+    onTogglePin: () -> Unit,
+    onToggleBlock: () -> Unit,
+    onToggleArchive: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -676,6 +702,16 @@ private fun ChatTopBar(
     val isLight = isLightChatTheme()
     val contentColor = if (isLight) Color.Black else MaterialTheme.colorScheme.onSurface
     val dividerColor = if (isLight) ChatTopBarDivider else MaterialTheme.colorScheme.outlineVariant
+    var showOverflow by remember { mutableStateOf(false) }
+
+    val pinLabel = stringResource(if (conversation?.isPinned == true) R.string.chat_topbar_unpin else R.string.chat_topbar_pin)
+    val blockLabel = stringResource(if (conversation?.isBlocked == true) R.string.chat_topbar_unblock else R.string.chat_topbar_block)
+    val archiveLabel = stringResource(if (conversation?.isArchived == true) R.string.chat_topbar_unarchive else R.string.chat_topbar_archive)
+    val pinIcon = rememberVectorPainter(Icons.Filled.PushPin)
+    val blockIcon = rememberVectorPainter(Icons.Filled.Block)
+    val archiveIcon = rememberVectorPainter(
+        if (conversation?.isArchived == true) Icons.Filled.Unarchive else Icons.Filled.Archive,
+    )
 
     Column(modifier = modifier.background(screenSurfaceColor())) {
         Row(
@@ -732,9 +768,69 @@ private fun ChatTopBar(
                     modifier = Modifier.size(24.dp),
                 )
             }
+
+            Box {
+                IconButton(onClick = { showOverflow = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = stringResource(R.string.chat_more_options),
+                        tint = contentColor,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+                // A plain if/else DropdownMenu open, no Crossfade/AnimatedVisibility wrapping it --
+                // same reasoning as ConversationListScreen's top bar swap (see its own doc comment):
+                // nothing here has a competing animation to race, so it opens on the same frame the
+                // state flips, no blink.
+                SelectionOverflowMenu(
+                    expanded = showOverflow,
+                    onDismiss = { showOverflow = false },
+                    items = listOf(
+                        SelectionMenuItem(pinIcon, pinLabel) {
+                            showOverflow = false
+                            onTogglePin()
+                        },
+                        // Disabled (not hidden) for a group conversation -- see MarkBlocked's doc:
+                        // BlockedNumberRepository blocks by a single address, and every
+                        // participant's address here would otherwise get blocked too.
+                        SelectionMenuItem(blockIcon, blockLabel, enabled = conversation?.isGroup != true) {
+                            showOverflow = false
+                            onToggleBlock()
+                        },
+                        SelectionMenuItem(archiveIcon, archiveLabel) {
+                            showOverflow = false
+                            onToggleArchive()
+                        },
+                    ),
+                )
+            }
         }
         HorizontalDivider(thickness = 1.dp, color = dividerColor)
     }
+}
+
+/** Confirms the top bar overflow menu's Block action -- same shape as Home's
+ * [text.message.sms.messaging.ui.screens.conversationlist.BlockConversationsDialog] and
+ * [text.message.sms.messaging.ui.screens.conversationinfo.ConversationInfoScreen]'s own block
+ * dialog, single-thread since this screen only ever has the one conversation open. */
+@Composable
+private fun BlockConversationDialog(onConfirm: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = screenSurfaceColor(),
+        tonalElevation = 0.dp,
+        title = { Text(text = stringResource(R.string.chat_topbar_block_confirm_title)) },
+        text = { Text(text = stringResource(R.string.chat_topbar_block_confirm_message)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = stringResource(R.string.chat_topbar_block), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(text = stringResource(R.string.action_cancel)) }
+        },
+        modifier = modifier,
+    )
 }
 
 /**

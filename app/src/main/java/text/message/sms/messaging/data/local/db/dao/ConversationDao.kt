@@ -19,7 +19,7 @@ interface ConversationDao {
         """
         SELECT * FROM conversations
         WHERE is_archived = 0 AND is_blocked = 0 AND last_message_at > 0
-        ORDER BY is_pinned DESC, last_message_at DESC
+        ORDER BY is_pinned DESC, pinned_at DESC, last_message_at DESC
         """
     )
     fun observeInbox(): Flow<List<ConversationWithRecipients>>
@@ -33,6 +33,20 @@ interface ConversationDao {
         """
     )
     fun observeArchived(): Flow<List<ConversationWithRecipients>>
+
+    /** Every blocked thread, main-list-excluded messages and all -- backs the eventual Blocked
+     * list screen (not built yet); queryable now so [text.message.sms.messaging.domain.usecase
+     * .MarkBlocked]/[text.message.sms.messaging.domain.usecase.MarkUnblocked] have something to
+     * verify against and the DAO surface is ready for that screen. */
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM conversations
+        WHERE is_blocked = 1
+        ORDER BY last_message_at DESC
+        """
+    )
+    fun getBlockedConversations(): Flow<List<ConversationWithRecipients>>
 
     @Transaction
     @Query("SELECT * FROM conversations WHERE thread_id = :threadId")
@@ -101,8 +115,12 @@ interface ConversationDao {
     @Query("UPDATE conversations SET is_archived = :archived WHERE thread_id IN (:threadIds)")
     suspend fun setArchived(threadIds: Collection<Long>, archived: Boolean)
 
-    @Query("UPDATE conversations SET is_pinned = :pinned WHERE thread_id IN (:threadIds)")
-    suspend fun setPinned(threadIds: Collection<Long>, pinned: Boolean)
+    /** [pinnedAtMillis] is the pin ordering's own secondary sort key -- see [ConversationEntity
+     * .pinnedAtMillis]'s doc. Set to `System.currentTimeMillis()` on pin and `0` on unpin by
+     * [text.message.sms.messaging.data.repository.LocalConversationRepository.setPinned], never
+     * computed here, so this DAO stays a plain, deterministic write. */
+    @Query("UPDATE conversations SET is_pinned = :pinned, pinned_at = :pinnedAtMillis WHERE thread_id IN (:threadIds)")
+    suspend fun setPinned(threadIds: Collection<Long>, pinned: Boolean, pinnedAtMillis: Long)
 
     @Query("UPDATE conversations SET is_muted = :muted WHERE thread_id IN (:threadIds)")
     suspend fun setMuted(threadIds: Collection<Long>, muted: Boolean)

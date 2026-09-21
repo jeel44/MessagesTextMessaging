@@ -3,36 +3,38 @@ package text.message.sms.messaging.domain.usecase
 import androidx.room.withTransaction
 import text.message.sms.messaging.data.local.db.MessagingDatabase
 import text.message.sms.messaging.domain.model.Message
-import text.message.sms.messaging.domain.repository.BlockedNumberRepository
 import text.message.sms.messaging.domain.repository.ConversationRepository
 import text.message.sms.messaging.domain.repository.IncomingMessageNotifier
 import text.message.sms.messaging.domain.repository.MessageRepository
 import javax.inject.Inject
 
 /**
- * Handles an inbound SMS delivered to the app as the default handler: resolves the thread,
- * drops the message if the sender is blocked, and stores it locally.
+ * Handles an inbound SMS delivered to the app as the default handler: resolves the thread and
+ * stores the message, blocked sender or not -- see [BlockedSenderGate]'s doc for why a blocked
+ * sender's message is stored rather than dropped.
  */
 class ReceiveSms @Inject constructor(
     private val database: MessagingDatabase,
     private val conversationRepository: ConversationRepository,
     private val messageRepository: MessageRepository,
-    private val blockedNumberRepository: BlockedNumberRepository,
+    private val blockedSenderGate: BlockedSenderGate,
     private val incomingMessageNotifier: IncomingMessageNotifier,
 ) : UseCase {
 
     suspend operator fun invoke(params: Params): Message? {
-        if (blockedNumberRepository.isBlocked(params.address)) return null
+        val blocked = blockedSenderGate.isBlocked(params.address)
 
-        // The notifier runs after the transaction commits, and only for a genuinely new row
-        // (insertIncoming returns null for a duplicate) -- never inside it, since it does its own
-        // suspending reads (conversation lookup, active-notification lookup) that have no
-        // business holding a database transaction open.
+        // The notifier runs after the transaction commits, and only for a genuinely new,
+        // non-blocked row (insertIncoming returns null for a duplicate) -- never inside it, since
+        // it does its own suspending reads (conversation lookup, active-notification lookup) that
+        // have no business holding a database transaction open.
         val inserted = database.withTransaction {
             val threadId = conversationRepository.resolveThreadId(setOf(params.address))
-            messageRepository.insertIncoming(params.toMessage(threadId))
+            val message = messageRepository.insertIncoming(params.toMessage(threadId))
+            if (blocked && message != null) blockedSenderGate.markThreadsBlocked(listOf(threadId))
+            message
         }
-        if (inserted != null) incomingMessageNotifier.notify(inserted)
+        if (inserted != null && !blocked) incomingMessageNotifier.notify(inserted)
         return inserted
     }
 

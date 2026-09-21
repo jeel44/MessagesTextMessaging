@@ -131,3 +131,18 @@ val MIGRATION_4_5: Migration = object : Migration(4, 5) {
         db.execSQL("ALTER TABLE conversations ADD COLUMN subscription_slot INTEGER")
     }
 }
+
+/**
+ * v5 -> v6: adds `conversations.pinned_at`, the pin feature's "when" -- `is_pinned` alone (shipped
+ * since v1) only says whether a thread is pinned, not in what order several pinned threads should
+ * sort, so [text.message.sms.messaging.data.local.db.dao.ConversationDao.observeInbox] fell back to
+ * ordering pinned threads by `last_message_at` like everything else. `NOT NULL DEFAULT 0` means
+ * every already-pinned row from before this migration sorts as if pinned at the epoch -- last among
+ * pinned threads, ahead of everything unpinned -- until the user re-pins it, rather than losing its
+ * pinned state.
+ */
+val MIGRATION_5_6: Migration = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE conversations ADD COLUMN pinned_at INTEGER NOT NULL DEFAULT 0")
+    }
+}
