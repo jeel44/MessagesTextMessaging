@@ -1,6 +1,7 @@
 package text.message.sms.messaging.ui.screens.onboarding
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,7 +19,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,8 +33,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import text.message.sms.messaging.R
@@ -45,13 +47,14 @@ import text.message.sms.messaging.ui.theme.Pill
  * The language picker, reused for two different entry points -- exactly one of [onContinue] /
  * [onBack] is non-null and picks which:
  *
- * - Onboarding's third step (`onContinue` set, `onBack` null): a bottom "Continue" bar that also
- *   marks onboarding complete, no top bar. [LanguageViewModel] silently syncs the message cache
- *   in the background while this is up (see its `init` block); Continue never waits on that sync
- *   -- Home's own Flow-backed repository query picks up any rows that land after navigation.
- * - Settings' "Language" row (`onBack` set, `onContinue` null): a plain top bar with a back
- *   arrow, no bottom bar -- picking a row applies immediately (see
- *   [LanguageViewModel.selectLanguage]), so there's nothing to "continue" to.
+ * - Onboarding's third step (`onContinue` set, `onBack` null): no top bar, just this screen's own
+ *   small title, plus a bottom "Continue" bar that also marks onboarding complete.
+ *   [LanguageViewModel] silently syncs the message cache in the background while this is up (see
+ *   its `init` block); Continue never waits on that sync -- Home's own Flow-backed repository
+ *   query picks up any rows that land after navigation.
+ * - Settings' "Language" row (`onBack` set, `onContinue` null): a top bar with a back arrow and
+ *   its own "Language" title -- this screen's own title is skipped here so the two don't stack --
+ *   no bottom bar, since picking a row applies immediately (see [LanguageViewModel.selectLanguage]).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,9 +65,11 @@ fun LanguageScreen(
     viewModel: LanguageViewModel = hiltViewModel(),
 ) {
     val selectedLanguage by viewModel.selectedLanguage.collectAsStateWithLifecycle()
+    val backgroundColor = languageScreenBackground()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = backgroundColor,
         topBar = {
             if (onBack != null) {
                 AppTopBar(title = stringResource(R.string.settings_language_title), onBack = onBack)
@@ -72,7 +77,7 @@ fun LanguageScreen(
         },
         bottomBar = {
             if (onContinue != null) {
-                Surface(color = MaterialTheme.colorScheme.surface) {
+                Surface(color = backgroundColor) {
                     Button(
                         onClick = {
                             viewModel.completeOnboarding()
@@ -90,20 +95,28 @@ fun LanguageScreen(
             }
         },
     ) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            Text(
-                text = stringResource(R.string.language_title),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(backgroundColor)
+                .padding(innerPadding),
+        ) {
+            // Onboarding only -- Settings already shows "Language" in the top bar above, so
+            // repeating a heading here would stack two titles.
+            if (onBack == null) {
+                Text(
+                    text = stringResource(R.string.language_title),
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = languageTitleColor(),
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                )
+            }
 
-            val avatarTones = listOf(
-                MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer,
-                MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer,
-                MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer,
-            )
+            val avatarTones = languageAvatarTones()
+            val displayNameColor = languageDisplayNameColor()
+            val nativeNameColor = languageNativeNameColor()
+            val radioOutlineColor = languageRadioOutlineColor()
 
             LazyColumn(modifier = Modifier.weight(1f)) {
                 itemsIndexed(LanguageOptions, key = { _, language -> language.id }) { index, language ->
@@ -113,6 +126,9 @@ fun LanguageScreen(
                         selected = language.id == selectedLanguage.id,
                         avatarContainerColor = avatarContainer,
                         avatarContentColor = avatarContent,
+                        displayNameColor = displayNameColor,
+                        nativeNameColor = nativeNameColor,
+                        radioOutlineColor = radioOutlineColor,
                         onClick = { viewModel.selectLanguage(language) },
                     )
                 }
@@ -127,26 +143,30 @@ private fun LanguageRow(
     selected: Boolean,
     avatarContainerColor: Color,
     avatarContentColor: Color,
+    displayNameColor: Color,
+    nativeNameColor: Color,
+    radioOutlineColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .height(66.dp)
             .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
-            .padding(horizontal = 24.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(50.dp)
                 .clip(CircleShape)
                 .background(avatarContainerColor),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = language.avatarLabel,
-                style = MaterialTheme.typography.titleMedium,
+                fontSize = 21.sp,
                 fontWeight = FontWeight.Bold,
                 color = avatarContentColor,
             )
@@ -154,25 +174,60 @@ private fun LanguageRow(
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+        // One line, ellipsized rather than wrapped -- the row height is fixed, and a long native
+        // name (e.g. "Bahasa Indonesia") wrapping to a second line would clip against it and
+        // overlap LanguageRadioIndicator instead of just truncating.
         val nameText = buildAnnotatedString {
-            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+            withStyle(SpanStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium, color = displayNameColor)) {
                 append(language.displayName)
             }
             append(" ")
-            withStyle(SpanStyle(fontWeight = FontWeight.Normal, color = onSurfaceVariant)) {
+            withStyle(SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Normal, color = nativeNameColor)) {
                 append("(${language.nativeName})")
             }
         }
         Text(
             text = nameText,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        RadioButton(selected = selected, onClick = null)
+        LanguageRadioIndicator(selected = selected, outlineColor = radioOutlineColor)
+    }
+}
+
+/** A custom indicator rather than the stock M3 [androidx.compose.material3.RadioButton] -- the
+ * reference design's selected state (a fully accent-filled circle with a small white dot punched
+ * through its center) isn't a look M3's own ring-and-dot rendering can produce. */
+@Composable
+private fun LanguageRadioIndicator(selected: Boolean, outlineColor: Color, modifier: Modifier = Modifier) {
+    val accentColor = MaterialTheme.colorScheme.primary
+    Box(
+        modifier = modifier.size(29.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(accentColor),
+            )
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(Color.White),
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .border(width = 1.2.dp, color = outlineColor, shape = CircleShape),
+            )
+        }
     }
 }
