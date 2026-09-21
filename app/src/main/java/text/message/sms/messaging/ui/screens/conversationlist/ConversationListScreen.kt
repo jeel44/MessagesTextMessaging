@@ -291,28 +291,27 @@ fun ConversationListScreen(
         modifier = modifier.fillMaxSize(),
         containerColor = screenSurfaceColor(),
         topBar = {
-            Crossfade(
-                targetState = isSelectionMode,
-                animationSpec = tween(durationMillis = 150),
-                label = "homeTopBar",
-            ) { selecting ->
-                if (selecting) {
-                    HomeSelectionTopBar(
-                        selectedCount = selectedThreadIds.size,
-                        totalCount = conversations.size,
-                        allRead = selectedConversations.isNotEmpty() && selectedConversations.all { !it.hasUnread },
-                        allPinned = selectedConversations.isNotEmpty() && selectedConversations.all { it.isPinned },
-                        onClose = viewModel::clearSelection,
-                        onArchive = viewModel::archiveSelection,
-                        onDelete = { showDeleteConfirm = true },
-                        onToggleRead = viewModel::toggleReadSelection,
-                        onTogglePin = viewModel::togglePinSelection,
-                        onBlock = { showBlockConfirm = true },
-                        onSelectAll = viewModel::selectAllLoaded,
-                    )
-                } else {
-                    ConversationListTopBar(onSearchClick = onSearchClick, onSettingsClick = onSettingsClick)
-                }
+            // Instant, unanimated swap -- not a Crossfade. isSelectionMode flips on the same
+            // frame as ConversationRow's own avatar Crossfade/background color animation and the
+            // FAB's AnimatedVisibility (all independently timed, all triggered by the same
+            // long-press), so cross-fading this bar too raced those and read as a blink/flicker
+            // rather than a clean instant appearance. This bar has no animation of its own to fight.
+            if (isSelectionMode) {
+                HomeSelectionTopBar(
+                    selectedCount = selectedThreadIds.size,
+                    totalCount = conversations.size,
+                    allRead = selectedConversations.isNotEmpty() && selectedConversations.all { !it.hasUnread },
+                    allPinned = selectedConversations.isNotEmpty() && selectedConversations.all { it.isPinned },
+                    onClose = viewModel::clearSelection,
+                    onArchive = viewModel::archiveSelection,
+                    onDelete = { showDeleteConfirm = true },
+                    onToggleRead = viewModel::toggleReadSelection,
+                    onTogglePin = viewModel::togglePinSelection,
+                    onBlock = { showBlockConfirm = true },
+                    onSelectAll = viewModel::selectAllLoaded,
+                )
+            } else {
+                ConversationListTopBar(onSearchClick = onSearchClick, onSettingsClick = onSettingsClick)
             }
         },
         floatingActionButton = {
