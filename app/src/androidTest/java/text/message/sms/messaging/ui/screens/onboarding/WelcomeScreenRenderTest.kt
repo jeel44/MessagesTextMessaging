@@ -9,9 +9,9 @@ import org.junit.runner.RunWith
 
 /**
  * Crash-free rendering coverage for the recreated Welcome screen. Exercises
- * [WelcomeScreenContent] directly (not [WelcomeScreen]) since the real screen wires in a
- * Hilt-backed [WelcomeViewModel] via [androidx.hilt.navigation.compose.hiltViewModel], and this
- * module has no Hilt test harness set up -- see [WelcomeScreenContent]'s doc comment.
+ * [WelcomeScreenContent] directly (not [WelcomeScreen]) since the real screen needs a hosting
+ * [android.app.Activity] to drive its runtime permission dialog -- see [WelcomeScreenContent]'s
+ * doc comment.
  */
 @RunWith(AndroidJUnit4::class)
 class WelcomeScreenRenderTest {

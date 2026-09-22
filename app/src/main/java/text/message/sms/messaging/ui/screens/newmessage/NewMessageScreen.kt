@@ -1,7 +1,9 @@
 package text.message.sms.messaging.ui.screens.newmessage
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.provider.Settings
@@ -51,6 +53,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -65,6 +68,13 @@ import text.message.sms.messaging.ui.theme.ConversationRowDivider
  * Recipient picker: a "To" field that live-filters the device contact list as the user types,
  * falling back to a "Send to [text]" row when nothing matches. Tapping a row resolves (or
  * creates) the thread for that address and hands off to Chat.
+ *
+ * READ_CONTACTS is requested here, on first use, rather than during onboarding -- so opening this
+ * screen without it yet granted fires the real runtime dialog immediately ([contactsPermissionLauncher]
+ * below) instead of going straight to a "open Settings" dead end. That fallback
+ * ([ContactsPermissionNotice]) is reserved for the one case a fresh request can't recover from: the
+ * permission was already permanently denied, which `shouldShowRequestPermissionRationale` returning
+ * false after the request's result confirms.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,6 +85,7 @@ fun NewMessageScreen(
     viewModel: NewMessageViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val activity = remember(context) { context.findActivity() }
     val coroutineScope = rememberCoroutineScope()
 
     val queryText by viewModel.queryText.collectAsStateWithLifecycle()
@@ -82,11 +93,26 @@ fun NewMessageScreen(
     val isContactsLoading by viewModel.isContactsLoading.collectAsStateWithLifecycle()
 
     var hasContactsPermission by remember { mutableStateOf(hasReadContactsPermission(context)) }
+    var contactsPermanentlyDenied by remember { mutableStateOf(false) }
 
     val settingsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
     ) {
         hasContactsPermission = hasReadContactsPermission(context)
+    }
+
+    val contactsPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        hasContactsPermission = granted
+        if (!granted) {
+            contactsPermanentlyDenied = activity != null &&
+                !ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.READ_CONTACTS)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (!hasContactsPermission) contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
     }
 
     LaunchedEffect(hasContactsPermission) {
@@ -125,7 +151,7 @@ fun NewMessageScreen(
             ToField(value = queryText, onValueChange = viewModel::onQueryChanged)
             HorizontalDivider(color = ConversationRowDivider)
 
-            if (!hasContactsPermission) {
+            if (!hasContactsPermission && contactsPermanentlyDenied) {
                 ContactsPermissionNotice(
                     onOpenSettings = { settingsLauncher.launch(appSettingsIntent(context)) },
                 )
@@ -303,3 +329,9 @@ private fun hasReadContactsPermission(context: Context): Boolean =
 
 private fun appSettingsIntent(context: Context): Intent =
     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri())
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}

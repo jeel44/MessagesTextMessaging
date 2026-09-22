@@ -51,7 +51,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.net.toUri
-import androidx.hilt.navigation.compose.hiltViewModel
 import text.message.sms.messaging.R
 import text.message.sms.messaging.service.DefaultSmsAppGuard
 import text.message.sms.messaging.ui.components.ShineButton
@@ -75,8 +74,8 @@ private val IllustrationMaxWidth = 280.dp
 private fun onboardingPermissions(): Array<String> {
     val permissions = (
         DefaultSmsAppGuard.CoreSmsPermissions + listOf(
-            Manifest.permission.READ_CONTACTS,
             Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.READ_PHONE_NUMBERS,
             Manifest.permission.READ_CALL_LOG,
             Manifest.permission.CALL_PHONE,
         )
@@ -99,18 +98,15 @@ internal sealed interface PermissionPromptState {
  *
  * [onContinue] fires once the core SMS/MMS permissions ([DefaultSmsAppGuard.CoreSmsPermissions])
  * are granted -- SMS/MMS is this app's reason to exist, so Continue is gated on those alone. The
- * rest of the requested set (contacts, phone state, call log, call, notifications) back secondary
- * or not-yet-built features and are best-effort: a denial there degrades a feature later rather
- * than blocking onboarding now. A READ_CONTACTS grant specifically also kicks off
- * [WelcomeViewModel.onContactsPermissionGranted] right away, the same immediate-catch-up-sync
- * pattern [SetDefaultSmsScreen] uses for the default-SMS-app role -- see that ViewModel's doc
- * comment for why this can't be left to a later resume-based check instead.
+ * rest of the requested set (phone state, phone numbers, call log, call, notifications) back
+ * secondary or not-yet-built features and are best-effort: a denial there degrades a feature later
+ * rather than blocking onboarding now. READ_CONTACTS is deliberately not requested here -- see
+ * [text.message.sms.messaging.ui.screens.newmessage.NewMessageScreen] for its first-use request.
  */
 @Composable
 fun WelcomeScreen(
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: WelcomeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
@@ -120,9 +116,6 @@ fun WelcomeScreen(
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
     ) { results ->
-        if (results[Manifest.permission.READ_CONTACTS] == true) {
-            viewModel.onContactsPermissionGranted()
-        }
         val coreGranted = DefaultSmsAppGuard.CoreSmsPermissions.all { results[it] == true }
         promptState = when {
             coreGranted -> {
@@ -146,11 +139,10 @@ fun WelcomeScreen(
 }
 
 /**
- * The screen's actual visual content, with no [WelcomeViewModel]/permission-launcher dependency --
- * factored out purely so [WelcomeScreen]'s layout can be exercised by
- * `WelcomeScreenRenderTest` and a `@Preview` without needing a Hilt-backed
- * [androidx.hilt.navigation.compose.hiltViewModel] (this module has no Hilt test harness set up
- * yet). [WelcomeScreen] above is the only real caller; it owns every actual side effect
+ * The screen's actual visual content, with no permission-launcher dependency -- factored out
+ * purely so [WelcomeScreen]'s layout can be exercised by `WelcomeScreenRenderTest` and a
+ * `@Preview` without needing a real [android.app.Activity] to host the runtime permission dialog.
+ * [WelcomeScreen] above is the only real caller; it owns every actual side effect
  * ([onContinueClick] and [onOpenSettings] are both just that composable's real callbacks passed
  * straight through).
  */

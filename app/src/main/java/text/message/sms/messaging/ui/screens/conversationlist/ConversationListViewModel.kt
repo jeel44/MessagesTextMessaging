@@ -333,13 +333,13 @@ class ConversationListViewModel @Inject constructor(
         }
     }
 
-    /** Call on every screen resume, same as [refreshDefaultSmsAppStatus]. Onboarding requests
-     * READ_CONTACTS mid-session (see [text.message.sms.messaging.ui.screens.onboarding.WelcomeScreen])
-     * rather than restarting the process, so [text.message.sms.messaging.MessagingApplication]'s
-     * own launch-time check -- which ran before that grant even happened -- never sees it; without
-     * this, a contact's name would only ever appear after the user force-restarts the app or opens
-     * New Message (whose own [text.message.sms.messaging.ui.screens.newmessage.NewMessageViewModel.onContactsPermissionGranted]
-     * happens to run the same sync as a side effect of an unrelated screen). */
+    /** Call on every screen resume, same as [refreshDefaultSmsAppStatus]. READ_CONTACTS is
+     * requested on first use from [text.message.sms.messaging.ui.screens.newmessage.NewMessageScreen]
+     * rather than during onboarding, so [text.message.sms.messaging.MessagingApplication]'s own
+     * launch-time check -- which ran long before that grant -- never sees it; without this, a
+     * contact's name would only ever appear after the user force-restarts the app, since New
+     * Message's own [text.message.sms.messaging.ui.screens.newmessage.NewMessageViewModel.onContactsPermissionGranted]
+     * only syncs contacts as a side effect of that other screen, not this one. */
     internal fun refreshContactsPermissionStatus() {
         val hasPermissionNow = hasReadContactsPermission()
         val justGranted = hasPermissionNow && !hasContactsPermission
