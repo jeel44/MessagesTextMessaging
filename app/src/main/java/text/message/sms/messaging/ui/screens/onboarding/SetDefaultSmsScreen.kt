@@ -30,6 +30,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,7 +56,7 @@ import text.message.sms.messaging.ui.theme.AppTheme
 import text.message.sms.messaging.ui.theme.OnboardingSubtitleGray
 
 private val MinComfortableHeight = 600.dp
-private val IllustrationMaxWidth = 300.dp
+private val IllustrationMaxWidth = 375.dp
 
 /**
  * Every runtime permission this app needs other than READ_CONTACTS (requested later, on first use
@@ -120,6 +121,22 @@ fun SetDefaultSmsScreen(
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
     val guard = remember(context) { DefaultSmsAppGuard(context.applicationContext) }
+
+    // Skips this screen entirely when there's genuinely nothing left for it to do -- both the
+    // role and the core SMS/MMS permissions already held on entry (e.g. re-entering onboarding
+    // after a process death mid-flow, past this step). Seeded once, not re-read on every
+    // recomposition, same reasoning as OverlayPermissionScreen's isGranted: this is a one-shot
+    // "was it already done when we arrived" check, not something that should flip mid-visit.
+    val alreadyDone = remember(context) { guard.isDefault && guard.hasCoreSmsPermissions }
+
+    LaunchedEffect(alreadyDone) {
+        if (alreadyDone) {
+            viewModel.onDefaultSmsAppGranted()
+            onDefaultSet()
+        }
+    }
+
+    if (alreadyDone) return
 
     var showDeclinedHint by remember { mutableStateOf(false) }
     var promptState by remember { mutableStateOf<PermissionPromptState>(PermissionPromptState.Hidden) }
@@ -205,7 +222,7 @@ internal fun SetDefaultSmsScreenContent(
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .widthIn(max = IllustrationMaxWidth)
-                        .heightIn(max = 260.dp)
+                        .heightIn(max = 325.dp)
                         .padding(vertical = 16.dp),
                 )
 

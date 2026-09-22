@@ -55,7 +55,7 @@ private const val PRIVACY_POLICY_URL = "https://example.com/privacy"
  * pushing the text taller). Comfortably above a typical ~5" phone's content height in portrait, so
  * normal phones never scroll. */
 private val MinComfortableHeight = 600.dp
-private val IllustrationMaxWidth = 280.dp
+private val IllustrationMaxWidth = 350.dp
 
 /**
  * First screen after Splash: the approved-design welcome illustration and pitch. Requests
@@ -134,7 +134,7 @@ internal fun WelcomeScreenContent(
                     painter = sharpIconPainter(R.drawable.ic_welcome_illustration),
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
-                    modifier = if (useScroll) illustration.heightIn(max = 240.dp) else illustration.weight(1f),
+                    modifier = if (useScroll) illustration.heightIn(max = 300.dp) else illustration.weight(1f),
                 )
 
                 Text(

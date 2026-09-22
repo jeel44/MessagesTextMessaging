@@ -182,6 +182,7 @@ fun ConversationListScreen(
 ) {
     val conversations by viewModel.conversations.collectAsStateWithLifecycle()
     val homeBodyState by viewModel.homeBodyState.collectAsStateWithLifecycle()
+    val isDefaultSmsApp by viewModel.isDefaultSmsApp.collectAsStateWithLifecycle()
     val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
     val swipeActionPreference by viewModel.swipeActionPreference.collectAsStateWithLifecycle()
     val archivedCount by viewModel.archivedCount.collectAsStateWithLifecycle()
@@ -369,6 +370,20 @@ fun ConversationListScreen(
                 SyncFailedBanner(
                     onRetry = viewModel::retrySync,
                     onDismiss = { dismissedFailure = failure },
+                )
+            }
+
+            // Persistent, not dismissible -- this app straight-up stops receiving SMS/MMS the
+            // moment it loses the role, so the old (now frozen) conversation list already showing
+            // below must never look like everything's still fine. HomeBodyState.NotDefault
+            // already covers the genuinely-empty-inbox case with its own full-body message, so
+            // this only needs to fill the gap that leaves: an inbox with existing conversations,
+            // where [homeBodyState] takes the List branch regardless of default-app status.
+            if (!isDefaultSmsApp && homeBodyState != HomeBodyState.NotDefault) {
+                LostDefaultSmsAppBanner(
+                    onRequestDefault = {
+                        roleRequestLauncher.launch(viewModel.defaultSmsAppRoleRequestIntent())
+                    },
                 )
             }
 
@@ -851,6 +866,38 @@ private fun SyncFailedBanner(onRetry: () -> Unit, onDismiss: () -> Unit, modifie
                     imageVector = Icons.Filled.Close,
                     contentDescription = stringResource(R.string.action_close),
                     tint = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+        }
+    }
+}
+
+/** No dismiss action, unlike [SyncFailedBanner] -- see this banner's call site for why staying
+ * put until the role is actually re-granted matters here. */
+@Composable
+private fun LostDefaultSmsAppBanner(onRequestDefault: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.errorContainer,
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.home_not_default_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.home_not_default_message),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            TextButton(onClick = onRequestDefault) {
+                Text(
+                    text = stringResource(R.string.set_default_sms_button),
+                    color = MaterialTheme.colorScheme.onErrorContainer,
                 )
             }
         }

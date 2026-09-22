@@ -103,15 +103,30 @@ fun OverlayPermissionScreen(
         if (isGranted) onGranted()
     }
 
+    // Guards only against the auto-launch firing a SECOND time on top of a manual tap that
+    // already launched Settings within this same first second -- LaunchedEffect coroutines keep
+    // running on real wall-clock time even while this Activity is stopped behind the Settings
+    // page a tap just opened, so without this the delayed launch below fires anyway and stacks a
+    // second Settings instance on top of the first (two back-presses to return). onAllowClick
+    // deliberately never checks this flag itself -- it must stay live and always launch, so the
+    // user can still retry after backing out of Settings without granting.
+    var hasLaunchedSettings by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         delay(1_000)
-        if (!isGranted) context.startActivity(OverlayPermissionGuard.buildRequestIntent(context))
+        if (!isGranted && !hasLaunchedSettings) {
+            hasLaunchedSettings = true
+            context.startActivity(OverlayPermissionGuard.buildRequestIntent(context))
+        }
     }
 
     if (isGranted) return
 
     OverlayPermissionScreenContent(
-        onAllowClick = { context.startActivity(OverlayPermissionGuard.buildRequestIntent(context)) },
+        onAllowClick = {
+            hasLaunchedSettings = true
+            context.startActivity(OverlayPermissionGuard.buildRequestIntent(context))
+        },
         modifier = modifier,
     )
 }
@@ -196,15 +211,15 @@ internal fun OverlayPermissionScreenContent(
 private fun OverlayPermissionDeviceFrame(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .width(220.dp)
+            .width(275.dp)
             .border(
-                width = 2.dp,
+                width = 3.dp,
                 color = MaterialTheme.colorScheme.outline,
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(35.dp),
             )
-            .background(SurfaceContainerGray, RoundedCornerShape(28.dp))
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .background(SurfaceContainerGray, RoundedCornerShape(35.dp))
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(13.dp),
     ) {
         MockSettingsRow(text = stringResource(R.string.overlay_permission_mock_row_allow))
         MockSettingsRow(
@@ -223,36 +238,36 @@ private fun MockSettingsRow(
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = Color.White,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(13.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 13.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (showAppIcon) {
                 Box(
                     modifier = Modifier
-                        .size(18.dp)
-                        .background(ConversationFabBlue, RoundedCornerShape(5.dp)),
+                        .size(23.dp)
+                        .background(ConversationFabBlue, RoundedCornerShape(6.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Message,
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.size(11.dp),
+                        modifier = Modifier.size(14.dp),
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
             }
             Text(
                 text = text,
-                fontSize = 10.sp,
-                lineHeight = 13.sp,
+                fontSize = 13.sp,
+                lineHeight = 16.sp,
                 color = MockRowTextDark,
                 modifier = Modifier.weight(1f),
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(10.dp))
             MockToggleOn()
         }
     }
@@ -264,14 +279,14 @@ private val MockRowTextDark = Color(0xFF202124)
 private fun MockToggleOn(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .size(width = 30.dp, height = 16.dp)
-            .background(ConversationFabBlue, RoundedCornerShape(8.dp)),
+            .size(width = 38.dp, height = 20.dp)
+            .background(ConversationFabBlue, RoundedCornerShape(10.dp)),
         contentAlignment = Alignment.CenterEnd,
     ) {
         Box(
             modifier = Modifier
-                .padding(2.dp)
-                .size(12.dp)
+                .padding(3.dp)
+                .size(15.dp)
                 .background(Color.White, CircleShape),
         )
     }
