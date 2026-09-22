@@ -173,7 +173,12 @@ class ConversationListViewModel @Inject constructor(
     /** Seeded with the real permission state so the first [refreshContactsPermissionStatus] call
      * (right after this ViewModel is constructed) compares against where things actually stood,
      * not an assumed false. */
-    private var hasContactsPermission = hasReadContactsPermission()
+    private var hasContactsPermission = hasReadContactsPermission().also {
+        Log.d(
+            "ConversationList",
+            "init: hasContactsPermission seed=$it isDefaultSmsApp seed=${defaultSmsAppGuard.isDefault}",
+        )
+    }
 
     /** So a sync failure (partial or total) or a long first sync is visible on this screen
      * instead of just looking like an empty inbox -- see [ConversationListScreen]. */
@@ -193,11 +198,13 @@ class ConversationListViewModel @Inject constructor(
      * their own view of [ConversationRepository.observeInbox]. */
     internal val inboxState: StateFlow<InboxState> = conversationRepository.observeInbox()
         .map<List<Conversation>, InboxState> { InboxState.Loaded(it) }
-        .onEach {
+        .onEach { state ->
             if (!hasLoggedFirstLoad) {
                 hasLoggedFirstLoad = true
                 Log.d("NavPerf", "Home first data load: ${SystemClock.elapsedRealtime() - createdAtMillis}ms")
             }
+            val names = (state as? InboxState.Loaded)?.items?.take(5)?.map { it.title }
+            Log.d("ConversationList", "inboxState emission at ${SystemClock.elapsedRealtime()}: titles=$names")
         }
         .stateIn(
             scope = viewModelScope,
@@ -343,8 +350,14 @@ class ConversationListViewModel @Inject constructor(
     internal fun refreshContactsPermissionStatus() {
         val hasPermissionNow = hasReadContactsPermission()
         val justGranted = hasPermissionNow && !hasContactsPermission
+        Log.d(
+            "ConversationList",
+            "refreshContactsPermissionStatus: hasPermissionNow=$hasPermissionNow " +
+                "previousHasContactsPermission=$hasContactsPermission justGranted=$justGranted",
+        )
         hasContactsPermission = hasPermissionNow
         if (justGranted) {
+            Log.d("ConversationList", "refreshContactsPermissionStatus: calling syncContacts()")
             viewModelScope.launch { syncContacts() }
         }
     }

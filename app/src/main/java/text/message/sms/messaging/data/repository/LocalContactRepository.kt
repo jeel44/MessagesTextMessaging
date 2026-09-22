@@ -1,5 +1,6 @@
 package text.message.sms.messaging.data.repository
 
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -65,13 +66,16 @@ class LocalContactRepository @Inject constructor(
         contactGroupDao.observeGroupRows().map { rows -> rows.toDomainGroups() }
 
     override suspend fun refreshFromProvider(): Unit = withContext(Dispatchers.IO) {
+        Log.d(TAG, "refreshFromProvider: start")
         // ContactProviderGateway's reads are plain blocking ContentResolver queries, not
         // suspend functions -- without this withContext they'd run on whatever dispatcher the
         // caller happens to be on (NewMessageViewModel launches this from viewModelScope, i.e.
         // Dispatchers.Main), blocking the UI thread for however long the device's contact list
         // takes to scan.
         val snapshot = contactProviderGateway.readContacts()
+        Log.d(TAG, "refreshFromProvider: read ${snapshot.contacts.size} contacts, ${snapshot.numbers.size} numbers from provider")
         contactDao.replaceAll(snapshot.contacts, snapshot.numbers)
+        Log.d(TAG, "refreshFromProvider: wrote contacts to Room")
 
         // Group membership rows are keyed by contact lookup_key (see ContactGroupMemberEntity's
         // class doc), and ContactGroupDao.observeGroupRows() INNER JOINs that key against the
@@ -82,5 +86,10 @@ class LocalContactRepository @Inject constructor(
         val groupSnapshot = contactProviderGateway.readGroups()
         contactGroupDao.replaceAll(groupSnapshot.groups, groupSnapshot.members)
         hasRefreshedOnce.value = true
+        Log.d(TAG, "refreshFromProvider: complete")
+    }
+
+    private companion object {
+        const val TAG = "SyncContacts"
     }
 }

@@ -1,5 +1,6 @@
 package text.message.sms.messaging.domain.usecase
 
+import android.util.Log
 import text.message.sms.messaging.domain.repository.ContactRepository
 import javax.inject.Inject
 
@@ -9,6 +10,7 @@ class SyncContacts @Inject constructor(
 ) : UseCase {
 
     suspend operator fun invoke() {
+        Log.d("SyncContacts", "invoke: calling contactRepository.refreshFromProvider()")
         contactRepository.refreshFromProvider()
     }
 }

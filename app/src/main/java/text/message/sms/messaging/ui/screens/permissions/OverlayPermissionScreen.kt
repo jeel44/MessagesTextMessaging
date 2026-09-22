@@ -1,20 +1,28 @@
 package text.message.sms.messaging.ui.screens.permissions
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PictureInPictureAlt
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -44,7 +53,9 @@ import text.message.sms.messaging.ui.screens.conversationlist.screenSurfaceColor
 import text.message.sms.messaging.ui.screens.onboarding.onboardingPrimaryTextColor
 import text.message.sms.messaging.ui.screens.onboarding.onboardingSecondaryTextColor
 import text.message.sms.messaging.ui.theme.AppTheme
+import text.message.sms.messaging.ui.theme.ConversationFabBlue
 import text.message.sms.messaging.ui.theme.OnboardingSubtitleGray
+import text.message.sms.messaging.ui.theme.SurfaceContainerGray
 
 private val MinComfortableHeight = 600.dp
 
@@ -131,14 +142,7 @@ internal fun OverlayPermissionScreenContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Icon(
-                    imageVector = Icons.Filled.PictureInPictureAlt,
-                    contentDescription = null,
-                    tint = onboardingPrimaryTextColor(),
-                    modifier = Modifier
-                        .size(96.dp)
-                        .padding(vertical = 16.dp),
-                )
+                OverlayPermissionDeviceFrame(modifier = Modifier.padding(vertical = 16.dp))
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -169,8 +173,107 @@ internal fun OverlayPermissionScreenContent(
                     modifier = Modifier.padding(horizontal = 18.dp),
                     showHalo = true,
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = stringResource(R.string.overlay_permission_reassurance),
+                    fontSize = 13.sp,
+                    color = onboardingSecondaryTextColor(OnboardingSubtitleGray),
+                    textAlign = TextAlign.Center,
+                )
             }
         }
+    }
+}
+
+/**
+ * Decorative mock-up of Android's "Display over other apps" settings screen, illustrating the
+ * permission this screen is about to request. Purely illustrative Compose UI -- the toggles and
+ * rows here have no function.
+ */
+@Composable
+private fun OverlayPermissionDeviceFrame(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .width(220.dp)
+            .border(
+                width = 2.dp,
+                color = MaterialTheme.colorScheme.outline,
+                shape = RoundedCornerShape(28.dp),
+            )
+            .background(SurfaceContainerGray, RoundedCornerShape(28.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        MockSettingsRow(text = stringResource(R.string.overlay_permission_mock_row_allow))
+        MockSettingsRow(
+            text = stringResource(R.string.overlay_permission_mock_row_app),
+            showAppIcon = true,
+        )
+    }
+}
+
+@Composable
+private fun MockSettingsRow(
+    text: String,
+    showAppIcon: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = Color.White,
+        shape = RoundedCornerShape(10.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (showAppIcon) {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .background(ConversationFabBlue, RoundedCornerShape(5.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Message,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(11.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(
+                text = text,
+                fontSize = 10.sp,
+                lineHeight = 13.sp,
+                color = MockRowTextDark,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            MockToggleOn()
+        }
+    }
+}
+
+private val MockRowTextDark = Color(0xFF202124)
+
+@Composable
+private fun MockToggleOn(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(width = 30.dp, height = 16.dp)
+            .background(ConversationFabBlue, RoundedCornerShape(8.dp)),
+        contentAlignment = Alignment.CenterEnd,
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(2.dp)
+                .size(12.dp)
+                .background(Color.White, CircleShape),
+        )
     }
 }
 
