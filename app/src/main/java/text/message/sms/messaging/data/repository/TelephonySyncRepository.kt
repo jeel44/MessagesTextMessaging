@@ -5,9 +5,16 @@ import android.util.Log
 import androidx.core.net.toUri
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import text.message.sms.messaging.data.local.db.dao.SyncStateDao
 import text.message.sms.messaging.data.local.db.entity.SyncStateEntity
@@ -281,9 +288,26 @@ class TelephonySyncRepository @Inject constructor(
         return inserted
     }
 
-    /** MMS equivalent of [prepareAndInsertSmsChunk]. The existence check runs *before*
+    /**
+     * MMS equivalent of [prepareAndInsertSmsChunk]. The existence check runs *before*
      * [readAndPrepareMms], so an already-cached row skips its full header/address/part re-decode
-     * entirely rather than only skipping the DB write, unlike the old per-row `syncMms`. */
+     * entirely rather than only skipping the DB write, unlike the old per-row `syncMms`.
+     *
+     * Unlike SMS (one bulk [SmsProviderGateway.querySince] query covers a whole chunk), each MMS
+     * needs its own header/address/part [android.content.ContentResolver] round trips plus, for
+     * every non-text part, a full byte read and a file write -- see [MmsProviderGateway.readMessage].
+     * That per-row work is entirely independent between MMS rows, so it runs concurrently here
+     * (bounded by [MMS_READ_CONCURRENCY], not unbounded -- a chunk can hold hundreds of rows and
+     * this must not fire hundreds of simultaneous ContentResolver queries/file writes) instead of
+     * the previous strictly sequential loop. [chunk.map { async { ... } }.awaitAll()][awaitAll]
+     * returns results in the same order as [chunk] regardless of completion order, so the merge
+     * loop below can still apply this method's newest-first stats/watermark bookkeeping exactly as
+     * before -- see [SyncStats.mmsWatermarkStalled]'s doc for why that ordering matters. Only the
+     * per-row `threadIdCache` lookup (shared, mutable, previously safe only because one coroutine
+     * touched it at a time) needs the new [Mutex]; nothing else here is shared mutable state during
+     * the concurrent phase -- [toInsert]/[blockedThreadIds]/[stats] are only written afterward, back
+     * on this single coroutine.
+     */
     private suspend fun prepareAndInsertMmsChunk(
         chunk: List<MmsProviderGateway.MmsIdAndDate>,
         threadIdCache: MutableMap<Set<String>, Long>,
@@ -291,26 +315,48 @@ class TelephonySyncRepository @Inject constructor(
     ): List<Message> {
         if (chunk.isEmpty()) return emptyList()
         val existing = messageRepository.findExistingProviderIds(chunk.map { it.providerId }, MessageChannel.MMS)
+        val threadIdCacheMutex = Mutex()
         val toInsert = mutableListOf<Message>()
         val blockedThreadIds = mutableSetOf<Long>()
 
-        for (ref in chunk) {
-            try {
-                if (ref.providerId !in existing) {
-                    readAndPrepareMms(ref.providerId, threadIdCache)?.let { message ->
+        val outcomes = coroutineScope {
+            val concurrencyLimit = Semaphore(MMS_READ_CONCURRENCY)
+            chunk.map { ref ->
+                async {
+                    concurrencyLimit.withPermit {
+                        try {
+                            val message = if (ref.providerId !in existing) {
+                                readAndPrepareMms(ref.providerId, threadIdCache, threadIdCacheMutex)
+                            } else {
+                                null
+                            }
+                            MmsPrepareOutcome.Prepared(message, ref.dateSeconds)
+                        } catch (error: Exception) {
+                            if (error is CancellationException) throw error
+                            MmsPrepareOutcome.Failed(ref.providerId, error)
+                        }
+                    }
+                }
+            }.awaitAll()
+        }
+
+        for (outcome in outcomes) {
+            when (outcome) {
+                is MmsPrepareOutcome.Prepared -> {
+                    outcome.message?.let { message ->
                         toInsert += message
                         if (blockedSenderGate.isBlocked(message.address)) blockedThreadIds += message.threadId
                     }
+                    if (!stats.mmsWatermarkStalled) {
+                        stats.newestMmsSeconds = maxOf(stats.newestMmsSeconds, outcome.dateSeconds)
+                    }
                 }
-                if (!stats.mmsWatermarkStalled) {
-                    stats.newestMmsSeconds = maxOf(stats.newestMmsSeconds, ref.dateSeconds)
+                is MmsPrepareOutcome.Failed -> {
+                    stats.failedCount++
+                    stats.mmsWatermarkStalled = true
+                    if (stats.firstFailure == null) stats.firstFailure = outcome.error
+                    Log.w(TAG, "Skipping malformed MMS row (provider id ${outcome.providerId})", outcome.error)
                 }
-            } catch (error: Exception) {
-                if (error is CancellationException) throw error
-                stats.failedCount++
-                stats.mmsWatermarkStalled = true
-                if (stats.firstFailure == null) stats.firstFailure = error
-                Log.w(TAG, "Skipping malformed MMS row (provider id ${ref.providerId})", error)
             }
             stats.completed++
         }
@@ -320,12 +366,25 @@ class TelephonySyncRepository @Inject constructor(
         return inserted
     }
 
+    /** One [chunk] row's outcome from the concurrent phase of [prepareAndInsertMmsChunk], carried
+     * back to the sequential merge loop so stats/watermark bookkeeping stays single-threaded. */
+    private sealed interface MmsPrepareOutcome {
+        /** [message] is null for an already-cached row or one [readAndPrepareMms] skipped (no
+         * resolvable recipients) -- either way [dateSeconds] still lets the watermark advance. */
+        data class Prepared(val message: Message?, val dateSeconds: Long) : MmsPrepareOutcome
+        data class Failed(val providerId: Long, val error: Exception) : MmsPrepareOutcome
+    }
+
     /** Reads and resolves one MMS row -- everything [prepareAndInsertMmsChunk] needs before a row
      * can join the chunk's batch insert. Returns `null` only for a row that genuinely can't be
      * resolved (no recipients) -- a blocked sender's row is still returned (see
      * [BlockedSenderGate]'s doc), [prepareAndInsertMmsChunk] itself decides whether to mark the
      * thread blocked. */
-    private suspend fun readAndPrepareMms(providerId: Long, threadIdCache: MutableMap<Set<String>, Long>): Message? {
+    private suspend fun readAndPrepareMms(
+        providerId: Long,
+        threadIdCache: MutableMap<Set<String>, Long>,
+        threadIdCacheMutex: Mutex,
+    ): Message? {
         val message = mmsProviderGateway.readMessage("content://mms/$providerId") ?: return null
 
         val rawRecipients = (listOfNotNull(message.address) + mmsProviderGateway.readRecipients(providerId)).toSet()
@@ -337,7 +396,7 @@ class TelephonySyncRepository @Inject constructor(
         // Same business/RCS-sender-address exclusion as MmsDownloadResultReceiver -- an address
         // like `agent@rbm.goog` must not count as a participant.
         val recipients = PhoneNumbers.realParticipantsOnly(rawRecipients)
-        val resolvedThreadId = resolveThreadIdCached(threadIdCache, recipients)
+        val resolvedThreadId = resolveThreadIdCached(threadIdCache, recipients, threadIdCacheMutex)
 
         return message.copy(threadId = resolvedThreadId)
     }
@@ -461,11 +520,25 @@ class TelephonySyncRepository @Inject constructor(
         }
     }
 
-    /** [ConversationRepository.resolveThreadId] is a real ContentResolver round-trip -- [cache]
+    /**
+     * [ConversationRepository.resolveThreadId] is a real ContentResolver round-trip -- [cache]
      * is scoped to a single caller (one sync pass, or one [syncMessage] call), never persisted or
-     * shared, since a longer-lived cache could go stale between syncs. */
-    private suspend fun resolveThreadIdCached(cache: MutableMap<Set<String>, Long>, addresses: Set<String>): Long =
-        cache.getOrPut(addresses) { conversationRepository.resolveThreadId(addresses) }
+     * shared, since a longer-lived cache could go stale between syncs.
+     *
+     * [mutex] is only ever non-null from [prepareAndInsertMmsChunk]'s concurrent phase, the one
+     * caller where more than one coroutine can reach the same [cache] at once; every other caller
+     * (SMS's own sequential chunk loop, and the legacy single-row [syncSms]/[syncMms]) has exactly
+     * one coroutine touching its `threadIdCache` for the whole call, so they omit it and this stays
+     * a plain unsynchronized `getOrPut` for them, unchanged from before.
+     */
+    private suspend fun resolveThreadIdCached(
+        cache: MutableMap<Set<String>, Long>,
+        addresses: Set<String>,
+        mutex: Mutex? = null,
+    ): Long {
+        suspend fun resolve() = cache.getOrPut(addresses) { conversationRepository.resolveThreadId(addresses) }
+        return if (mutex != null) mutex.withLock { resolve() } else resolve()
+    }
 
     private data class MmsSyncResult(val receivedAtMillis: Long?, val insertedMessage: Message?)
 
@@ -504,5 +577,11 @@ class TelephonySyncRepository @Inject constructor(
          * commit cost is amortized over many rows, small enough that the very first chunk (which
          * unlocks Home's first visible data) still commits in well under a second. */
         const val SYNC_CHUNK_SIZE = 500
+
+        /** How many MMS rows' header/address/part reads (and attachment file writes) run
+         * concurrently within one chunk, in [prepareAndInsertMmsChunk] -- bounded, not unlimited,
+         * so a chunk of up to [SYNC_CHUNK_SIZE] MMS rows can't fire hundreds of simultaneous
+         * ContentResolver queries or file writes and overwhelm the provider/disk. */
+        const val MMS_READ_CONCURRENCY = 6
     }
 }
