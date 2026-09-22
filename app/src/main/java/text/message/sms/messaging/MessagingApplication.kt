@@ -22,6 +22,7 @@ import text.message.sms.messaging.di.ApplicationScope
 import text.message.sms.messaging.domain.usecase.RearmScheduledMessageAlarms
 import text.message.sms.messaging.domain.usecase.SyncContacts
 import text.message.sms.messaging.domain.usecase.SyncMessages
+import text.message.sms.messaging.service.CallEndTriggerService
 import text.message.sms.messaging.service.DefaultSmsAppGuard
 import text.message.sms.messaging.service.NotificationChannels
 import text.message.sms.messaging.util.ColdStartTracer
@@ -131,6 +132,17 @@ class MessagingApplication : Application(), Configuration.Provider {
             applicationScope.launch { syncContacts() }
         }
         ColdStartTracer.mark("Application.onCreate:afterContactObserverRegisterAndSyncLaunch")
+
+        // Independent of the default-SMS-app role below -- call monitoring only needs
+        // READ_PHONE_STATE, not this app owning SMS/MMS. Gated on the permission because starting
+        // a foreground service that can't register its telephony callback would just be a
+        // permanent, useless notification (see CallEndTriggerService.start's own doc comment).
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            CallEndTriggerService.start(this)
+        }
+        ColdStartTracer.mark("Application.onCreate:afterCallEndTriggerServiceStart")
 
         // The observer only needs READ_SMS (it just watches content://sms/content://mms), unlike
         // the sync/alarm work below, which needs the default-SMS role to actually write anything

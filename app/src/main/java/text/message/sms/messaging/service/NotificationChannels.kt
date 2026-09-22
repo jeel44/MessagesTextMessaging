@@ -30,10 +30,31 @@ class NotificationChannels @Inject constructor(
                 NotificationManager.IMPORTANCE_DEFAULT,
             ),
         )
+        // Silent/low-importance -- required by the platform for any foreground service, but this
+        // one has nothing worth interrupting the user for; see CallEndTriggerService.
+        notificationManager.createNotificationChannel(
+            NotificationChannel(
+                CALL_MONITOR,
+                context.getString(text.message.sms.messaging.R.string.channel_call_monitor),
+                NotificationManager.IMPORTANCE_LOW,
+            ),
+        )
+        // HIGH importance is required for the platform to even attempt a full-screen-intent
+        // launch (or heads-up display, if it's downgraded to a tray notification instead) --
+        // see CallEndTriggerService.
+        notificationManager.createNotificationChannel(
+            NotificationChannel(
+                CALL_END,
+                context.getString(text.message.sms.messaging.R.string.channel_call_end),
+                NotificationManager.IMPORTANCE_HIGH,
+            ),
+        )
     }
 
     companion object {
         const val INCOMING_MESSAGES: String = "incoming_messages"
         const val SEND_FAILURES: String = "send_failures"
+        const val CALL_MONITOR: String = "call_monitor"
+        const val CALL_END: String = "call_end"
     }
 }

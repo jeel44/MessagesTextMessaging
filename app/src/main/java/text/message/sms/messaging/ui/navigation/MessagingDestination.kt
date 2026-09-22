@@ -1,5 +1,6 @@
 package text.message.sms.messaging.ui.navigation
 
+import text.message.sms.messaging.domain.model.CallSession
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -72,10 +73,52 @@ sealed class MessagingDestination(val route: String) {
         fun decodeContentUri(encoded: String): String = URLDecoder.decode(encoded, "UTF-8")
     }
 
+    /** Read-only contacts browse off the call-end screen's More tab -- see
+     * [text.message.sms.messaging.ui.screens.contactslist.ContactsListScreen]. */
+    data object ContactsList : MessagingDestination("contacts")
+
+    /** Carries a full [CallSession] as primitive query args -- the same "plain primitives in the
+     * route" approach [Chat] already uses for its [ARG_THREAD_ID], just spread across more of
+     * them. [ARG_PHONE_NUMBER] alone is nullable/best-effort, matching [CallSession.phoneNumber]
+     * itself; the rest always have a real value by the time [routeFor] builds the route, so they
+     * carry a default only to satisfy Navigation Compose's argument declaration, never actually
+     * relied on. Reached either from [text.message.sms.messaging.service.CallEndTriggerService]'s
+     * real full-screen-intent notification (via [text.message.sms.messaging.MainActivity]'s
+     * `pendingCallSession` handoff) or from Settings' Debug section for visual review. */
+    data object CallEnd : MessagingDestination(
+        "call_end?phone={$ARG_PHONE_NUMBER}&direction={$ARG_CALL_DIRECTION}&outcome={$ARG_CALL_OUTCOME}" +
+            "&startedAt={$ARG_CALL_STARTED_AT}&endedAt={$ARG_CALL_ENDED_AT}&durationMillis={$ARG_CALL_DURATION_MILLIS}",
+    ) {
+        fun routeFor(session: CallSession): String {
+            val phonePart = session.phoneNumber
+                ?.let { "&phone=${URLEncoder.encode(it, "UTF-8")}" }
+                .orEmpty()
+            return "call_end?direction=${session.direction.name}&outcome=${session.outcome.name}" +
+                "&startedAt=${session.startedAt}&endedAt=${session.endedAt}" +
+                "&durationMillis=${session.durationMillis}$phonePart"
+        }
+    }
+
+    /** Generic "not built yet" stub -- see [text.message.sms.messaging.ui.screens.callend
+     * .ComingSoonScreen]. [ARG_FEATURE_TITLE] is shown verbatim as the screen's title. */
+    data object ComingSoon : MessagingDestination("coming_soon/{$ARG_FEATURE_TITLE}") {
+        fun routeFor(featureTitle: String): String =
+            "coming_soon/${URLEncoder.encode(featureTitle, "UTF-8")}"
+
+        fun decodeFeatureTitle(encoded: String): String = URLDecoder.decode(encoded, "UTF-8")
+    }
+
     companion object {
         const val ARG_THREAD_ID: String = "threadId"
         const val ARG_CONTENT_URI: String = "contentUri"
         const val ARG_INITIAL_TEXT: String = "initialText"
         const val ARG_PREFILL_TEXT: String = "prefill"
+        const val ARG_PHONE_NUMBER: String = "phone"
+        const val ARG_FEATURE_TITLE: String = "feature"
+        const val ARG_CALL_DIRECTION: String = "direction"
+        const val ARG_CALL_OUTCOME: String = "outcome"
+        const val ARG_CALL_STARTED_AT: String = "startedAt"
+        const val ARG_CALL_ENDED_AT: String = "endedAt"
+        const val ARG_CALL_DURATION_MILLIS: String = "durationMillis"
     }
 }

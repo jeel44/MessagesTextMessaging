@@ -257,6 +257,12 @@
     <!-- Notification channels -->
     <string name="channel_incoming_messages">Incoming messages</string>
     <string name="channel_send_failures">Send failures</string>
+    <string name="channel_call_monitor">Call monitoring</string>
+    <string name="channel_call_end">Call-end alerts</string>
+
+    <!-- CallEndTriggerService notifications -->
+    <string name="call_monitor_notification_title">Listening for call-end</string>
+    <string name="call_end_notification_title">Call ended</string>
 
     <!-- Incoming-message notification -->
     <string name="notification_mms_photo_placeholder">Photo</string>
@@ -304,6 +310,12 @@
     <string name="settings_delivery_reports_summary">Get notified when a message is delivered</string>
     <string name="settings_quick_reply_title">Quick reply</string>
     <string name="settings_quick_reply_summary">Reply to messages from the notification shade</string>
+
+    <string name="settings_call_alerts_title">Call alerts</string>
+    <string name="settings_call_alerts_summary">Show a full-screen summary when a call ends</string>
+    <string name="settings_call_alerts_explanation">When a call ends, Messages tries to show a full-screen summary with the caller\'s details and quick actions. On newer versions of Android, this requires a permission that isn\'t turned on automatically for messaging apps. If it doesn\'t appear, you can turn it on manually below.</string>
+    <string name="settings_call_alerts_open_settings">Open full-screen notification settings</string>
+
     <string name="settings_swipe_actions_title">Swipe actions</string>
     <string name="settings_swipe_actions_summary">%1$s · %2$s</string>
     <string name="settings_swipe_right_header">Swipe right</string>
@@ -337,4 +349,29 @@
     <string name="settings_privacy_policy_title">Privacy policy</string>
     <string name="settings_licenses_title">Open source licenses</string>
     <string name="settings_help_feedback_title">Help &amp; feedback</string>
+
+    <!-- Contacts list (call-end screen's "View Contacts") -->
+    <string name="screen_contacts">Contacts</string>
+    <string name="contacts_list_empty">No contacts found</string>
+
+    <!-- Call-end screen -->
+    <string name="call_end_unknown_caller">Unknown</string>
+    <string name="call_end_duration_label">Duration • %1$s</string>
+    <string name="call_end_call_back">Call back</string>
+    <string name="call_end_whatsapp">WhatsApp</string>
+    <string name="call_end_whatsapp_business">WhatsApp Business</string>
+    <string name="call_end_telegram">Telegram</string>
+    <string name="call_end_tab_list">List</string>
+    <string name="call_end_tab_archive">Archive</string>
+    <string name="call_end_tab_more">More</string>
+    <string name="call_end_list_empty">No recent conversations</string>
+    <string name="call_end_archive_empty">No archived conversations</string>
+    <string name="call_end_menu_contacts">View Contacts</string>
+    <string name="call_end_menu_messages">Messages</string>
+    <string name="call_end_menu_schedule">Schedule message</string>
+    <string name="call_end_menu_backup">Backup &amp; Restore</string>
+
+    <!-- ComingSoonScreen stub -->
+    <string name="coming_soon_title">%1$s is coming soon</string>
+    <string name="coming_soon_body">We\'re still working on this feature. Check back in a future update.</string>
 </resources>

@@ -33,9 +33,25 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
 
-    <!-- Call-end screen (upcoming): number/call-type lookup after a call ends -->
+    <!-- Call-end screen: number/call-type lookup after a call ends -->
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
+
+    <!-- Call-end screen's launch trigger: CallEndTriggerService stays alive to catch a call
+         ending even when the app isn't foregrounded, and posts a full-screen-intent notification
+         when one does. USE_FULL_SCREEN_INTENT is "special access" on API 34+ and is not expected
+         to be auto-granted to a messaging app; see Settings' Call alerts explanation, which
+         deep-links to the system page that lets the user turn it on manually.
+
+         FOREGROUND_SERVICE_SPECIAL_USE, not FOREGROUND_SERVICE_PHONE_CALL: the "phoneCall" FGS
+         type is restricted (targetSdk 34+) to apps holding MANAGE_OWN_CALLS or the system
+         dialer/DIALER role. This app never places or manages calls, it only watches
+         TelephonyManager call-state transitions to know when one ended, so it doesn't qualify and
+         that type is flatly rejected with a SecurityException on start. specialUse is the correct
+         type for this; see the service tag's PROPERTY_SPECIAL_USE_FGS_SUBTYPE below. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <!-- Notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -46,11 +62,20 @@
 
     <!-- Chat composer's Camera attachment action delegates to whatever camera app is
          installed via ACTION_IMAGE_CAPTURE; package-visibility rules on API 30+ require it to
-         be declared here or resolution can silently fail on some OEM builds. -->
+         be declared here or resolution can silently fail on some OEM builds.
+
+         The three <package> entries below are for the call-end screen's quick-launch row (see
+         CallEndViewModel.isPackageInstalled/QuickLaunchApps): without them, PackageManager
+         .getPackageInfo() for another app's package throws NameNotFoundException on API 30+ even
+         when that app is genuinely installed, so every quick-launch tile silently stayed hidden
+         regardless of what was actually on the device. -->
     <queries>
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
+        <package android:name="org.telegram.messenger" />
     </queries>
 
     <!--
@@ -189,6 +214,19 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
+
+        <!-- Foreground service: stays alive to catch TelephonyManager call-state transitions
+             even while this app isn't in the foreground, and posts the call-end screen's
+             full-screen-intent notification when a call ends; see CallStateMonitor and
+             CallEndTriggerService. -->
+        <service
+            android:name=".service.CallEndTriggerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="call-end-screen-and-quick-actions" />
+        </service>
 
         <!--
           Requirement 4 of 4: respond to a call declined with a canned reply. QUICK_RESPONSE is
