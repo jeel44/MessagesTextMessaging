@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Messages</string>
+    <string name="app_name">#Messages</string>
 
     <!-- Onboarding -->
     <string name="splash_tagline">Simple. Fast. Secure.</string>
@@ -10,7 +10,7 @@
     <string name="welcome_subtitle">Stay connected with smooth messaging right after your call ends.</string>
     <string name="welcome_privacy_prefix">By Continuing, you agree our </string>
     <string name="welcome_privacy_suffix">.</string>
-    <string name="welcome_headline">Welcome to Messages</string>
+    <string name="welcome_headline">Welcome to #Messages</string>
     <string name="welcome_feature_sms_title">Fast &amp; Reliable SMS</string>
     <string name="welcome_feature_sms_desc">Send and receive messages quickly with a smooth texting experience.</string>
     <string name="welcome_feature_notifications_title">Smart Notifications</string>
@@ -25,18 +25,18 @@
     <string name="welcome_consent_privacy">Privacy Policy</string>
     <string name="welcome_consent_suffix">.</string>
     <string name="welcome_continue">Continue</string>
-    <string name="welcome_permission_denied_message">SMS permissions are required for Messages to send and receive texts. Tap Continue to try again.</string>
-    <string name="welcome_permission_settings_message">SMS permissions are required for Messages to work. Enable them in Settings to continue.</string>
+    <string name="welcome_permission_denied_message">SMS permissions are required for #Messages to send and receive texts. Tap Continue to try again.</string>
+    <string name="welcome_permission_settings_message">SMS permissions are required for #Messages to work. Enable them in Settings to continue.</string>
     <string name="welcome_open_settings">Open Settings</string>
 
     <!-- Set default SMS -->
     <string name="set_default_sms_placeholder_label">Lottie animation here</string>
-    <string name="set_default_sms_body">Set Messages as your default SMS app to start sending and receiving texts.</string>
+    <string name="set_default_sms_body">Set #Messages as your default SMS app to start sending and receiving texts.</string>
     <string name="set_default_sms_button">Set as Default</string>
-    <string name="set_default_sms_hint">Messages needs to be your default SMS app to send and receive texts. Tap the button whenever you are ready.</string>
+    <string name="set_default_sms_hint">#Messages needs to be your default SMS app to send and receive texts. Tap the button whenever you are ready.</string>
 
     <string name="overlay_permission_title">Appear on top of other apps</string>
-    <string name="overlay_permission_body">So call alerts can appear over other apps, Messages needs permission to display on top of what you\'re currently using.</string>
+    <string name="overlay_permission_body">So call alerts can appear over other apps, #Messages needs permission to display on top of what you\'re currently using.</string>
     <string name="overlay_permission_button">Allow</string>
 
     <!-- Language -->
@@ -44,7 +44,7 @@
     <string name="language_continue">Continue</string>
 
     <!-- Screen titles -->
-    <string name="screen_conversations">Messages</string>
+    <string name="screen_conversations">#Messages</string>
     <string name="screen_new_message">New message</string>
     <string name="screen_search">Search</string>
     <string name="screen_settings">Settings</string>
@@ -57,8 +57,8 @@
     <string name="home_filter_otp">OTP</string>
     <string name="home_empty_title">No messages yet</string>
     <string name="home_empty_message">Start a conversation and it will show up here.</string>
-    <string name="home_not_default_title">Set Messages as your default SMS app</string>
-    <string name="home_not_default_message">Messages needs to be your default SMS app to sync and show your conversations here.</string>
+    <string name="home_not_default_title">Set #Messages as your default SMS app</string>
+    <string name="home_not_default_message">#Messages needs to be your default SMS app to sync and show your conversations here.</string>
     <string name="home_sync_failed_message">Some messages couldn\'t be loaded</string>
     <string name="home_sync_retry">Retry</string>
     <string name="home_archived_row_title">Archived</string>
@@ -160,7 +160,7 @@
     <string name="chat_attachment_schedule">Schedule</string>
     <string name="chat_attachment_coming_soon">Coming soon</string>
     <string name="chat_media_viewer_title">Photo</string>
-    <string name="chat_security_notice">This SMS is 100% Secure. Messages never collect data without prior consent. Everything is processed and stored on your phone.</string>
+    <string name="chat_security_notice">This SMS is 100% Secure. #Messages never collect data without prior consent. Everything is processed and stored on your phone.</string>
     <string name="chat_cant_reply_short_code">Can\'t reply to this short code</string>
     <string name="chat_learn_more">Learn More</string>
     <string name="chat_learn_more_dialog_message">You can\'t reply to messages from business senders and short codes.</string>
@@ -306,7 +306,7 @@
     <string name="action_select">Select</string>
 
     <string name="settings_default_app_title">Default SMS app</string>
-    <string name="settings_default_app_summary">Set Messages as your default SMS app</string>
+    <string name="settings_default_app_summary">Set #Messages as your default SMS app</string>
     <string name="settings_language_title">Language</string>
     <string name="settings_notifications_title">Notifications</string>
     <string name="settings_notifications_summary">Show a notification for new messages</string>
@@ -317,7 +317,7 @@
 
     <string name="settings_call_alerts_title">Call alerts</string>
     <string name="settings_call_alerts_summary">Show a full-screen summary when a call ends</string>
-    <string name="settings_call_alerts_explanation">When a call ends, Messages tries to show a full-screen summary with the caller\'s details and quick actions. On newer versions of Android, this requires a permission that isn\'t turned on automatically for messaging apps. If it doesn\'t appear, you can turn it on manually below.</string>
+    <string name="settings_call_alerts_explanation">When a call ends, #Messages tries to show a full-screen summary with the caller\'s details and quick actions. On newer versions of Android, this requires a permission that isn\'t turned on automatically for messaging apps. If it doesn\'t appear, you can turn it on manually below.</string>
     <string name="settings_call_alerts_open_settings">Open full-screen notification settings</string>
 
     <string name="settings_swipe_actions_title">Swipe actions</string>
@@ -344,7 +344,7 @@
     <string name="settings_backup_importing">Restoring messages…</string>
     <string name="settings_backup_export_success">Backed up %1$d message(s)</string>
     <string name="settings_backup_import_success">Restored %1$d message(s)</string>
-    <string name="settings_backup_not_default_app">Set Messages as your default SMS app before restoring a backup</string>
+    <string name="settings_backup_not_default_app">Set #Messages as your default SMS app before restoring a backup</string>
     <string name="settings_backup_destination_unavailable">Couldn\'t open that file</string>
     <string name="settings_backup_error">Backup failed: %1$s</string>
 

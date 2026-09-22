@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import kotlinx.coroutines.delay
 import text.message.sms.messaging.R
 import text.message.sms.messaging.service.OverlayPermissionGuard
 import text.message.sms.messaging.ui.components.ShineButton
@@ -68,6 +69,12 @@ private val MinComfortableHeight = 600.dp
  * lambda directly from composition would fire again on every one of those, racing the `popUpTo`
  * from the first call. Keying on [isGranted] means it only actually runs on the false-to-true
  * transition.
+ *
+ * The Settings page also auto-launches ~1s after this screen first appears (a second, keyed-on-
+ * `Unit` [LaunchedEffect], so it fires exactly once and never again on recomposition), on top of
+ * the button already launching it on tap. The button stays live the whole time: the user can act
+ * before the 1s delay elapses, and if they back out of Settings without granting, tapping it again
+ * is still the only way back in since the auto-launch never fires a second time.
  */
 @Composable
 fun OverlayPermissionScreen(
@@ -83,6 +90,11 @@ fun OverlayPermissionScreen(
 
     LaunchedEffect(isGranted) {
         if (isGranted) onGranted()
+    }
+
+    LaunchedEffect(Unit) {
+        delay(1_000)
+        if (!isGranted) context.startActivity(OverlayPermissionGuard.buildRequestIntent(context))
     }
 
     if (isGranted) return
