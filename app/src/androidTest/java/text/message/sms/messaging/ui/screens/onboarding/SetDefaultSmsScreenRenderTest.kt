@@ -8,10 +8,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Crash-free rendering coverage for the recreated Set-as-Default screen. Exercises
- * [SetDefaultSmsScreenContent] directly (not [SetDefaultSmsScreen]) since the real screen wires in
- * a Hilt-backed [SetDefaultSmsViewModel] via [androidx.hilt.navigation.compose.hiltViewModel], and
- * this module has no Hilt test harness set up -- see [SetDefaultSmsScreenContent]'s doc comment.
+ * Crash-free rendering coverage for the Set-as-Default screen, now also the screen that requests
+ * every other onboarding permission after the role grant. Exercises [SetDefaultSmsScreenContent]
+ * directly (not [SetDefaultSmsScreen]) since the real screen wires in a Hilt-backed
+ * [SetDefaultSmsViewModel] via [androidx.hilt.navigation.compose.hiltViewModel], and this module has
+ * no Hilt test harness set up -- see [SetDefaultSmsScreenContent]'s doc comment.
  */
 @RunWith(AndroidJUnit4::class)
 class SetDefaultSmsScreenRenderTest {
@@ -24,7 +25,9 @@ class SetDefaultSmsScreenRenderTest {
         composeRule.setContent {
             SetDefaultSmsScreenContent(
                 showDeclinedHint = false,
+                promptState = PermissionPromptState.Hidden,
                 onSetDefaultClick = {},
+                onOpenSettings = {},
             )
         }
 
@@ -32,11 +35,27 @@ class SetDefaultSmsScreenRenderTest {
     }
 
     @Test
-    fun declinedHintShown_rendersWithoutCrashing() {
+    fun roleDeclinedHintShown_rendersWithoutCrashing() {
         composeRule.setContent {
             SetDefaultSmsScreenContent(
                 showDeclinedHint = true,
+                promptState = PermissionPromptState.Hidden,
                 onSetDefaultClick = {},
+                onOpenSettings = {},
+            )
+        }
+
+        composeRule.onNodeWithText("Set as Default").assertExists()
+    }
+
+    @Test
+    fun permissionsPermanentlyDenied_rendersWithoutCrashing() {
+        composeRule.setContent {
+            SetDefaultSmsScreenContent(
+                showDeclinedHint = false,
+                promptState = PermissionPromptState.PermanentlyDenied,
+                onSetDefaultClick = {},
+                onOpenSettings = {},
             )
         }
 

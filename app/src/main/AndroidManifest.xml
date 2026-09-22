@@ -57,6 +57,12 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- "Appear on top", requested during onboarding by OverlayPermissionScreen, ahead of the
+         call-alert overlay feature this is meant for (that feature isn't built yet). The
+         existing call-end screen does NOT need this: it launches via a full-screen-intent
+         notification (USE_FULL_SCREEN_INTENT above), not a drawn overlay window. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
     <!-- Scheduled sends have to survive a reboot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 

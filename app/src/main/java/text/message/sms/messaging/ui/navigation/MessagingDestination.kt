@@ -14,6 +14,10 @@ sealed class MessagingDestination(val route: String) {
 
     data object Welcome : MessagingDestination("welcome")
 
+    /** Gates onboarding on "draw over other apps" -- see
+     * [text.message.sms.messaging.ui.screens.permissions.OverlayPermissionScreen]. */
+    data object OverlayPermission : MessagingDestination("overlay_permission")
+
     data object SetDefaultSms : MessagingDestination("set_default_sms")
 
     data object Language : MessagingDestination("language")

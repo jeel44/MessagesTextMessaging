@@ -35,6 +35,7 @@ import text.message.sms.messaging.ui.screens.onboarding.LanguageScreen
 import text.message.sms.messaging.ui.screens.onboarding.SetDefaultSmsScreen
 import text.message.sms.messaging.ui.screens.onboarding.SplashScreen
 import text.message.sms.messaging.ui.screens.onboarding.WelcomeScreen
+import text.message.sms.messaging.ui.screens.permissions.OverlayPermissionScreen
 import text.message.sms.messaging.ui.screens.search.SearchScreen
 import text.message.sms.messaging.ui.screens.settings.SettingsScreen
 
@@ -100,8 +101,18 @@ fun MessagingNavHost(
         composable(MessagingDestination.Welcome.route) {
             WelcomeScreen(
                 onContinue = {
-                    navController.navigate(MessagingDestination.SetDefaultSms.route) {
+                    navController.navigate(MessagingDestination.OverlayPermission.route) {
                         popUpTo(MessagingDestination.Welcome.route) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(MessagingDestination.OverlayPermission.route) {
+            OverlayPermissionScreen(
+                onGranted = {
+                    navController.navigate(MessagingDestination.SetDefaultSms.route) {
+                        popUpTo(MessagingDestination.OverlayPermission.route) { inclusive = true }
                     }
                 },
             )

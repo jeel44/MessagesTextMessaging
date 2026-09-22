@@ -35,6 +35,10 @@
     <string name="set_default_sms_button">Set as Default</string>
     <string name="set_default_sms_hint">Messages needs to be your default SMS app to send and receive texts. Tap the button whenever you are ready.</string>
 
+    <string name="overlay_permission_title">Appear on top of other apps</string>
+    <string name="overlay_permission_body">So call alerts can appear over other apps, Messages needs permission to display on top of what you\'re currently using.</string>
+    <string name="overlay_permission_button">Allow</string>
+
     <!-- Language -->
     <string name="language_title">Select App Language</string>
     <string name="language_continue">Continue</string>
