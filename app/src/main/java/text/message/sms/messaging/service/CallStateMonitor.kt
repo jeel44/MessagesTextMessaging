@@ -10,9 +10,11 @@ import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flowOn
 import text.message.sms.messaging.domain.model.CallDirection
 import text.message.sms.messaging.domain.model.CallOutcome
 import text.message.sms.messaging.domain.model.CallSession
@@ -43,6 +45,19 @@ private const val TAG = "CallStateMonitor"
  * same reasoning [ActiveThreadTracker]'s `@Volatile` field exists for, just enforced by thread
  * confinement here instead of a volatile field, since the mutable state below is local to the
  * flow's builder lambda, not a class property.
+ *
+ * The whole [callbackFlow] block is pinned to [Dispatchers.Main] via `flowOn` below for a second,
+ * separate reason on top of that: the legacy [PhoneStateListener]'s no-arg constructor builds its
+ * own internal `Handler` from `Looper.myLooper()`, which is only non-null on a thread that has
+ * called `Looper.prepare()` -- the main thread, or a dedicated `HandlerThread`. [callSessions] has
+ * no `flowOn` of its own to fall back on, so without this it runs on whatever dispatcher its
+ * collector happens to use ([CallEndTriggerService] collects on `Dispatchers.Default`), and
+ * constructing that listener there crashes immediately, every time, on any API < 31 device (this
+ * app's minSdk 26 floor). The API 31+ [TelephonyCallback] branch was never affected by this --
+ * its constructor touches no Looper/Handler, and delivery is routed through the explicit
+ * [ContextCompat.getMainExecutor] argument to `registerTelephonyCallback` regardless of which
+ * thread calls it -- but pinning the whole block is simpler than special-casing just one branch,
+ * and costs nothing extra there.
  */
 @Singleton
 class CallStateMonitor @Inject constructor(
@@ -94,7 +109,7 @@ class CallStateMonitor @Inject constructor(
                 telephonyManager.listen(listener, PhoneStateListener.LISTEN_NONE)
             }
         }
-    }
+    }.flowOn(Dispatchers.Main)
 }
 
 /**
