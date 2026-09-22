@@ -32,6 +32,7 @@ build/
 
 # Local machine files
 local.properties
+keystore.properties
 *.apk
 *.db
 jadx-*/
