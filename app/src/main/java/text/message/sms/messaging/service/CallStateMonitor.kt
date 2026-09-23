@@ -23,14 +23,6 @@ import javax.inject.Singleton
 
 private const val TAG = "CallStateMonitor"
 
-// TEMPORARY (real-call diagnostic): human-readable TelephonyManager.CALL_STATE_* names.
-private fun stateName(state: Int): String = when (state) {
-    TelephonyManager.CALL_STATE_IDLE -> "IDLE"
-    TelephonyManager.CALL_STATE_RINGING -> "RINGING"
-    TelephonyManager.CALL_STATE_OFFHOOK -> "OFFHOOK"
-    else -> "UNKNOWN($state)"
-}
-
 /**
  * Turns raw [TelephonyManager] call-state transitions into a [CallSession] per completed call.
  *
