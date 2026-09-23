@@ -127,8 +127,11 @@ fun MessagingNavHost(
         composable(MessagingDestination.Language.route) {
             LanguageScreen(
                 onContinue = {
+                    // Pop to the graph root, not Splash: Splash (and every earlier onboarding
+                    // screen) was already popped by its own hop, and popUpTo a route that isn't on
+                    // the back stack is a silent no-op -- which left Language under the list.
                     navController.navigate(MessagingDestination.ConversationList.route) {
-                        popUpTo(MessagingDestination.Splash.route) { inclusive = true }
+                        popUpTo(navController.graph.id) { inclusive = true }
                     }
                 },
             )
