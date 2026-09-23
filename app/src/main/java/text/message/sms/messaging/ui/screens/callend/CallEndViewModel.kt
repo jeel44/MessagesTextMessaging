@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import text.message.sms.messaging.ads.CallEndAdLoader
+import text.message.sms.messaging.ads.CallEndAdState
 import text.message.sms.messaging.domain.model.CallDirection
 import text.message.sms.messaging.domain.model.CallOutcome
 import text.message.sms.messaging.domain.model.CallSession
@@ -93,11 +95,17 @@ class CallEndViewModel @Inject constructor(
     internal val archivedConversations: StateFlow<List<Conversation>> = conversationRepository.observeArchived()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Native-first, banner-fallback ad for the screen's ad slot -- see [CallEndAdLoader]'s own
+     * doc comment. Started once below, destroyed in [onCleared] once this screen is gone. */
+    private val adLoader = CallEndAdLoader(context)
+    internal val adState: StateFlow<CallEndAdState> = adLoader.state
+
     init {
         val phoneNumber = callSession.phoneNumber
         if (phoneNumber != null) {
             viewModelScope.launch { _contact.value = contactRepository.findByAddress(phoneNumber) }
         }
+        adLoader.start()
     }
 
     internal fun onTabSelected(tab: CallEndTab) {
@@ -109,5 +117,9 @@ class CallEndViewModel @Inject constructor(
         true
     } catch (e: PackageManager.NameNotFoundException) {
         false
+    }
+
+    override fun onCleared() {
+        adLoader.destroy()
     }
 }

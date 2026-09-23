@@ -375,6 +375,7 @@
     <string name="call_end_menu_messages">Messages</string>
     <string name="call_end_menu_schedule">Schedule message</string>
     <string name="call_end_menu_backup">Backup &amp; Restore</string>
+    <string name="call_end_ad_label">Ad</string>
 
     <!-- ComingSoonScreen stub -->
     <string name="coming_soon_title">%1$s is coming soon</string>

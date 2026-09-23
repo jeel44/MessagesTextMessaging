@@ -107,6 +107,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Messaging">
 
+        <!-- AdMob: Google's official TEST App ID (ca-app-pub-3940256099942544~3347511713).
+             Swap for the real AdMob App ID in a separate, config-only commit once it's available;
+             see CallEndAdLoader's own doc comment for the matching TEST ad unit IDs. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

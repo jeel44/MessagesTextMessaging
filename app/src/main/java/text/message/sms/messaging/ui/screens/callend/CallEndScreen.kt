@@ -10,7 +10,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -37,10 +36,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -51,7 +46,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.R
 import text.message.sms.messaging.domain.model.CallSession
 import text.message.sms.messaging.domain.model.Contact
@@ -62,7 +56,7 @@ import text.message.sms.messaging.ui.screens.conversationlist.ConversationRow
 
 /**
  * The call-end screen: header for the call just finished, quick-launch tiles into third-party chat
- * apps, a 3-tab body (List/Archive/More), and a reserved banner-ad slot. Reached from an
+ * apps, a 3-tab body (List/Archive/More), and an ad slot (see [CallEndAdSlot]). Reached from an
  * actually-ended call, detected by [text.message.sms.messaging.service.CallStateMonitor] and
  * delivered via [text.message.sms.messaging.service.CallEndTriggerService]'s full-screen-intent
  * notification.
@@ -80,6 +74,7 @@ fun CallEndScreen(
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
     val inboxConversations by viewModel.inboxConversations.collectAsStateWithLifecycle()
     val archivedConversations by viewModel.archivedConversations.collectAsStateWithLifecycle()
+    val adState by viewModel.adState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val callSession = viewModel.callSession
 
@@ -126,7 +121,10 @@ fun CallEndScreen(
                     .fillMaxWidth(),
             )
 
-            BannerAdSlot()
+            CallEndAdSlot(
+                adState = adState,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            )
         }
     }
 }
@@ -250,47 +248,6 @@ private fun QuickLaunchTile(iconRes: Int, contentDescription: String, onClick: (
         contentAlignment = Alignment.Center,
     ) {
         Image(painter = sharpIconPainter(iconRes), contentDescription = contentDescription, modifier = Modifier.size(28.dp))
-    }
-}
-
-/** Sized to a 300x250 ad unit's aspect ratio scaled to the screen's available width, rather than
- * a fixed dp height -- so the reserved space stays proportionally correct across phone widths. */
-@Composable
-private fun BannerAdSlot(modifier: Modifier = Modifier) {
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val height = maxWidth * (250f / 300f)
-        AdSlotPlaceholder(modifier = Modifier.fillMaxWidth().height(height))
-    }
-}
-
-/** DEBUG-ONLY dashed outline + "AD SLOT" label so [BannerAdSlot]'s reserved space can actually be
- * seen during review -- release builds render just the bare, borderless [Box] it had before,
- * since a real ad will fill this space in production. */
-@Composable
-private fun AdSlotPlaceholder(modifier: Modifier = Modifier) {
-    if (!BuildConfig.DEBUG) {
-        Box(modifier = modifier)
-        return
-    }
-    val outlineColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-    Box(
-        modifier = modifier.drawBehind {
-            drawRoundRect(
-                color = outlineColor,
-                style = Stroke(
-                    width = 1.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 4.dp.toPx())),
-                ),
-                cornerRadius = CornerRadius(8.dp.toPx()),
-            )
-        },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = "AD SLOT",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-        )
     }
 }
 

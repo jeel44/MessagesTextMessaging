@@ -36,6 +36,9 @@ lottieCompose = "6.7.1"
 # Image loading (chat attachments)
 coil = "2.7.0"
 
+# Ads -- call-end screen's native/banner ad slot (see CallEndAdLoader). No mediation.
+playServicesAds = "25.5.0"
+
 # Kotlin libraries
 coroutines = "1.11.0"
 
@@ -95,6 +98,9 @@ lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", versio
 
 # Image loading
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+
+# Ads
+google-play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playServicesAds" }
 
 # Kotlin libraries
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }

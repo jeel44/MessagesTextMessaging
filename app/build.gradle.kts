@@ -128,6 +128,9 @@ dependencies {
     implementation(libs.lottie.compose)
     implementation(libs.coil.compose)
 
+    // Ads -- call-end screen's native/banner ad slot, no mediation
+    implementation(libs.google.play.services.ads)
+
     // Dependency injection
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
