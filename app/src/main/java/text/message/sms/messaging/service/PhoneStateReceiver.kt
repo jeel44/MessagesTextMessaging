@@ -7,6 +7,7 @@ import android.telephony.TelephonyManager
 import android.util.Log
 import dagger.hilt.android.AndroidEntryPoint
 import text.message.sms.messaging.BuildConfig
+import javax.inject.Inject
 
 private const val TAG = "PhoneStateReceiver"
 
@@ -30,14 +31,25 @@ private const val TAG = "PhoneStateReceiver"
  * Does no state-machine or launch work itself: a manifest receiver's [onReceive] has a short
  * execution budget (the platform ANRs it otherwise), so this just decodes the extra and hands off
  * to [CallEndTriggerService], which has no such tight budget.
+ *
+ * IDLE broadcasts while no call is being tracked (see [CallStateMonitor.isIdleNoOp]) are dropped
+ * here rather than forwarded: every forward is a `startForegroundService`, which posts the FGS
+ * notification, and there's nothing for the service to do for them.
  */
 @AndroidEntryPoint
 class PhoneStateReceiver : BroadcastReceiver() {
+
+    @Inject
+    lateinit var callStateMonitor: CallStateMonitor
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != TelephonyManager.ACTION_PHONE_STATE_CHANGED) return
         val rawState = intent.getStringExtra(TelephonyManager.EXTRA_STATE)
         if (BuildConfig.DEBUG) Log.d(TAG, "onReceive rawState=$rawState")
+        if (callStateMonitor.isIdleNoOp(rawState)) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "Ignoring IDLE with no call in progress")
+            return
+        }
         BackgroundActivityLaunchOverlay.withTransientOverlay(context) {
             CallEndTriggerService.onPhoneStateChanged(context, rawState)
         }

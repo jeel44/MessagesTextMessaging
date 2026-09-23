@@ -78,12 +78,27 @@ class CallStateMonitor @Inject constructor(
      * off whatever thread calls this -- see its own doc comment); the state-machine logic itself
      * is synchronous and this returns as soon as its caller's dispatcher lets it run.
      */
+    /** True from a call's RINGING/OFFHOOK until the IDLE that completes it. [CallEndTriggerService]
+     * uses this to tell "call still in progress, stay alive" apart from every other null result of
+     * [onPhoneStateChanged] (duplicate/ignored broadcasts), which must not keep it alive. */
+    val isCallInProgress: Boolean
+        get() = lastState != TelephonyManager.CALL_STATE_IDLE
+
+    /** True if [rawState] would be a pure no-op for [onPhoneStateChanged]: an IDLE broadcast while
+     * no call is being tracked (boot, SIM/radio changes, per-SIM duplicates, or the process having
+     * been killed mid-call so the preceding RINGING/OFFHOOK was lost). [PhoneStateReceiver] skips
+     * starting [CallEndTriggerService] entirely for these -- starting it posts the FGS notification. */
+    fun isIdleNoOp(rawState: String?): Boolean =
+        toCallState(rawState) == TelephonyManager.CALL_STATE_IDLE && !isCallInProgress
+
+    private fun toCallState(rawState: String?): Int = when (rawState) {
+        TelephonyManager.EXTRA_STATE_RINGING -> TelephonyManager.CALL_STATE_RINGING
+        TelephonyManager.EXTRA_STATE_OFFHOOK -> TelephonyManager.CALL_STATE_OFFHOOK
+        else -> TelephonyManager.CALL_STATE_IDLE
+    }
+
     suspend fun onPhoneStateChanged(rawState: String?): CallSession? {
-        val state = when (rawState) {
-            TelephonyManager.EXTRA_STATE_RINGING -> TelephonyManager.CALL_STATE_RINGING
-            TelephonyManager.EXTRA_STATE_OFFHOOK -> TelephonyManager.CALL_STATE_OFFHOOK
-            else -> TelephonyManager.CALL_STATE_IDLE
-        }
+        val state = toCallState(rawState)
         if (state == lastState) return null
 
         val now = System.currentTimeMillis()
@@ -104,20 +119,30 @@ class CallStateMonitor @Inject constructor(
             return null
         }
 
-        val completedSession = when {
-            lastState == TelephonyManager.CALL_STATE_IDLE && state == TelephonyManager.CALL_STATE_RINGING -> {
+        // Commit the new state (and, for a completing transition, lastCallEndedAt) BEFORE the
+        // suspending call-log lookup below: a duplicate IDLE broadcast handled while that lookup
+        // is in flight must see the call as already ended, not complete it a second time.
+        val previousState = lastState
+        lastState = state
+        val completesCall = state == TelephonyManager.CALL_STATE_IDLE &&
+            (previousState == TelephonyManager.CALL_STATE_RINGING ||
+                (previousState == TelephonyManager.CALL_STATE_OFFHOOK && direction != null))
+        if (completesCall) lastCallEndedAt = now
+
+        return when {
+            previousState == TelephonyManager.CALL_STATE_IDLE && state == TelephonyManager.CALL_STATE_RINGING -> {
                 direction = CallDirection.INCOMING
                 ringingStartedAt = now
                 null
             }
 
-            lastState == TelephonyManager.CALL_STATE_RINGING && state == TelephonyManager.CALL_STATE_OFFHOOK -> {
+            previousState == TelephonyManager.CALL_STATE_RINGING && state == TelephonyManager.CALL_STATE_OFFHOOK -> {
                 // Answered -- talk time starts now, not when it started ringing.
                 startedAt = now
                 null
             }
 
-            lastState == TelephonyManager.CALL_STATE_RINGING && state == TelephonyManager.CALL_STATE_IDLE -> {
+            previousState == TelephonyManager.CALL_STATE_RINGING && state == TelephonyManager.CALL_STATE_IDLE -> {
                 direction = null
                 CallSession(
                     phoneNumber = mostRecentCallLogNumber(),
@@ -129,13 +154,13 @@ class CallStateMonitor @Inject constructor(
                 )
             }
 
-            lastState == TelephonyManager.CALL_STATE_IDLE && state == TelephonyManager.CALL_STATE_OFFHOOK -> {
+            previousState == TelephonyManager.CALL_STATE_IDLE && state == TelephonyManager.CALL_STATE_OFFHOOK -> {
                 direction = CallDirection.OUTGOING
                 startedAt = now
                 null
             }
 
-            lastState == TelephonyManager.CALL_STATE_OFFHOOK && state == TelephonyManager.CALL_STATE_IDLE -> {
+            previousState == TelephonyManager.CALL_STATE_OFFHOOK && state == TelephonyManager.CALL_STATE_IDLE -> {
                 val endedDirection = direction
                 direction = null
                 endedDirection?.let {
@@ -152,9 +177,6 @@ class CallStateMonitor @Inject constructor(
 
             else -> null
         }
-        if (completedSession != null) lastCallEndedAt = now
-        lastState = state
-        return completedSession
     }
 
     /**

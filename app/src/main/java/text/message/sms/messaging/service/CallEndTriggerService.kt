@@ -1,5 +1,6 @@
 package text.message.sms.messaging.service
 
+import android.annotation.SuppressLint
 import android.app.KeyguardManager
 import android.app.Notification
 import android.app.Service
@@ -11,10 +12,12 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
+import android.telecom.TelecomManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,11 +41,20 @@ private const val STOP_DELAY_MILLIS = 1_000L
  * stretch showing the bare lock screen instead. */
 private const val LAUNCH_DELAY_UNLOCKED_MILLIS = 1_000L
 
+/** How often, while a call is in progress, [CallEndTriggerService] asks the platform whether
+ * there's still actually a call -- the fail-safe for the call's IDLE broadcast never reaching us
+ * (dropped, or the process was killed and restarted mid-call), which would otherwise leave the
+ * service, and its notification, alive indefinitely. */
+private const val IN_CALL_WATCHDOG_INTERVAL_MILLIS = 30_000L
+
 /**
  * Short-lived foreground service started by [PhoneStateReceiver] for the span of a single call --
  * started at RINGING/OFFHOOK, launches [CallEndActivity] at IDLE (immediately if the device is
  * locked, after [LAUNCH_DELAY_UNLOCKED_MILLIS] if it's unlocked -- see [handleCallEnded]), then
- * stops itself ~1s after that launch. Deliberately does NOT run continuously between calls: an earlier
+ * stops itself ~1s after that launch. Every start command ends in exactly one of: a call in
+ * progress (stay alive, guarded by [inCallWatchdog]), a completed call (launch, then stop -- even
+ * if the launch throws), or a no-op (stop within [STOP_DELAY_MILLIS] unless a launch is pending);
+ * none of them can leave the service running with no call active. Deliberately does NOT run continuously between calls: an earlier
  * design kept [CallStateMonitor]'s listener registered inside a persistent foreground service, and
  * that service's process was observed getting frozen by the OS within seconds of the app being
  * backgrounded -- even while the foreground service was still running -- so a call ending while
@@ -67,7 +79,27 @@ class CallEndTriggerService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val stopHandler = Handler(Looper.getMainLooper())
-    private val stopRunnable = Runnable { stopSelf() }
+
+    /** Most recent [onStartCommand] id. Stopping via [stopSelf] with this id (not the no-arg form)
+     * means a start command already queued behind a pending stop keeps the service alive to handle
+     * it, instead of it being destroyed before that command's `startForeground` -- which the
+     * platform punishes with a crash for any `startForegroundService` start. */
+    private var lastStartId = 0
+    private val stopRunnable = Runnable {
+        if (BuildConfig.DEBUG) Log.d(TAG, "stopSelf(startId=$lastStartId)")
+        stopSelf(lastStartId)
+    }
+
+    private val inCallWatchdog = object : Runnable {
+        override fun run() {
+            if (isPlatformInCall() == false) {
+                Log.w(TAG, "Call state stuck in-progress but platform reports no call -- stopping")
+                stopRunnable.run()
+            } else {
+                stopHandler.postDelayed(this, IN_CALL_WATCHDOG_INTERVAL_MILLIS)
+            }
+        }
+    }
 
     /** Non-null exactly while a delayed launch (see [LAUNCH_DELAY_UNLOCKED_MILLIS]) is pending --
      * distinct from [stopRunnable] so [cancelPendingWork] can cancel either or both independently
@@ -77,24 +109,48 @@ class CallEndTriggerService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        lastStartId = startId
         startForegroundCompat()
 
         val rawState = intent?.getStringExtra(EXTRA_RAW_STATE)
-        if (BuildConfig.DEBUG) Log.d(TAG, "onStartCommand rawState=$rawState")
+        if (BuildConfig.DEBUG) Log.d(TAG, "onStartCommand startId=$startId rawState=$rawState")
 
         serviceScope.launch {
-            val session = callStateMonitor.onPhoneStateChanged(rawState)
+            val session = try {
+                callStateMonitor.onPhoneStateChanged(rawState)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "onPhoneStateChanged(rawState=$rawState) failed", e)
+                null
+            }
             if (BuildConfig.DEBUG) Log.d(TAG, "onPhoneStateChanged(rawState=$rawState) returned $session")
-            if (session != null) {
-                handleCallEnded(session)
-            } else {
-                // A call is still in progress (RINGING/OFFHOOK) -- cancel any pending launch/stop
-                // left by a previous, already-completed call so this new one isn't cut short.
-                cancelPendingWork()
+            when {
+                session != null -> handleCallEnded(session)
+
+                callStateMonitor.isCallInProgress -> {
+                    // A call is still in progress (RINGING/OFFHOOK) -- cancel any pending
+                    // launch/stop left by a previous, already-completed call so this new one isn't
+                    // cut short, and stay alive until its IDLE (or the watchdog says it's gone).
+                    cancelPendingWork()
+                    stopHandler.postDelayed(inCallWatchdog, IN_CALL_WATCHDOG_INTERVAL_MILLIS)
+                }
+
+                // Nothing happened: a duplicate/redelivered broadcast, or one CallStateMonitor
+                // deliberately ignored (its post-call cooldown). Must NOT cancel pending work --
+                // that pending stop may be the only thing that will ever end this service -- and
+                // if nothing is pending (no launch about to schedule its own stop), schedule one.
+                launchRunnable == null -> scheduleStop()
             }
         }
 
         return START_NOT_STICKY
+    }
+
+    /** (Re)schedules [stopRunnable] [STOP_DELAY_MILLIS] from now -- never more than one pending. */
+    private fun scheduleStop() {
+        stopHandler.removeCallbacks(stopRunnable)
+        stopHandler.postDelayed(stopRunnable, STOP_DELAY_MILLIS)
     }
 
     private fun handleCallEnded(session: CallSession) {
@@ -103,7 +159,7 @@ class CallEndTriggerService : Service() {
         val canDrawOverlays = Settings.canDrawOverlays(this)
         if (BuildConfig.DEBUG) Log.d(TAG, "canDrawOverlays=$canDrawOverlays")
         if (!canDrawOverlays) {
-            stopHandler.postDelayed(stopRunnable, STOP_DELAY_MILLIS)
+            scheduleStop()
             return
         }
 
@@ -123,17 +179,34 @@ class CallEndTriggerService : Service() {
 
     private fun launchThenScheduleStop(session: CallSession) {
         launchRunnable = null
-        BackgroundActivityLaunchOverlay.withTransientOverlay(this) {
-            if (BuildConfig.DEBUG) Log.d(TAG, "Calling CallEndActivity.start() for $session")
-            CallEndActivity.start(this, session)
+        try {
+            BackgroundActivityLaunchOverlay.withTransientOverlay(this) {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Calling CallEndActivity.start() for $session")
+                CallEndActivity.start(this, session)
+            }
+        } catch (e: Exception) {
+            // Launch failed (BAL-blocked, ActivityNotFound, WindowManager errors...) -- the stop
+            // below must still be scheduled either way, or the service never ends.
+            Log.e(TAG, "CallEndActivity launch failed", e)
+        } finally {
+            scheduleStop()
         }
-        stopHandler.postDelayed(stopRunnable, STOP_DELAY_MILLIS)
     }
 
     private fun cancelPendingWork() {
         launchRunnable?.let { stopHandler.removeCallbacks(it) }
         launchRunnable = null
         stopHandler.removeCallbacks(stopRunnable)
+        stopHandler.removeCallbacks(inCallWatchdog)
+    }
+
+    /** Device-wide (all SIMs), unlike `TelephonyManager.getCallStateForSubscription`. Null if it
+     * can't be determined (READ_PHONE_STATE revoked) -- the watchdog then leaves the service alone. */
+    @SuppressLint("MissingPermission")
+    private fun isPlatformInCall(): Boolean? = try {
+        getSystemService(TelecomManager::class.java)?.isInCall
+    } catch (e: SecurityException) {
+        null
     }
 
     override fun onDestroy() {
