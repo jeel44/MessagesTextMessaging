@@ -42,6 +42,11 @@
     <string name="overlay_permission_mock_row_allow">Allow display over other apps &amp; appear on top</string>
     <string name="overlay_permission_mock_row_app">Messages</string>
 
+    <string name="battery_optimization_title">Keep call alerts reliable</string>
+    <string name="battery_optimization_body">Without this, Android can pause #Messages in the background and miss the moment a call ends.</string>
+    <string name="battery_optimization_button">Allow &amp; continue</string>
+    <string name="battery_optimization_reassurance">You can turn this off anytime in Settings.</string>
+
     <!-- Language -->
     <string name="language_title">Select App Language</string>
     <string name="language_continue">Continue</string>
@@ -265,11 +270,9 @@
     <string name="channel_incoming_messages">Incoming messages</string>
     <string name="channel_send_failures">Send failures</string>
     <string name="channel_call_monitor">Call monitoring</string>
-    <string name="channel_call_end">Call-end alerts</string>
 
     <!-- CallEndTriggerService notifications -->
     <string name="call_monitor_notification_title">Listening for call-end</string>
-    <string name="call_end_notification_title">Call ended</string>
 
     <!-- Incoming-message notification -->
     <string name="notification_mms_photo_placeholder">Photo</string>
@@ -317,11 +320,6 @@
     <string name="settings_delivery_reports_summary">Get notified when a message is delivered</string>
     <string name="settings_quick_reply_title">Quick reply</string>
     <string name="settings_quick_reply_summary">Reply to messages from the notification shade</string>
-
-    <string name="settings_call_alerts_title">Call alerts</string>
-    <string name="settings_call_alerts_summary">Show a full-screen summary when a call ends</string>
-    <string name="settings_call_alerts_explanation">When a call ends, #Messages tries to show a full-screen summary with the caller\'s details and quick actions. On newer versions of Android, this requires a permission that isn\'t turned on automatically for messaging apps. If it doesn\'t appear, you can turn it on manually below.</string>
-    <string name="settings_call_alerts_open_settings">Open full-screen notification settings</string>
 
     <string name="settings_swipe_actions_title">Swipe actions</string>
     <string name="settings_swipe_actions_summary">%1$s · %2$s</string>

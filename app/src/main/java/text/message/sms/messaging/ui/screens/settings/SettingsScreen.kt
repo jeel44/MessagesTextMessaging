@@ -27,7 +27,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Backup
-import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.FormatSize
@@ -106,7 +105,6 @@ fun SettingsScreen(
     var showThemePicker by remember { mutableStateOf(false) }
     var showSwipeActionPicker by remember { mutableStateOf(false) }
     var showSimPicker by remember { mutableStateOf(false) }
-    var showCallAlertsInfo by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val operation by viewModel.operation.collectAsStateWithLifecycle()
@@ -261,14 +259,6 @@ fun SettingsScreen(
                         trailing = SettingsTrailing.Toggle(quickReplyEnabled) { quickReplyEnabled = it },
                     ),
                 )
-                add(
-                    SettingsRow(
-                        icon = SettingsIcon.Vector(Icons.Filled.Call),
-                        title = stringResource(R.string.settings_call_alerts_title),
-                        summary = stringResource(R.string.settings_call_alerts_summary),
-                        onClick = { showCallAlertsInfo = true },
-                    ),
-                )
             },
         ),
         SettingsSection(
@@ -414,10 +404,6 @@ fun SettingsScreen(
             onSelected = viewModel::setSimSendPreference,
             onDismiss = { showSimPicker = false },
         )
-    }
-
-    if (showCallAlertsInfo) {
-        CallAlertsInfoDialog(onDismiss = { showCallAlertsInfo = false })
     }
 }
 

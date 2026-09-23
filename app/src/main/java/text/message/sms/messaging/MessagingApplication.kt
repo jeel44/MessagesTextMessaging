@@ -22,7 +22,6 @@ import text.message.sms.messaging.di.ApplicationScope
 import text.message.sms.messaging.domain.usecase.RearmScheduledMessageAlarms
 import text.message.sms.messaging.domain.usecase.SyncContacts
 import text.message.sms.messaging.domain.usecase.SyncMessages
-import text.message.sms.messaging.service.CallEndTriggerService
 import text.message.sms.messaging.service.DefaultSmsAppGuard
 import text.message.sms.messaging.service.NotificationChannels
 import text.message.sms.messaging.util.ColdStartTracer
@@ -133,19 +132,10 @@ class MessagingApplication : Application(), Configuration.Provider {
         }
         ColdStartTracer.mark("Application.onCreate:afterContactObserverRegisterAndSyncLaunch")
 
-        // Independent of the default-SMS-app role below -- call monitoring only needs
-        // READ_PHONE_STATE, not this app owning SMS/MMS. Gated on the permission because starting
-        // a foreground service that can't register its telephony callback would just be a
-        // permanent, useless notification (see CallEndTriggerService.start's own doc comment).
-        val hasReadPhoneState = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) ==
-            PackageManager.PERMISSION_GRANTED
-        if (BuildConfig.DEBUG) {
-            Log.d(TAG, "READ_PHONE_STATE granted=$hasReadPhoneState")
-        }
-        if (hasReadPhoneState) {
-            CallEndTriggerService.start(this)
-        }
-        ColdStartTracer.mark("Application.onCreate:afterCallEndTriggerServiceStart")
+        // Call monitoring (PhoneStateReceiver/CallEndTriggerService) needs no bootstrap here --
+        // PhoneStateReceiver is a manifest-registered receiver on the exempted PHONE_STATE
+        // implicit broadcast, so the OS cold-starts the process and dispatches straight to it
+        // whenever a call's state changes; nothing needs to already be running beforehand.
 
         // The observer only needs READ_SMS (it just watches content://sms/content://mms), unlike
         // the sync/alarm work below, which needs the default-SMS role to actually write anything

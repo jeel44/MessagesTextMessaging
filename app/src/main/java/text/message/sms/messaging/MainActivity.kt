@@ -1,10 +1,8 @@
 package text.message.sms.messaging
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.view.ViewTreeObserver
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -35,9 +33,6 @@ import text.message.sms.messaging.data.local.datastore.ThemePreference
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
 import text.message.sms.messaging.data.local.provider.ProviderChangeObserver
 import text.message.sms.messaging.di.ApplicationScope
-import text.message.sms.messaging.domain.model.CallDirection
-import text.message.sms.messaging.domain.model.CallOutcome
-import text.message.sms.messaging.domain.model.CallSession
 import text.message.sms.messaging.domain.usecase.SyncMessages
 import text.message.sms.messaging.service.DefaultSmsAppGuard
 import text.message.sms.messaging.ui.navigation.MessagingDestination
@@ -90,14 +85,16 @@ class MainActivity : ComponentActivity() {
      * tree, exactly like [text.message.sms.messaging.util.ChatOpenHint]. */
     private var pendingThreadId by mutableStateOf<Long?>(null)
 
-    /** Non-null exactly when [CallEndTriggerService][text.message.sms.messaging.service
-     * .CallEndTriggerService]'s full-screen-intent notification (or, from Settings' Debug
-     * section, a synthetic demo session) was just tapped/launched -- the same same-process,
-     * single-use handoff as [pendingThreadId] above, read once by [setContent]'s own
-     * `LaunchedEffect` below, which navigates to [MessagingDestination.CallEnd] and resets this to
-     * null. Also drives [applyCallEndWindowFlags]/[clearCallEndWindowFlags], so the app can show
-     * over the lock screen for exactly this launch and no other. */
-    private var pendingCallSession by mutableStateOf<CallSession?>(null)
+    /** True exactly when [text.message.sms.messaging.ui.screens.callend.CallEndActivity]
+     * handed off a "View Contacts" tap -- the same same-process, single-use handoff as
+     * [pendingThreadId] above, read once by [setContent]'s own `LaunchedEffect` below, which
+     * navigates to [MessagingDestination.ContactsList] and resets this to false. */
+    private var pendingOpenContacts by mutableStateOf(false)
+
+    /** Same shape as [pendingOpenContacts], for a "coming soon" item tapped on
+     * [text.message.sms.messaging.ui.screens.callend.CallEndActivity]'s call-end screen --
+     * navigates to [MessagingDestination.ComingSoon] once non-null. */
+    private var pendingComingSoonFeature by mutableStateOf<String?>(null)
 
     /** True until navigation has moved off [MessagingDestination.Splash] -- see the
      * `setKeepOnScreenCondition` call below. Starts true so the system splash installed by
@@ -120,8 +117,8 @@ class MainActivity : ComponentActivity() {
         // never mistakes an already-granted role for a fresh grant and fires a redundant sync.
         wasDefaultSmsApp = defaultSmsAppGuard.isDefault
         pendingThreadId = intent.threadIdExtra()
-        pendingCallSession = intent.callSessionExtra()
-        if (pendingCallSession != null) applyCallEndWindowFlags()
+        pendingOpenContacts = intent.getBooleanExtra(EXTRA_OPEN_CONTACTS, false)
+        pendingComingSoonFeature = intent.getStringExtra(EXTRA_COMING_SOON_FEATURE)
 
         enableEdgeToEdge()
         // MessagingApplication.onCreate has already migrated/persisted an explicit theme mode by
@@ -212,19 +209,23 @@ class MainActivity : ComponentActivity() {
                         pendingThreadId = null
                     }
 
-                    // Same shape as the pendingThreadId effect above, but waits only for the graph
-                    // to move off Splash (not specifically to ConversationList) before navigating --
-                    // a call can end while the user is anywhere in the app, not only once Home is
-                    // showing, so gating on ConversationList specifically would silently never fire
-                    // for that far more common case. Still avoids racing Splash's own popUpTo
-                    // navigation, the same problem the ConversationList wait above guards against.
-                    LaunchedEffect(pendingCallSession) {
-                        val session = pendingCallSession ?: return@LaunchedEffect
+                    // Same shape as the pendingThreadId effect above -- a "View Contacts" tap
+                    // handed off from CallEndActivity (see its own doc comment).
+                    LaunchedEffect(pendingOpenContacts) {
+                        if (!pendingOpenContacts) return@LaunchedEffect
                         navController.currentBackStackEntryFlow
-                            .first { it.destination.route != MessagingDestination.Splash.route }
-                        navController.navigate(MessagingDestination.CallEnd.routeFor(session))
-                        pendingCallSession = null
-                        clearCallEndWindowFlags()
+                            .first { it.destination.route == MessagingDestination.ConversationList.route }
+                        navController.navigate(MessagingDestination.ContactsList.route)
+                        pendingOpenContacts = false
+                    }
+
+                    // Same shape again, for a "coming soon" item handed off from CallEndActivity.
+                    LaunchedEffect(pendingComingSoonFeature) {
+                        val featureTitle = pendingComingSoonFeature ?: return@LaunchedEffect
+                        navController.currentBackStackEntryFlow
+                            .first { it.destination.route == MessagingDestination.ConversationList.route }
+                        navController.navigate(MessagingDestination.ComingSoon.routeFor(featureTitle))
+                        pendingComingSoonFeature = null
                     }
 
                     MessagingNavHost(navController = navController)
@@ -238,61 +239,12 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         intent.threadIdExtra()?.let { pendingThreadId = it }
-        intent.callSessionExtra()?.let {
-            pendingCallSession = it
-            applyCallEndWindowFlags()
-        }
+        if (intent.getBooleanExtra(EXTRA_OPEN_CONTACTS, false)) pendingOpenContacts = true
+        intent.getStringExtra(EXTRA_COMING_SOON_FEATURE)?.let { pendingComingSoonFeature = it }
     }
 
     private fun Intent.threadIdExtra(): Long? =
         getLongExtra(EXTRA_THREAD_ID, -1L).takeIf { it != -1L }
-
-    /** Decodes the primitive extras [text.message.sms.messaging.service.CallEndTriggerService]
-     * puts on its full-screen-intent's [Intent] back into a [CallSession] -- same "plain extras,
-     * no Parcelable" approach as [threadIdExtra], just spread across more of them. */
-    private fun Intent.callSessionExtra(): CallSession? {
-        if (!getBooleanExtra(EXTRA_IS_CALL_END, false)) return null
-        return CallSession(
-            phoneNumber = getStringExtra(EXTRA_CALL_PHONE_NUMBER),
-            direction = getStringExtra(EXTRA_CALL_DIRECTION)
-                ?.let { runCatching { CallDirection.valueOf(it) }.getOrNull() }
-                ?: CallDirection.INCOMING,
-            outcome = getStringExtra(EXTRA_CALL_OUTCOME)
-                ?.let { runCatching { CallOutcome.valueOf(it) }.getOrNull() }
-                ?: CallOutcome.MISSED,
-            startedAt = getLongExtra(EXTRA_CALL_STARTED_AT, 0L),
-            endedAt = getLongExtra(EXTRA_CALL_ENDED_AT, 0L),
-            durationMillis = getLongExtra(EXTRA_CALL_DURATION_MILLIS, 0L),
-        )
-    }
-
-    /** Lets this window show over the lock screen and turn the screen on -- API 27+ has a proper
-     * per-Activity API for this; [minSdk] (26) needs the older window-flag form instead. Called
-     * only for a call-end launch (never unconditionally -- a normal app open must never show over
-     * the lock screen), and undone by [clearCallEndWindowFlags] once that launch is consumed. */
-    private fun applyCallEndWindowFlags() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-        } else {
-            @Suppress("DEPRECATION")
-            window.addFlags(
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON,
-            )
-        }
-    }
-
-    private fun clearCallEndWindowFlags() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(false)
-            setTurnScreenOn(false)
-        } else {
-            @Suppress("DEPRECATION")
-            window.clearFlags(
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON,
-            )
-        }
-    }
 
     override fun onResume() {
         super.onResume()
@@ -310,17 +262,12 @@ class MainActivity : ComponentActivity() {
          * both [onCreate] (cold start) and [onNewIntent] (already running). */
         const val EXTRA_THREAD_ID: String = "extra_thread_id"
 
-        /** Set by [text.message.sms.messaging.service.CallEndTriggerService]'s full-screen-intent
-         * notification -- true marks the [Intent] as a call-end launch at all, distinguishing it
-         * from a plain app-icon/other launch that happens to carry none of the extras below (all
-         * of which would otherwise decode to a valid-looking, but wrong, default [CallSession]).
-         * See [callSessionExtra]. */
-        const val EXTRA_IS_CALL_END: String = "extra_is_call_end"
-        const val EXTRA_CALL_PHONE_NUMBER: String = "extra_call_phone_number"
-        const val EXTRA_CALL_DIRECTION: String = "extra_call_direction"
-        const val EXTRA_CALL_OUTCOME: String = "extra_call_outcome"
-        const val EXTRA_CALL_STARTED_AT: String = "extra_call_started_at"
-        const val EXTRA_CALL_ENDED_AT: String = "extra_call_ended_at"
-        const val EXTRA_CALL_DURATION_MILLIS: String = "extra_call_duration_millis"
+        /** Set by [text.message.sms.messaging.ui.screens.callend.CallEndActivity] when it hands
+         * off a "View Contacts" tap -- see [pendingOpenContacts]. */
+        const val EXTRA_OPEN_CONTACTS: String = "extra_open_contacts"
+
+        /** Set by [text.message.sms.messaging.ui.screens.callend.CallEndActivity] when it hands
+         * off a "coming soon" item tap -- see [pendingComingSoonFeature]. */
+        const val EXTRA_COMING_SOON_FEATURE: String = "extra_coming_soon_feature"
     }
 }

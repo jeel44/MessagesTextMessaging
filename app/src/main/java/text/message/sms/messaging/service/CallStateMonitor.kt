@@ -2,19 +2,15 @@ package text.message.sms.messaging.service
 
 import android.Manifest
 import android.content.Context
-import android.os.Build
+import android.content.pm.PackageManager
 import android.provider.CallLog
-import android.telephony.PhoneStateListener
-import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
+import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.domain.model.CallDirection
 import text.message.sms.messaging.domain.model.CallOutcome
 import text.message.sms.messaging.domain.model.CallSession
@@ -23,178 +19,162 @@ import javax.inject.Singleton
 
 private const val TAG = "CallStateMonitor"
 
+/** Minimum gap after a call completes before a fresh IDLE->RINGING/OFFHOOK transition is
+ * trusted as the start of a genuinely new call -- see [onPhoneStateChanged]'s cooldown check for
+ * why this exists. Real back-to-back calls (hang up, immediately dial again) taking under 2s
+ * between them are effectively never going to happen in practice, so this trades away that
+ * theoretical case for rejecting the OEM noise it was added for. */
+private const val CALL_START_COOLDOWN_MILLIS = 2_000L
+
 /**
- * Turns raw [TelephonyManager] call-state transitions into a [CallSession] per completed call.
+ * Turns [android.intent.action.PHONE_STATE] broadcast extras into a [CallSession] per completed
+ * call. Driven by [PhoneStateReceiver] via [onPhoneStateChanged] -- one call per broadcast, not a
+ * live listener kept registered for the process's whole lifetime (the earlier design: a
+ * [android.telephony.TelephonyCallback]/[android.telephony.PhoneStateListener] registered inside
+ * a persistent foreground service). That service's process was observed getting frozen by the OS
+ * within seconds of the app being backgrounded -- even while the foreground service was still
+ * running -- so a call ending while frozen was silently never detected at all. Routing through the
+ * exempted `PHONE_STATE` implicit broadcast instead means nothing needs to stay alive between
+ * calls: the OS cold-starts the process fresh for each one.
  *
- * State machine (see [CallSessions.onStateChanged]):
+ * Being [Singleton] is what lets [lastState]/[direction]/[startedAt] persist across the several
+ * broadcasts (RINGING -> OFFHOOK -> IDLE) that make up a single call -- correct as long as this
+ * process survives that short span, same as it did before. If the OS kills the process *between*
+ * two broadcasts of the same call (a real but accepted risk, same tradeoff the reference design
+ * this was ported from accepts), the next broadcast simply starts over from
+ * [TelephonyManager.CALL_STATE_IDLE], misreading that one transition -- it does not crash, and it
+ * has no effect on any other call.
+ *
+ * State machine:
  * - IDLE -> RINGING: an incoming call starts ringing.
  * - RINGING -> OFFHOOK: that incoming call was answered.
  * - RINGING -> IDLE (no OFFHOOK in between): it was missed -- see [CallOutcome]'s doc for why this
  *   can't be distinguished from an active decline.
  * - IDLE -> OFFHOOK (no preceding RINGING): an outgoing call starts.
- * - OFFHOOK -> IDLE: whichever call was in progress just ended.
- *
- * On API 31+ this registers a [TelephonyCallback.CallStateListener]; below that (down to this
- * app's minSdk 26) it falls back to the deprecated [PhoneStateListener], the only API available.
- * Neither delivers `NEW_OUTGOING_CALL`-style broadcasts, which are deprecated and unreliable on
- * modern Android -- outgoing calls are detected purely from the IDLE->OFFHOOK transition instead.
- *
- * Both registration paths are pinned to [ContextCompat.getMainExecutor] (`TelephonyManager.listen`
- * otherwise delivers on whatever thread happens to call it), so every callback lands on the same
- * thread and the state kept inside [callSessions] never needs external synchronization -- the
- * same reasoning [ActiveThreadTracker]'s `@Volatile` field exists for, just enforced by thread
- * confinement here instead of a volatile field, since the mutable state below is local to the
- * flow's builder lambda, not a class property.
- *
- * The whole [callbackFlow] block is pinned to [Dispatchers.Main] via `flowOn` below for a second,
- * separate reason on top of that: the legacy [PhoneStateListener]'s no-arg constructor builds its
- * own internal `Handler` from `Looper.myLooper()`, which is only non-null on a thread that has
- * called `Looper.prepare()` -- the main thread, or a dedicated `HandlerThread`. [callSessions] has
- * no `flowOn` of its own to fall back on, so without this it runs on whatever dispatcher its
- * collector happens to use ([CallEndTriggerService] collects on `Dispatchers.Default`), and
- * constructing that listener there crashes immediately, every time, on any API < 31 device (this
- * app's minSdk 26 floor). The API 31+ [TelephonyCallback] branch was never affected by this --
- * its constructor touches no Looper/Handler, and delivery is routed through the explicit
- * [ContextCompat.getMainExecutor] argument to `registerTelephonyCallback` regardless of which
- * thread calls it -- but pinning the whole block is simpler than special-casing just one branch,
- * and costs nothing extra there.
+ * - OFFHOOK -> IDLE: whichever call was in progress just ended -- the only transition
+ *   [onPhoneStateChanged] returns non-null for.
  */
 @Singleton
 class CallStateMonitor @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    private val telephonyManager: TelephonyManager,
 ) {
-
-    /** Emits once per completed call, including a missed one (see [CallOutcome.MISSED]). Never
-     * throws for a revoked runtime permission -- [SecurityException] from either registration path
-     * is caught and logged, leaving the flow simply silent instead of crashing the collector. */
-    fun callSessions(): Flow<CallSession> = callbackFlow {
-        val sessions = CallSessionBuilder(context)
-
-        val emit: (CallSession) -> Unit = { session -> trySend(session) }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val callback = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
-                override fun onCallStateChanged(state: Int) {
-                    sessions.onStateChanged(state, emit)
-                }
-            }
-            try {
-                telephonyManager.registerTelephonyCallback(ContextCompat.getMainExecutor(context), callback)
-            } catch (e: SecurityException) {
-                Log.w(TAG, "READ_PHONE_STATE not granted, call state cannot be monitored", e)
-            }
-            awaitClose {
-                try {
-                    telephonyManager.unregisterTelephonyCallback(callback)
-                } catch (e: SecurityException) {
-                    Log.w(TAG, "Failed to unregister TelephonyCallback", e)
-                }
-            }
-        } else {
-            @Suppress("DEPRECATION")
-            val listener = object : PhoneStateListener() {
-                override fun onCallStateChanged(state: Int, phoneNumber: String?) {
-                    sessions.onStateChanged(state, emit)
-                }
-            }
-            try {
-                @Suppress("DEPRECATION")
-                telephonyManager.listen(listener, PhoneStateListener.LISTEN_CALL_STATE)
-            } catch (e: SecurityException) {
-                Log.w(TAG, "READ_PHONE_STATE not granted, call state cannot be monitored", e)
-            }
-            awaitClose {
-                @Suppress("DEPRECATION")
-                telephonyManager.listen(listener, PhoneStateListener.LISTEN_NONE)
-            }
-        }
-    }.flowOn(Dispatchers.Main)
-}
-
-/**
- * The actual state machine, split out of [CallStateMonitor.callSessions] so it can run on either
- * registration path unchanged. Not thread-safe on its own -- relies on every [onStateChanged] call
- * landing on the same thread, guaranteed by [CallStateMonitor] pinning both registration paths to
- * the main executor.
- */
-private class CallSessionBuilder(private val context: Context) {
 
     private var lastState = TelephonyManager.CALL_STATE_IDLE
     private var direction: CallDirection? = null
     private var startedAt = 0L
     private var ringingStartedAt = 0L
+    private var lastCallEndedAt = 0L
 
-    fun onStateChanged(state: Int, emit: (CallSession) -> Unit) {
-        // Debounce: the platform can redeliver the same state (e.g. a second RINGING callback for
-        // a multi-SIM device), which must never be mistaken for a real transition.
-        if (state == lastState) return
+    /**
+     * [rawState] is `PHONE_STATE`'s [TelephonyManager.EXTRA_STATE] extra as-is -- one of
+     * [TelephonyManager.EXTRA_STATE_IDLE]/[TelephonyManager.EXTRA_STATE_RINGING]/
+     * [TelephonyManager.EXTRA_STATE_OFFHOOK], or null/anything else, which is treated as IDLE.
+     * Returns a [CallSession] only on the transition that completes a call (RINGING->IDLE or
+     * OFFHOOK->IDLE); every other transition, including a redelivered repeat of the current state
+     * (the platform can do this, e.g. a second RINGING broadcast on a multi-SIM device), returns
+     * null.
+     *
+     * Suspends only because [mostRecentCallLogNumber] does (a real `ContentResolver` query, moved
+     * off whatever thread calls this -- see its own doc comment); the state-machine logic itself
+     * is synchronous and this returns as soon as its caller's dispatcher lets it run.
+     */
+    suspend fun onPhoneStateChanged(rawState: String?): CallSession? {
+        val state = when (rawState) {
+            TelephonyManager.EXTRA_STATE_RINGING -> TelephonyManager.CALL_STATE_RINGING
+            TelephonyManager.EXTRA_STATE_OFFHOOK -> TelephonyManager.CALL_STATE_OFFHOOK
+            else -> TelephonyManager.CALL_STATE_IDLE
+        }
+        if (state == lastState) return null
 
         val now = System.currentTimeMillis()
-        when {
+
+        // Observed on-device (Samsung One UI, real call): a spurious extra state broadcast
+        // landing within ~1s of a call's real IDLE, shaped exactly like a new call starting
+        // (IDLE->OFFHOOK), which then produced a second, bogus completed CallSession about a
+        // second later. Root cause on the OEM side isn't confirmed, but treating anything
+        // shaped like a fresh call start within CALL_START_COOLDOWN_MILLIS of the last real
+        // call end as noise -- ignored entirely, no state mutated -- reproducibly suppresses it.
+        if (lastState == TelephonyManager.CALL_STATE_IDLE &&
+            state != TelephonyManager.CALL_STATE_IDLE &&
+            now - lastCallEndedAt < CALL_START_COOLDOWN_MILLIS
+        ) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Ignoring state=$state, ${now - lastCallEndedAt}ms after previous call end (cooldown)")
+            }
+            return null
+        }
+
+        val completedSession = when {
             lastState == TelephonyManager.CALL_STATE_IDLE && state == TelephonyManager.CALL_STATE_RINGING -> {
                 direction = CallDirection.INCOMING
                 ringingStartedAt = now
+                null
             }
 
             lastState == TelephonyManager.CALL_STATE_RINGING && state == TelephonyManager.CALL_STATE_OFFHOOK -> {
                 // Answered -- talk time starts now, not when it started ringing.
                 startedAt = now
+                null
             }
 
             lastState == TelephonyManager.CALL_STATE_RINGING && state == TelephonyManager.CALL_STATE_IDLE -> {
-                emit(
-                    CallSession(
-                        phoneNumber = mostRecentCallLogNumber(),
-                        direction = CallDirection.INCOMING,
-                        startedAt = ringingStartedAt,
-                        endedAt = now,
-                        durationMillis = 0L,
-                        outcome = CallOutcome.MISSED,
-                    ),
-                )
                 direction = null
+                CallSession(
+                    phoneNumber = mostRecentCallLogNumber(),
+                    direction = CallDirection.INCOMING,
+                    startedAt = ringingStartedAt,
+                    endedAt = now,
+                    durationMillis = 0L,
+                    outcome = CallOutcome.MISSED,
+                )
             }
 
             lastState == TelephonyManager.CALL_STATE_IDLE && state == TelephonyManager.CALL_STATE_OFFHOOK -> {
                 direction = CallDirection.OUTGOING
                 startedAt = now
+                null
             }
 
             lastState == TelephonyManager.CALL_STATE_OFFHOOK && state == TelephonyManager.CALL_STATE_IDLE -> {
                 val endedDirection = direction
-                if (endedDirection != null) {
-                    emit(
-                        CallSession(
-                            phoneNumber = mostRecentCallLogNumber(),
-                            direction = endedDirection,
-                            startedAt = startedAt,
-                            endedAt = now,
-                            durationMillis = (now - startedAt).coerceAtLeast(0L),
-                            outcome = CallOutcome.ANSWERED,
-                        ),
+                direction = null
+                endedDirection?.let {
+                    CallSession(
+                        phoneNumber = mostRecentCallLogNumber(),
+                        direction = it,
+                        startedAt = startedAt,
+                        endedAt = now,
+                        durationMillis = (now - startedAt).coerceAtLeast(0L),
+                        outcome = CallOutcome.ANSWERED,
                     )
                 }
-                direction = null
             }
+
+            else -> null
         }
+        if (completedSession != null) lastCallEndedAt = now
         lastState = state
+        return completedSession
     }
 
     /**
-     * Best-effort number lookup. `TelephonyCallback`/`PhoneStateListener` no longer hand back
-     * `EXTRA_INCOMING_NUMBER`-equivalent data on modern Android (privacy hardening), so the only
-     * source left is the call log's own most recent row -- read right after the call ends. This
-     * can race the provider's own write on some OEM builds (a known limitation, not fixable from
-     * here); a miss just leaves [CallSession.phoneNumber] null, which callers must already handle.
+     * Best-effort number lookup. `PHONE_STATE`'s `EXTRA_INCOMING_NUMBER` extra no longer carries
+     * real data on modern Android (privacy hardening), so the only source left is the call log's
+     * own most recent row -- read right after the call ends. This can race the provider's own
+     * write on some OEM builds (a known limitation, not fixable from here); a miss just leaves
+     * [CallSession.phoneNumber] null, which callers must already handle.
+     *
+     * `withContext(Dispatchers.IO)`: [onPhoneStateChanged] is called from [CallEndTriggerService]
+     * on its main-thread coroutine scope, and this is a real synchronous `ContentResolver` query
+     * -- without this it triggers `StrictMode`'s `DiskReadViolation` on the main thread.
      */
-    private fun mostRecentCallLogNumber(): String? {
+    private suspend fun mostRecentCallLogNumber(): String? = withContext(Dispatchers.IO) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALL_LOG) !=
-            android.content.pm.PackageManager.PERMISSION_GRANTED
+            PackageManager.PERMISSION_GRANTED
         ) {
-            return null
+            return@withContext null
         }
-        return try {
+        try {
             context.contentResolver.query(
                 CallLog.Calls.CONTENT_URI,
                 arrayOf(CallLog.Calls.NUMBER),

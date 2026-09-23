@@ -37,30 +37,35 @@
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
 
-    <!-- Call-end screen's launch trigger: CallEndTriggerService stays alive to catch a call
-         ending even when the app isn't foregrounded, and posts a full-screen-intent notification
-         when one does. USE_FULL_SCREEN_INTENT is "special access" on API 34+ and is not expected
-         to be auto-granted to a messaging app; see Settings' Call alerts explanation, which
-         deep-links to the system page that lets the user turn it on manually.
+    <!-- Call-end screen's launch trigger: PhoneStateReceiver (a manifest-registered receiver on
+         the exempted PHONE_STATE implicit broadcast) starts CallEndTriggerService for the span of
+         a single call, which launches CallEndActivity directly when the call ends; see
+         PhoneStateReceiver's and CallEndTriggerService's own doc comments, and SYSTEM_ALERT_WINDOW
+         below. Deliberately NOT a persistent, always-running service (see CallEndTriggerService's
+         doc comment for why).
 
-         FOREGROUND_SERVICE_SPECIAL_USE, not FOREGROUND_SERVICE_PHONE_CALL: the "phoneCall" FGS
-         type is restricted (targetSdk 34+) to apps holding MANAGE_OWN_CALLS or the system
-         dialer/DIALER role. This app never places or manages calls, it only watches
-         TelephonyManager call-state transitions to know when one ended, so it doesn't qualify and
-         that type is flatly rejected with a SecurityException on start. specialUse is the correct
-         type for this; see the service tag's PROPERTY_SPECIAL_USE_FGS_SUBTYPE below. -->
+         FOREGROUND_SERVICE_PHONE_CALL + MANAGE_OWN_CALLS: the "phoneCall" FGS type is restricted
+         (targetSdk 34+) to apps holding MANAGE_OWN_CALLS or the system dialer/DIALER role.
+         MANAGE_OWN_CALLS is an install-time permission here, not tied to holding the dialer role;
+         this app still never places or manages a call itself, it only watches TelephonyManager
+         call-state transitions via PHONE_STATE to know when one ended. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
 
     <!-- Notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
-    <!-- "Appear on top", requested during onboarding by OverlayPermissionScreen, ahead of the
-         call-alert overlay feature this is meant for (that feature isn't built yet). The
-         existing call-end screen does NOT need this: it launches via a full-screen-intent
-         notification (USE_FULL_SCREEN_INTENT above), not a drawn overlay window. -->
+    <!-- "Appear on top", requested during onboarding by OverlayPermissionScreen. Used two ways:
+         (1) BackgroundActivityLaunchOverlay attaches a transient, invisible 1x1
+         TYPE_APPLICATION_OVERLAY window around each background launch this app makes (starting
+         CallEndTriggerService, then launching CallEndActivity) to exempt it from the platform's
+         background-activity-launch restrictions; (2) CallEndTriggerService also gates the
+         CallEndActivity launch itself on Settings.canDrawOverlays() being true at all, falling
+         back to doing nothing (DEBUG-log only) if the permission isn't granted. See
+         OverlayPermissionGuard, BackgroundActivityLaunchOverlay and CallEndTriggerService's own
+         doc comments. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <!-- Scheduled sends have to survive a reboot -->
@@ -221,18 +226,37 @@
                 tools:node="remove" />
         </provider>
 
-        <!-- Foreground service: stays alive to catch TelephonyManager call-state transitions
-             even while this app isn't in the foreground, and posts the call-end screen's
-             full-screen-intent notification when a call ends; see CallStateMonitor and
-             CallEndTriggerService. -->
+        <!-- Manifest-registered receiver for the PHONE_STATE implicit broadcast; see
+             PhoneStateReceiver's own doc comment for why this can be a manifest receiver at all
+             (most implicit broadcasts can't, post-API-26) and why nothing needs to bootstrap it. -->
+        <receiver
+            android:name=".service.PhoneStateReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.PHONE_STATE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Short-lived foreground service: started by PhoneStateReceiver for the span of a
+             single call, launches CallEndActivity directly when that call ends, then stops
+             itself; see CallStateMonitor and CallEndTriggerService's own doc comment for why this
+             is NOT a persistent, always-running service. -->
         <service
             android:name=".service.CallEndTriggerService"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="call-end-screen-and-quick-actions" />
-        </service>
+            android:foregroundServiceType="phoneCall" />
+
+        <!-- Full-screen call-end popup, launched directly by CallEndTriggerService (no
+             notification). Its own task (taskAffinity + singleTask), excluded from Recents, so
+             back/close returns to whatever the user was doing before the call, not into
+             MainActivity's task; see CallEndActivity's own doc comment. -->
+        <activity
+            android:name=".ui.screens.callend.CallEndActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="${applicationId}.callend"
+            android:theme="@style/Theme.Messaging" />
 
         <!--
           Requirement 4 of 4: respond to a call declined with a canned reply. QUICK_RESPONSE is

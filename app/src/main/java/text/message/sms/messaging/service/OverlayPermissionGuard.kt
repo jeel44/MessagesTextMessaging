@@ -11,10 +11,12 @@ import androidx.core.net.toUri
  * an `ACTION_MANAGE_OVERLAY_PERMISSION` Settings page and a state re-check afterwards.
  *
  * Requested during onboarding, by [text.message.sms.messaging.ui.screens.permissions
- * .OverlayPermissionScreen] -- ahead of the call-alert overlay feature this is actually for, which
- * isn't built yet. No feature in this app draws over other apps today: the call-end screen, the
- * obvious candidate, launches via a full-screen-intent notification instead (see AndroidManifest's
- * `USE_FULL_SCREEN_INTENT` comment), which doesn't need this permission.
+ * .OverlayPermissionScreen]. Used two ways: [text.message.sms.messaging.service
+ * .CallEndTriggerService] checks [isGranted]'s underlying [android.provider.Settings
+ * .canDrawOverlays] at call-end time, launching [text.message.sms.messaging.ui.screens.callend
+ * .CallEndActivity] directly only if it's true; and [BackgroundActivityLaunchOverlay] spends the
+ * permission on an actual transient 1x1 overlay window, attached around each background launch
+ * this app makes, as a background-activity-launch (BAL) exemption independent of the first check.
  */
 object OverlayPermissionGuard {
 
