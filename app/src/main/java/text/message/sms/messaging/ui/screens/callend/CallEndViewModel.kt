@@ -43,9 +43,9 @@ internal const val PACKAGE_TELEGRAM = "org.telegram.messenger"
  *
  * [callSession] is rebuilt from [MessagingDestination.CallEnd]'s route args -- the same
  * "primitives through the route" approach [text.message.sms.messaging.ui.screens.chat
- * .ChatViewModel] already uses for its thread id. Whoever built the route (the real
- * [text.message.sms.messaging.service.CallEndTriggerService] launch, or Settings' Debug section
- * for visual review) is responsible for putting real values in it; this always trusts them as-is.
+ * .ChatViewModel] already uses for its thread id. [text.message.sms.messaging.service
+ * .CallEndTriggerService], which builds the route, is responsible for putting real values in it;
+ * this always trusts it as-is.
  */
 @HiltViewModel
 class CallEndViewModel @Inject constructor(

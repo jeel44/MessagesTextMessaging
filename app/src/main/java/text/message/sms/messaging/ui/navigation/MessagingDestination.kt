@@ -86,10 +86,9 @@ sealed class MessagingDestination(val route: String) {
      * them. [ARG_PHONE_NUMBER] alone is nullable/best-effort, matching [CallSession.phoneNumber]
      * itself; the rest always have a real value by the time [routeFor] builds the route, so they
      * carry a default only to satisfy Navigation Compose's argument declaration, never actually
-     * relied on. Reached either as the sole destination in [text.message.sms.messaging.ui.screens
+     * relied on. Reached as the sole destination in [text.message.sms.messaging.ui.screens
      * .callend.CallEndActivity]'s own single-destination `NavHost` (its real launch trigger -- see
-     * that Activity's own doc comment) or from Settings' Debug section, inside
-     * [text.message.sms.messaging.ui.navigation.MessagingNavHost], for visual review. */
+     * that Activity's own doc comment). */
     data object CallEnd : MessagingDestination(
         "call_end?phone={$ARG_PHONE_NUMBER}&direction={$ARG_CALL_DIRECTION}&outcome={$ARG_CALL_OUTCOME}" +
             "&startedAt={$ARG_CALL_STARTED_AT}&endedAt={$ARG_CALL_ENDED_AT}&durationMillis={$ARG_CALL_DURATION_MILLIS}",

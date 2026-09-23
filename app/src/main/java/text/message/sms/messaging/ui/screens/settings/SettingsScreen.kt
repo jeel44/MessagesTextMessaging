@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.annotation.DrawableRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Description
@@ -60,7 +59,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.R
 import text.message.sms.messaging.data.local.datastore.SimSendPreference
 import text.message.sms.messaging.data.local.datastore.SwipeAction
@@ -90,12 +88,6 @@ fun SettingsScreen(
     onLanguageClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
-    // DEBUG-ONLY: opens the call-end screen (see ui/screens/callend/CallEndScreen.kt) directly
-    // with a synthetic demo CallSession, so it can be reviewed without waiting for a real call --
-    // the real trigger is CallEndTriggerService's full-screen-intent notification. Remove this
-    // parameter and the "Debug" section below once that's been exercised enough on real devices
-    // that a manual shortcut is no longer needed.
-    onDebugCallEndClick: (phoneNumber: String?) -> Unit = {},
 ) {
     var notificationsEnabled by rememberSaveable { mutableStateOf(true) }
     var deliveryReportsEnabled by rememberSaveable { mutableStateOf(false) }
@@ -320,34 +312,6 @@ fun SettingsScreen(
         ),
     )
 
-    // DEBUG-ONLY: opens the call-end screen (no real launch trigger yet -- see
-    // onDebugCallEndClick's own doc comment above) with a known or unresolvable test number, so
-    // both the resolved-contact and unknown-caller header states can be reviewed. Remove this
-    // whole section once that screen has a real entry point.
-    val debugSection = if (BuildConfig.DEBUG) {
-        SettingsSection(
-            title = "Debug",
-            rows = listOf(
-                SettingsRow(
-                    icon = SettingsIcon.Vector(Icons.AutoMirrored.Filled.Message),
-                    title = "Call-end screen (known number)",
-                    summary = "Header resolves a contact if one matches this number",
-                    onClick = { onDebugCallEndClick("+15550101234") },
-                ),
-                SettingsRow(
-                    icon = SettingsIcon.Vector(Icons.AutoMirrored.Filled.Message),
-                    title = "Call-end screen (unknown number)",
-                    summary = "phoneNumber = null -- header/quick-launch degrade gracefully",
-                    onClick = { onDebugCallEndClick(null) },
-                ),
-            ),
-        )
-    } else {
-        null
-    }
-
-    val sections = baseSections + listOfNotNull(debugSection)
-
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -374,7 +338,7 @@ fun SettingsScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
-            SettingsList(sections = sections, modifier = Modifier.fillMaxSize())
+            SettingsList(sections = baseSections, modifier = Modifier.fillMaxSize())
         }
     }
 

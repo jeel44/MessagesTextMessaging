@@ -51,9 +51,7 @@ private const val EXTRA_CALL_DURATION_MILLIS = "extra_call_duration_millis"
  * before the call, never into [MainActivity]'s own task. [CallEndScreen] itself still needs a
  * single-destination [NavHost] here (rather than being called directly) purely so its
  * [CallEndViewModel] keeps reading the [CallSession] off `SavedStateHandle` route args, exactly
- * as it already does when [MessagingNavHost][text.message.sms.messaging.ui.navigation
- * .MessagingNavHost] hosts it for Settings' Debug-section preview -- the `composable()`
- * registration below mirrors that one.
+ * as [text.message.sms.messaging.ui.screens.chat.ChatViewModel] does for its thread id.
  *
  * Tapping a conversation, "View Contacts", "Messages" or a coming-soon item hands off to
  * [MainActivity] (a different task) and finishes this Activity, rather than navigating in place --

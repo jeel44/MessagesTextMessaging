@@ -62,13 +62,10 @@ import text.message.sms.messaging.ui.screens.conversationlist.ConversationRow
 
 /**
  * The call-end screen: header for the call just finished, quick-launch tiles into third-party chat
- * apps, a 3-tab body (List/Archive/More), and a reserved banner-ad slot. Reached either from the
- * real launch trigger -- an actually-ended call, detected by
- * [text.message.sms.messaging.service.CallStateMonitor] and delivered via
- * [text.message.sms.messaging.service.CallEndTriggerService]'s full-screen-intent notification --
- * or from Settings' Debug section with a synthetic
- * [CallSession][text.message.sms.messaging.domain.model.CallSession], kept around so the screen
- * can still be reviewed without waiting for a real call.
+ * apps, a 3-tab body (List/Archive/More), and a reserved banner-ad slot. Reached from an
+ * actually-ended call, detected by [text.message.sms.messaging.service.CallStateMonitor] and
+ * delivered via [text.message.sms.messaging.service.CallEndTriggerService]'s full-screen-intent
+ * notification.
  */
 @Composable
 fun CallEndScreen(

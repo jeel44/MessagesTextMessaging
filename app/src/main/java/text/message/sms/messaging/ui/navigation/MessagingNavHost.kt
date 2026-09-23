@@ -19,11 +19,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import text.message.sms.messaging.BuildConfig
-import text.message.sms.messaging.domain.model.CallDirection
-import text.message.sms.messaging.domain.model.CallOutcome
-import text.message.sms.messaging.domain.model.CallSession
 import text.message.sms.messaging.ui.screens.archived.ArchivedScreen
-import text.message.sms.messaging.ui.screens.callend.CallEndScreen
 import text.message.sms.messaging.ui.screens.callend.ComingSoonScreen
 import text.message.sms.messaging.ui.screens.chat.ChatScreen
 import text.message.sms.messaging.ui.screens.chat.MediaViewerScreen
@@ -257,22 +253,6 @@ fun MessagingNavHost(
                 onLanguageClick = {
                     navController.navigate(MessagingDestination.LanguageSettings.route)
                 },
-                onDebugCallEndClick = { phoneNumber ->
-                    // DEBUG-ONLY: CallEndTriggerService builds the real CallSession from an actual
-                    // call; this fakes one with a fixed demo duration purely so the screen can be
-                    // reviewed without waiting for a real call.
-                    val now = System.currentTimeMillis()
-                    val demoDurationMillis = 125_000L
-                    val demoSession = CallSession(
-                        phoneNumber = phoneNumber,
-                        direction = CallDirection.INCOMING,
-                        startedAt = now - demoDurationMillis,
-                        endedAt = now,
-                        durationMillis = demoDurationMillis,
-                        outcome = CallOutcome.ANSWERED,
-                    )
-                    navController.navigate(MessagingDestination.CallEnd.routeFor(demoSession))
-                },
             )
         }
 
@@ -285,52 +265,6 @@ fun MessagingNavHost(
         composable(MessagingDestination.ContactsList.route) {
             ContactsListScreen(
                 onBack = navController::popBackStack,
-            )
-        }
-
-        composable(
-            route = MessagingDestination.CallEnd.route,
-            arguments = listOf(
-                navArgument(MessagingDestination.ARG_PHONE_NUMBER) {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument(MessagingDestination.ARG_CALL_DIRECTION) {
-                    type = NavType.StringType
-                    defaultValue = CallDirection.INCOMING.name
-                },
-                navArgument(MessagingDestination.ARG_CALL_OUTCOME) {
-                    type = NavType.StringType
-                    defaultValue = CallOutcome.MISSED.name
-                },
-                navArgument(MessagingDestination.ARG_CALL_STARTED_AT) {
-                    type = NavType.LongType
-                    defaultValue = 0L
-                },
-                navArgument(MessagingDestination.ARG_CALL_ENDED_AT) {
-                    type = NavType.LongType
-                    defaultValue = 0L
-                },
-                navArgument(MessagingDestination.ARG_CALL_DURATION_MILLIS) {
-                    type = NavType.LongType
-                    defaultValue = 0L
-                },
-            ),
-        ) {
-            CallEndScreen(
-                onConversationClick = { threadId ->
-                    navController.navigate(MessagingDestination.Chat.routeFor(threadId))
-                },
-                onViewContactsClick = {
-                    navController.navigate(MessagingDestination.ContactsList.route)
-                },
-                onMessagesClick = {
-                    navController.navigate(MessagingDestination.ConversationList.route)
-                },
-                onComingSoonClick = { featureTitle ->
-                    navController.navigate(MessagingDestination.ComingSoon.routeFor(featureTitle))
-                },
             )
         }
 
