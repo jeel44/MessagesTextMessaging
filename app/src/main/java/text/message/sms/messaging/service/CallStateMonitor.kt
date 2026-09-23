@@ -23,6 +23,14 @@ import javax.inject.Singleton
 
 private const val TAG = "CallStateMonitor"
 
+// TEMPORARY (real-call diagnostic): human-readable TelephonyManager.CALL_STATE_* names.
+private fun stateName(state: Int): String = when (state) {
+    TelephonyManager.CALL_STATE_IDLE -> "IDLE"
+    TelephonyManager.CALL_STATE_RINGING -> "RINGING"
+    TelephonyManager.CALL_STATE_OFFHOOK -> "OFFHOOK"
+    else -> "UNKNOWN($state)"
+}
+
 /**
  * Turns raw [TelephonyManager] call-state transitions into a [CallSession] per completed call.
  *
@@ -71,16 +79,29 @@ class CallStateMonitor @Inject constructor(
     fun callSessions(): Flow<CallSession> = callbackFlow {
         val sessions = CallSessionBuilder(context)
 
-        val emit: (CallSession) -> Unit = { session -> trySend(session) }
+        // TEMPORARY (real-call diagnostic): confirm the flow is actually emitting downstream.
+        val emit: (CallSession) -> Unit = { session ->
+            Log.d(
+                TAG,
+                "TEMP-DIAG emit CallSession: direction=${session.direction} outcome=${session.outcome} " +
+                    "durationMillis=${session.durationMillis} phoneNumber=${session.phoneNumber}",
+            )
+            trySend(session)
+        }
+
+        // TEMPORARY (real-call diagnostic): confirm which registration path is taken.
+        Log.d(TAG, "TEMP-DIAG callSessions() collector started, SDK_INT=${Build.VERSION.SDK_INT}")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val callback = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
                 override fun onCallStateChanged(state: Int) {
+                    Log.d(TAG, "TEMP-DIAG onCallStateChanged (TelephonyCallback): state=${stateName(state)}")
                     sessions.onStateChanged(state, emit)
                 }
             }
             try {
                 telephonyManager.registerTelephonyCallback(ContextCompat.getMainExecutor(context), callback)
+                Log.d(TAG, "TEMP-DIAG registerTelephonyCallback succeeded")
             } catch (e: SecurityException) {
                 Log.w(TAG, "READ_PHONE_STATE not granted, call state cannot be monitored", e)
             }
@@ -95,12 +116,14 @@ class CallStateMonitor @Inject constructor(
             @Suppress("DEPRECATION")
             val listener = object : PhoneStateListener() {
                 override fun onCallStateChanged(state: Int, phoneNumber: String?) {
+                    Log.d(TAG, "TEMP-DIAG onCallStateChanged (PhoneStateListener): state=${stateName(state)}")
                     sessions.onStateChanged(state, emit)
                 }
             }
             try {
                 @Suppress("DEPRECATION")
                 telephonyManager.listen(listener, PhoneStateListener.LISTEN_CALL_STATE)
+                Log.d(TAG, "TEMP-DIAG PhoneStateListener.listen succeeded")
             } catch (e: SecurityException) {
                 Log.w(TAG, "READ_PHONE_STATE not granted, call state cannot be monitored", e)
             }
@@ -126,6 +149,9 @@ private class CallSessionBuilder(private val context: Context) {
     private var ringingStartedAt = 0L
 
     fun onStateChanged(state: Int, emit: (CallSession) -> Unit) {
+        // TEMPORARY (real-call diagnostic): log every raw callback, including debounced repeats.
+        Log.d(TAG, "TEMP-DIAG onStateChanged: lastState=${stateName(lastState)} newState=${stateName(state)} direction=$direction")
+
         // Debounce: the platform can redeliver the same state (e.g. a second RINGING callback for
         // a multi-SIM device), which must never be mistaken for a real transition.
         if (state == lastState) return

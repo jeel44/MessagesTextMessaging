@@ -66,15 +66,24 @@ class CallEndTriggerService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // TEMPORARY (real-call diagnostic): confirm the service is actually being (re)started.
+        Log.d(TAG, "TEMP-DIAG onStartCommand: flags=$flags startId=$startId collectJobAlreadyRunning=${collectJob != null}")
         startForegroundCompat()
         // Guards against re-subscribing to callSessions() on every onStartCommand -- the service
         // can be restarted (START_STICKY) or re-started redundantly (MessagingApplication calls
         // start() once per process start) without ever tearing this instance down first.
         if (collectJob == null) {
             collectJob = serviceScope.launch {
+                Log.d(TAG, "TEMP-DIAG collectJob launched, subscribing to callStateMonitor.callSessions()")
                 callStateMonitor.callSessions().collect { session ->
+                    Log.d(TAG, "TEMP-DIAG collected CallSession: $session")
                     if (BuildConfig.DEBUG) Log.d(TAG, "CallSession: $session")
-                    postCallEndNotification(session)
+                    try {
+                        postCallEndNotification(session)
+                        Log.d(TAG, "TEMP-DIAG postCallEndNotification succeeded for $session")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "TEMP-DIAG postCallEndNotification threw", e)
+                    }
                 }
             }
         }
@@ -82,6 +91,8 @@ class CallEndTriggerService : Service() {
     }
 
     override fun onDestroy() {
+        // TEMPORARY (real-call diagnostic): confirm whether/when the OS tears this service down.
+        Log.d(TAG, "TEMP-DIAG onDestroy: service is being destroyed")
         collectJob?.cancel()
         serviceScope.cancel()
         super.onDestroy()
@@ -108,6 +119,13 @@ class CallEndTriggerService : Service() {
             .build()
 
     private fun postCallEndNotification(session: CallSession) {
+        // TEMPORARY (real-call diagnostic): a silent notify() no-op (POST_NOTIFICATIONS revoked on
+        // API 33+, or the channel disabled by the user) would otherwise look identical to this
+        // method never being called at all.
+        Log.d(
+            TAG,
+            "TEMP-DIAG postCallEndNotification: areNotificationsEnabled=${notificationManager.areNotificationsEnabled()}",
+        )
         val pendingIntent = callEndPendingIntent(session)
         val notification = NotificationCompat.Builder(this, NotificationChannels.CALL_END)
             .setSmallIcon(R.drawable.ic_notifications)

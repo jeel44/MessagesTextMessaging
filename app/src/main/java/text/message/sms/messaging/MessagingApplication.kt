@@ -137,10 +137,15 @@ class MessagingApplication : Application(), Configuration.Provider {
         // READ_PHONE_STATE, not this app owning SMS/MMS. Gated on the permission because starting
         // a foreground service that can't register its telephony callback would just be a
         // permanent, useless notification (see CallEndTriggerService.start's own doc comment).
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) ==
+        val hasReadPhoneState = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) ==
             PackageManager.PERMISSION_GRANTED
-        ) {
+        // TEMPORARY (real-call diagnostic): confirm the permission gate and start() call itself.
+        Log.d(TAG, "TEMP-DIAG READ_PHONE_STATE granted=$hasReadPhoneState")
+        if (hasReadPhoneState) {
+            Log.d(TAG, "TEMP-DIAG calling CallEndTriggerService.start()")
             CallEndTriggerService.start(this)
+        } else {
+            Log.d(TAG, "TEMP-DIAG CallEndTriggerService.start() NOT called (permission missing)")
         }
         ColdStartTracer.mark("Application.onCreate:afterCallEndTriggerServiceStart")
 
