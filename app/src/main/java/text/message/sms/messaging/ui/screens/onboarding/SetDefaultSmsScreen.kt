@@ -34,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,9 +48,13 @@ import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.withResumed
 import text.message.sms.messaging.R
+import text.message.sms.messaging.ads.AdUnitIds
 import text.message.sms.messaging.service.DefaultSmsAppGuard
 import text.message.sms.messaging.ui.components.ShineButton
+import text.message.sms.messaging.ui.components.ads.BannerAdWithShimmer
 import text.message.sms.messaging.ui.components.sharpIconPainter
 import text.message.sms.messaging.ui.screens.conversationlist.screenSurfaceColor
 import text.message.sms.messaging.ui.theme.AppTheme
@@ -57,6 +62,7 @@ import text.message.sms.messaging.ui.theme.OnboardingSubtitleGray
 
 private val MinComfortableHeight = 600.dp
 private val IllustrationMaxWidth = 375.dp
+private val ButtonToBannerGap = 24.dp
 
 /**
  * Every runtime permission this app needs other than READ_CONTACTS (requested later, on first use
@@ -101,7 +107,8 @@ internal sealed interface PermissionPromptState {
  * requested by [WelcomeScreen]).
  *
  * [onDefaultSet] fires once the role is held AND [DefaultSmsAppGuard.CoreSmsPermissions] are
- * granted -- SMS/MMS is this app's reason to exist, so it's the only part of this screen that
+ * granted -- after the screen's interstitial has been dismissed, if one was ready by then (see
+ * [SetDefaultSmsViewModel.showInterstitialOrAdvance]; never waited on) -- SMS/MMS is this app's reason to exist, so it's the only part of this screen that
  * blocks onboarding. The rest of the requested set (phone state, phone numbers, call log,
  * notifications) is best-effort, same as when this request lived in [WelcomeScreen]: a denial there
  * degrades a feature later rather than blocking onboarding now.
@@ -138,8 +145,23 @@ fun SetDefaultSmsScreen(
 
     if (alreadyDone) return
 
+    // Only reached when the screen actually renders, so the skip path above never requests an ad.
+    LaunchedEffect(Unit) { viewModel.startInterstitialPreload() }
+
     var showDeclinedHint by remember { mutableStateOf(false) }
     var promptState by remember { mutableStateOf<PermissionPromptState>(PermissionPromptState.Hidden) }
+
+    // Set once the role and core permissions are granted. The advance itself (interstitial first,
+    // if ready) waits for RESUMED: the permission result can be delivered before the activity is
+    // fully back in front, and a full-screen ad shouldn't start from there.
+    var pendingAdvance by rememberSaveable { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(pendingAdvance) {
+        if (!pendingAdvance) return@LaunchedEffect
+        lifecycleOwner.lifecycle.withResumed {
+            viewModel.showInterstitialOrAdvance(activity, onAdvance = onDefaultSet)
+        }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
@@ -148,7 +170,7 @@ fun SetDefaultSmsScreen(
         promptState = when {
             coreGranted -> {
                 viewModel.onDefaultSmsAppGranted()
-                onDefaultSet()
+                pendingAdvance = true
                 PermissionPromptState.Hidden
             }
             activity != null && DefaultSmsAppGuard.CoreSmsPermissions.any { permission ->
@@ -181,6 +203,7 @@ fun SetDefaultSmsScreen(
         },
         onOpenSettings = { context.openAppSettings() },
         modifier = modifier,
+        bannerSlot = { BannerAdWithShimmer(adUnitId = AdUnitIds.SET_DEFAULT_SMS_BANNER) },
     )
 }
 
@@ -190,7 +213,13 @@ fun SetDefaultSmsScreen(
  * `@Preview` without needing a Hilt-backed [androidx.hilt.navigation.compose.hiltViewModel] (this
  * module has no Hilt test harness set up yet). [SetDefaultSmsScreen] above is the only real caller;
  * it owns every actual side effect ([onSetDefaultClick] and [onOpenSettings] are both just that
- * composable's real callbacks passed straight through).
+ * composable's real callbacks passed straight through) and the real ad in [bannerSlot] (empty by
+ * default, so the render test and previews never make ad requests).
+ *
+ * Same layout as [WelcomeScreenContent]: [bannerSlot] is pinned full-width (outside the 24dp
+ * content padding) at the very bottom, outside the scrolling content, which gives up the banner's
+ * height. The button always keeps at least [ButtonToBannerGap] above it -- AdMob's accidental-click
+ * policy, since unlike Welcome there's no privacy line between the two here.
  */
 @Composable
 internal fun SetDefaultSmsScreenContent(
@@ -199,82 +228,106 @@ internal fun SetDefaultSmsScreenContent(
     onSetDefaultClick: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    bannerSlot: @Composable () -> Unit = {},
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = screenSurfaceColor()) {
-        BoxWithConstraints(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 24.dp),
+                .navigationBarsPadding(),
         ) {
-            val useScroll = maxHeight < MinComfortableHeight
-            Column(
+            SetDefaultSmsMainContent(
+                showDeclinedHint = showDeclinedHint,
+                promptState = promptState,
+                onSetDefaultClick = onSetDefaultClick,
+                onOpenSettings = onOpenSettings,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .let { if (useScroll) it.verticalScroll(rememberScrollState()) else it },
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Image(
-                    painter = sharpIconPainter(R.drawable.ic_default_sms_illustration),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .widthIn(max = IllustrationMaxWidth)
-                        .heightIn(max = 325.dp)
-                        .padding(vertical = 16.dp),
-                )
+                    .weight(1f)
+                    .padding(horizontal = 24.dp),
+            )
+            bannerSlot()
+        }
+    }
+}
 
-                Spacer(modifier = Modifier.height(28.dp))
+@Composable
+private fun SetDefaultSmsMainContent(
+    showDeclinedHint: Boolean,
+    promptState: PermissionPromptState,
+    onSetDefaultClick: () -> Unit,
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val useScroll = maxHeight < MinComfortableHeight
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .let { if (useScroll) it.verticalScroll(rememberScrollState()) else it },
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Image(
+                painter = sharpIconPainter(R.drawable.ic_default_sms_illustration),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .widthIn(max = IllustrationMaxWidth)
+                    .heightIn(max = 325.dp)
+                    .padding(vertical = 16.dp),
+            )
 
-                Text(
-                    text = stringResource(R.string.set_default_sms_body),
-                    fontSize = 16.sp,
-                    lineHeight = 24.sp,
-                    color = onboardingPrimaryTextColor(),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.widthIn(max = 320.dp),
-                )
+            Spacer(modifier = Modifier.height(28.dp))
 
-                Spacer(modifier = Modifier.height(28.dp))
+            Text(
+                text = stringResource(R.string.set_default_sms_body),
+                fontSize = 16.sp,
+                lineHeight = 24.sp,
+                color = onboardingPrimaryTextColor(),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 320.dp),
+            )
 
-                // promptState takes priority over showDeclinedHint: it only ever becomes non-Hidden
-                // once the role is already granted and the permission request itself came back
-                // denied, i.e. it's a strictly later failure than the role being declined.
-                when {
-                    promptState != PermissionPromptState.Hidden -> {
-                        PermissionNotice(
-                            state = promptState,
-                            onOpenSettings = onOpenSettings,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 12.dp),
-                        )
-                    }
-                    // Not part of the approved design's normal path -- only ever visible once the
-                    // user has already declined the role request once, so it can't be dropped
-                    // without losing the only in-screen hint that they can just tap the button again.
-                    showDeclinedHint -> {
-                        Text(
-                            text = stringResource(R.string.set_default_sms_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = onboardingSecondaryTextColor(OnboardingSubtitleGray),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 12.dp),
-                        )
-                    }
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // promptState takes priority over showDeclinedHint: it only ever becomes non-Hidden
+            // once the role is already granted and the permission request itself came back
+            // denied, i.e. it's a strictly later failure than the role being declined.
+            when {
+                promptState != PermissionPromptState.Hidden -> {
+                    PermissionNotice(
+                        state = promptState,
+                        onOpenSettings = onOpenSettings,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                    )
                 }
-
-                ShineButton(
-                    text = stringResource(R.string.set_default_sms_button),
-                    onClick = onSetDefaultClick,
-                    modifier = Modifier.padding(horizontal = 18.dp),
-                    showHalo = true,
-                )
+                // Not part of the approved design's normal path -- only ever visible once the
+                // user has already declined the role request once, so it can't be dropped
+                // without losing the only in-screen hint that they can just tap the button again.
+                showDeclinedHint -> {
+                    Text(
+                        text = stringResource(R.string.set_default_sms_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = onboardingSecondaryTextColor(OnboardingSubtitleGray),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                    )
+                }
             }
+
+            ShineButton(
+                text = stringResource(R.string.set_default_sms_button),
+                onClick = onSetDefaultClick,
+                modifier = Modifier.padding(horizontal = 18.dp),
+                showHalo = true,
+            )
+
+            Spacer(modifier = Modifier.height(ButtonToBannerGap))
         }
     }
 }
