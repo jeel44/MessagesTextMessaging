@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import text.message.sms.messaging.ads.AdConsentManager
+import text.message.sms.messaging.ads.AppOpenAdManager
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
 import text.message.sms.messaging.data.local.provider.ContactChangeObserver
@@ -64,6 +65,9 @@ class MessagingApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var adConsentManager: AdConsentManager
+
+    @Inject
+    lateinit var appOpenAdManager: AppOpenAdManager
 
     @Inject
     @ApplicationScope
@@ -130,6 +134,11 @@ class MessagingApplication : Application(), Configuration.Provider {
         // either way, so it never blocks first frame.
         adConsentManager.initializeAdsIfAllowed()
         ColdStartTracer.mark("Application.onCreate:afterMobileAdsInitialize")
+
+        // App-wide foreground/background observation for the App Open ad. Registering requests
+        // nothing: the manager loads only once a MainActivity exists and consent allows it, so a
+        // process started for an incoming SMS or a call never makes an ad request.
+        appOpenAdManager.register(this)
 
         // READ_CONTACTS is a separate runtime permission from the default-SMS-app role SMS/MMS
         // sync below depends on, so it gets its own check rather than being folded into

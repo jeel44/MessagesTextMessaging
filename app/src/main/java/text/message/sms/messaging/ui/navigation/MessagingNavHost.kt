@@ -62,6 +62,8 @@ private val NavBackExit = slideOutHorizontally(
 fun MessagingNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
+    isDeepLinkLaunch: Boolean = false,
+    onSplashBrandingVisible: () -> Unit = {},
 ) {
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     if (BuildConfig.DEBUG) {
@@ -81,6 +83,8 @@ fun MessagingNavHost(
     ) {
         composable(MessagingDestination.Splash.route) {
             SplashScreen(
+                isDeepLinkLaunch = isDeepLinkLaunch,
+                onBrandingVisible = onSplashBrandingVisible,
                 onOnboardingComplete = {
                     navController.navigate(MessagingDestination.ConversationList.route) {
                         popUpTo(MessagingDestination.Splash.route) { inclusive = true }

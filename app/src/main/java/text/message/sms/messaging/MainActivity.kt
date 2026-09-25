@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import text.message.sms.messaging.ads.AdConsentManager
+import text.message.sms.messaging.ads.AppOpenAdManager
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import text.message.sms.messaging.data.local.datastore.ThemeMode
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
@@ -97,6 +98,9 @@ class MainActivity : ComponentActivity() {
     lateinit var adConsentManager: AdConsentManager
 
     @Inject
+    lateinit var appOpenAdManager: AppOpenAdManager
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
@@ -106,6 +110,10 @@ class MainActivity : ComponentActivity() {
     private var pendingOpenContacts by mutableStateOf(false)
     private var pendingComingSoonFeature by mutableStateOf<String?>(null)
     private var keepSystemSplashOnScreen by mutableStateOf(true)
+
+    /** Launched to open something specific (notification tap, call-end hand-off) -- Splash then
+     * never holds for an App Open ad (see [SplashViewModel][text.message.sms.messaging.ui.screens.onboarding.SplashViewModel]). */
+    private var isDeepLinkLaunch = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         ColdStartTracer.mark("MainActivity.onCreate:start")
@@ -117,6 +125,7 @@ class MainActivity : ComponentActivity() {
         pendingThreadId = intent.threadIdExtra()
         pendingOpenContacts = intent.getBooleanExtra(EXTRA_OPEN_CONTACTS, false)
         pendingComingSoonFeature = intent.getStringExtra(EXTRA_COMING_SOON_FEATURE)
+        isDeepLinkLaunch = intent.hasDeepLinkExtra()
 
         // Every launch, as UMP recommends. Deliberately not held behind the splash: the check is a
         // network round trip, so on a first launch the form (if required) appears over Welcome a
@@ -226,7 +235,11 @@ class MainActivity : ComponentActivity() {
                             pendingComingSoonFeature = null
                         }
 
-                        MessagingNavHost(navController = navController)
+                        MessagingNavHost(
+                            navController = navController,
+                            isDeepLinkLaunch = isDeepLinkLaunch,
+                            onSplashBrandingVisible = { keepSystemSplashOnScreen = false },
+                        )
                     }
                 }
             }
@@ -237,6 +250,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.hasDeepLinkExtra()) appOpenAdManager.suppressNextForegroundAd()
         intent.threadIdExtra()?.let { pendingThreadId = it }
         if (intent.getBooleanExtra(EXTRA_OPEN_CONTACTS, false)) pendingOpenContacts = true
         intent.getStringExtra(EXTRA_COMING_SOON_FEATURE)?.let { pendingComingSoonFeature = it }
@@ -244,6 +258,23 @@ class MainActivity : ComponentActivity() {
 
     private fun Intent.threadIdExtra(): Long? =
         getLongExtra(EXTRA_THREAD_ID, -1L).takeIf { it != -1L }
+
+    private fun Intent.hasDeepLinkExtra(): Boolean =
+        threadIdExtra() != null ||
+            getBooleanExtra(EXTRA_OPEN_CONTACTS, false) ||
+            getStringExtra(EXTRA_COMING_SOON_FEATURE) != null
+
+    /** Every Activity launch from this Activity funnels through here -- `startActivity` (including
+     * a Compose `LocalContext` wrapper's) and every Activity Result launcher alike -- so this one
+     * override tells [AppOpenAdManager] that the coming trip out of the app is self-initiated and
+     * the return from it must not show an App Open ad. Launches of this app's own Activities
+     * aren't trips out, so they don't count. */
+    @Deprecated("Deprecated in ComponentActivity; overridden only to observe launches.")
+    @Suppress("DEPRECATION")
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
+        if (intent.component?.packageName != packageName) appOpenAdManager.markSelfInitiatedNavigation()
+        super.startActivityForResult(intent, requestCode, options)
+    }
 
     override fun onResume() {
         super.onResume()

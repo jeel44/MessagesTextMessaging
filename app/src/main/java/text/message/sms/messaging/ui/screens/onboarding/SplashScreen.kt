@@ -6,6 +6,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,21 +34,25 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
-import kotlinx.coroutines.flow.first
 import text.message.sms.messaging.R
-import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 
 /**
- * The app's first destination, but no longer its first *visible* screen -- MainActivity's
- * `installSplashScreen()` keeps the system splash (brand icon, see `Theme.App.Starting` in
- * themes.xml) on screen for exactly as long as this composable takes to read the onboarding flag
- * and navigate, so this UI is a fallback for that brief gap rather than something a user is
- * expected to actually see. It hands off to [onOnboardingComplete] if onboarding already finished
- * on a previous launch, or [onOnboardingIncomplete] otherwise -- with no artificial delay, so a
- * returning user reaches the conversation list as soon as the flag read resolves.
+ * The app's first destination. MainActivity's `installSplashScreen()` keeps the system splash
+ * (brand icon, see `Theme.App.Starting` in themes.xml) over this screen until [onBrandingVisible]
+ * fires or Splash is left, so for most launches this UI is never actually seen: [SplashViewModel]
+ * reads the onboarding flag and hands off to [onOnboardingComplete] or [onOnboardingIncomplete]
+ * with no artificial delay.
+ *
+ * The exception is a returning user's launch eligible for an App Open ad (see
+ * [text.message.sms.messaging.ads.AppOpenAdManager]): the system splash is released so this
+ * screen's own branding is visible for a moment, the ad (if it loads in time) is shown over it,
+ * and the hand-off happens once it's dismissed. New users and [isDeepLinkLaunch] launches
+ * (notification tap, call-end hand-off) always skip that entirely.
  *
  * The full-bleed background is [MaterialTheme.colorScheme.primary] rather than
  * `primaryContainer`: `primary`/`onPrimary` is the pairing Material 3 guarantees legible contrast
@@ -53,13 +60,30 @@ import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
  * as a confident, branded splash the way `primaryContainer`'s deliberately muted tone would not.
  */
 @Composable
-fun SplashScreen(onOnboardingComplete: () -> Unit, onOnboardingIncomplete: () -> Unit) {
+internal fun SplashScreen(
+    isDeepLinkLaunch: Boolean,
+    onBrandingVisible: () -> Unit,
+    onOnboardingComplete: () -> Unit,
+    onOnboardingIncomplete: () -> Unit,
+    viewModel: SplashViewModel = hiltViewModel(),
+) {
+    val step by viewModel.step.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val onboardingPreferences = remember(context) { OnboardingPreferences(context.applicationContext) }
+    val activity = remember(context) { context.findActivity() }
 
-    LaunchedEffect(Unit) {
-        val isOnboardingComplete = onboardingPreferences.isOnboardingComplete.first()
-        if (isOnboardingComplete) onOnboardingComplete() else onOnboardingIncomplete()
+    LaunchedEffect(Unit) { viewModel.start(isDeepLinkLaunch) }
+
+    LaunchedEffect(step) {
+        when (val current = step) {
+            SplashStep.Deciding -> Unit
+            SplashStep.Holding -> onBrandingVisible()
+            SplashStep.ShowAd -> {
+                onBrandingVisible()
+                viewModel.showAd(activity)
+            }
+            is SplashStep.Done ->
+                if (current.onboardingComplete) onOnboardingComplete() else onOnboardingIncomplete()
+        }
     }
 
     Surface(
@@ -150,3 +174,9 @@ private fun SplashFallbackMark(modifier: Modifier = Modifier) {
 }
 
 private val SPLASH_MARK_SIZE = 180.dp
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
