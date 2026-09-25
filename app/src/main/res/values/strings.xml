@@ -352,6 +352,8 @@
     <string name="settings_app_version_title">App version</string>
     <string name="settings_rate_app_title">Rate the app</string>
     <string name="settings_privacy_policy_title">Privacy policy</string>
+    <string name="settings_ad_privacy_options_title">Privacy options</string>
+    <string name="settings_ad_privacy_options_summary">Manage your ad consent choices</string>
     <string name="settings_licenses_title">Open source licenses</string>
     <string name="settings_help_feedback_title">Help &amp; feedback</string>
 

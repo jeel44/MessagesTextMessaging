@@ -34,6 +34,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import text.message.sms.messaging.data.local.datastore.ThemeMode
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
@@ -92,6 +93,9 @@ class MainActivity : ComponentActivity() {
     lateinit var onboardingPreferences: OnboardingPreferences
 
     @Inject
+    lateinit var adConsentManager: AdConsentManager
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
@@ -112,6 +116,11 @@ class MainActivity : ComponentActivity() {
         pendingThreadId = intent.threadIdExtra()
         pendingOpenContacts = intent.getBooleanExtra(EXTRA_OPEN_CONTACTS, false)
         pendingComingSoonFeature = intent.getStringExtra(EXTRA_COMING_SOON_FEATURE)
+
+        // Every launch, as UMP recommends. Deliberately not held behind the splash: the check is a
+        // network round trip, so on a first launch the form (if required) appears over Welcome a
+        // moment after it renders -- Welcome's banner slot keeps shimmering until this settles.
+        adConsentManager.gatherConsent(this)
 
         enableEdgeToEdge()
         ColdStartTracer.mark("MainActivity.onCreate:beforeThemeRunBlocking")

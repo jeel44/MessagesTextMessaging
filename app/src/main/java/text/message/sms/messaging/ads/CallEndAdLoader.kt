@@ -48,6 +48,15 @@ internal class CallEndAdLoader(private val context: Context) {
         loadNative()
     }
 
+    /** Consent doesn't allow ad requests (see [AdConsentManager]) -- settle straight on
+     * [CallEndAdState.Failed] so the slot collapses instead of shimmering forever. No-op once
+     * [start] has run. */
+    fun markUnavailable() {
+        if (started) return
+        started = true
+        _state.value = CallEndAdState.Failed
+    }
+
     private fun loadNative() {
         val adLoader = AdLoader.Builder(context, AdUnitIds.CALL_END_NATIVE)
             .forNativeAd { nativeAd -> _state.value = CallEndAdState.NativeLoaded(nativeAd) }

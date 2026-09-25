@@ -11,8 +11,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import text.message.sms.messaging.ads.AdConsentManager
+import text.message.sms.messaging.ads.AdConsentState
 import text.message.sms.messaging.ads.CallEndAdLoader
 import text.message.sms.messaging.ads.CallEndAdState
 import text.message.sms.messaging.domain.model.CallDirection
@@ -55,6 +58,7 @@ class CallEndViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val contactRepository: ContactRepository,
     private val conversationRepository: ConversationRepository,
+    private val adConsentManager: AdConsentManager,
 ) : ViewModel() {
 
     internal val callSession: CallSession = CallSession(
@@ -96,7 +100,8 @@ class CallEndViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Native-first, banner-fallback ad for the screen's ad slot -- see [CallEndAdLoader]'s own
-     * doc comment. Started once below, destroyed in [onCleared] once this screen is gone. */
+     * doc comment. Started once below -- but only once [AdConsentManager] allows ad requests --
+     * and destroyed in [onCleared] once this screen is gone. */
     private val adLoader = CallEndAdLoader(context)
     internal val adState: StateFlow<CallEndAdState> = adLoader.state
 
@@ -105,7 +110,12 @@ class CallEndViewModel @Inject constructor(
         if (phoneNumber != null) {
             viewModelScope.launch { _contact.value = contactRepository.findByAddress(phoneNumber) }
         }
-        adLoader.start()
+        viewModelScope.launch {
+            when (adConsentManager.state.first { it != AdConsentState.Pending }) {
+                AdConsentState.Allowed -> adLoader.start()
+                else -> adLoader.markUnavailable()
+            }
+        }
     }
 
     internal fun onTabSelected(tab: CallEndTab) {

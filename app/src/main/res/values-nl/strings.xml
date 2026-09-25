@@ -320,6 +320,8 @@
     <string name="settings_app_version_title">App-versie</string>
     <string name="settings_rate_app_title">Rate the app</string>
     <string name="settings_privacy_policy_title">Privacybeleid</string>
+    <string name="settings_ad_privacy_options_title">Privacyopties</string>
+    <string name="settings_ad_privacy_options_summary">Je advertentietoestemming beheren</string>
     <string name="settings_licenses_title">Open source licenses</string>
     <string name="settings_help_feedback_title">Hulp en feedback</string>
 

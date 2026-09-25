@@ -106,6 +106,8 @@
     <string name="settings_app_version_title">เวอร์ชันแอป</string>
     <string name="settings_rate_app_title">ให้คะแนนแอป</string>
     <string name="settings_privacy_policy_title">นโยบายความเป็นส่วนตัว</string>
+    <string name="settings_ad_privacy_options_title">ตัวเลือกความเป็นส่วนตัว</string>
+    <string name="settings_ad_privacy_options_summary">จัดการการยินยอมเกี่ยวกับโฆษณา</string>
     <string name="settings_licenses_title">สัญญาอนุญาตโอเพ่นซอร์ส</string>
     <string name="settings_help_feedback_title">ความช่วยเหลือ &amp; ข้อเสนอแนะ</string>
 

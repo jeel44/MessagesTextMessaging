@@ -20,6 +20,19 @@ val keystoreProperties = Properties().apply {
 }
 val hasReleaseSigning = keystorePropertiesFile.exists()
 
+// UMP consent debug overrides (see AdConsentManager) -- read from the uncommitted
+// local.properties and compiled into debug builds only, so each developer can force a region
+// without touching code:
+//   ump.debugGeography=EEA          # EEA | REGULATED_US_STATE | OTHER | blank = no override
+//   ump.testDeviceHashedId=XXXXXXXX # UMP logs this device's hashed ID to Logcat on first run
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
+}
+fun localProperty(key: String): String = localProperties.getProperty(key)?.trim().orEmpty()
+
 android {
     namespace = "text.message.sms.messaging"
 
@@ -35,6 +48,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Overridden in debug only (see buildTypes.debug); release/benchmark never apply any
+        // UMP debug settings.
+        buildConfigField("String", "UMP_DEBUG_GEOGRAPHY", "\"\"")
+        buildConfigField("String", "UMP_TEST_DEVICE_HASHED_ID", "\"\"")
     }
 
     signingConfigs {
@@ -49,6 +67,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "UMP_DEBUG_GEOGRAPHY", "\"${localProperty("ump.debugGeography")}\"")
+            buildConfigField("String", "UMP_TEST_DEVICE_HASHED_ID", "\"${localProperty("ump.testDeviceHashedId")}\"")
+        }
         release {
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
@@ -130,6 +152,8 @@ dependencies {
 
     // Ads -- call-end screen's native/banner ad slot, no mediation
     implementation(libs.google.play.services.ads)
+    // Ad consent (GDPR/US-state messages) -- gates every ad request, see AdConsentManager
+    implementation(libs.google.ump)
 
     // Dependency injection
     implementation(libs.hilt.android)

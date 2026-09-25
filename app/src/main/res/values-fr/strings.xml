@@ -320,6 +320,8 @@
     <string name="settings_app_version_title">Version de l\'application</string>
     <string name="settings_rate_app_title">Évaluer l\'application</string>
     <string name="settings_privacy_policy_title">Politique de confidentialité</string>
+    <string name="settings_ad_privacy_options_title">Options de confidentialité</string>
+    <string name="settings_ad_privacy_options_summary">Gérer votre consentement publicitaire</string>
     <string name="settings_licenses_title">Licences open source</string>
     <string name="settings_help_feedback_title">Aide et commentaires</string>
 

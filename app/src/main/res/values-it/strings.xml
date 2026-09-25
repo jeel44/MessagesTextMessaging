@@ -321,6 +321,8 @@
     <string name="settings_app_version_title">Versione dell\'app</string>
     <string name="settings_rate_app_title">Valuta l\'app</string>
     <string name="settings_privacy_policy_title">Politica sulla riservatezza</string>
+    <string name="settings_ad_privacy_options_title">Opzioni privacy</string>
+    <string name="settings_ad_privacy_options_summary">Gestisci il consenso per gli annunci</string>
     <string name="settings_licenses_title">Licenze open source</string>
     <string name="settings_help_feedback_title">Aiuto e feedback</string>
 

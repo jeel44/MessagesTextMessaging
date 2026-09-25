@@ -26,6 +26,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import text.message.sms.messaging.MainActivity
+import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.data.local.datastore.ThemeMode
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
 import text.message.sms.messaging.domain.model.CallDirection
@@ -63,6 +64,9 @@ class CallEndActivity : ComponentActivity() {
     @Inject
     lateinit var themePreferences: ThemePreferences
 
+    @Inject
+    lateinit var adConsentManager: AdConsentManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -80,6 +84,11 @@ class CallEndActivity : ComponentActivity() {
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON,
             )
         }
+
+        // Often the process's first activity (the phone-state broadcast cold-starts straight into
+        // it), so this is what resolves a Pending consent state for CallEndViewModel's ad slot.
+        // Refresh only -- the consent form itself is only ever shown from MainActivity.
+        adConsentManager.refreshConsentInfo(this)
 
         val session = intent.toCallSession()
         enableEdgeToEdge()

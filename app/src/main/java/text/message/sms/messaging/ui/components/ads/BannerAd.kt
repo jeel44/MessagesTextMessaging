@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -34,6 +35,10 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
+import dagger.hilt.android.EntryPointAccessors
+import text.message.sms.messaging.ads.AdConsentEntryPoint
+import text.message.sms.messaging.ads.AdConsentManager
+import text.message.sms.messaging.ads.AdConsentState
 import text.message.sms.messaging.ads.BannerAdLoader
 import text.message.sms.messaging.ads.BannerAdState
 
@@ -45,8 +50,9 @@ private const val SHIMMER_SWEEP_DURATION_MILLIS = 1400
  * the real creative replaces the shimmer without shifting anything around it. Collapses (animated)
  * to nothing if the load fails.
  *
- * Owns its own [BannerAdLoader] for screens without a ViewModel to hold one: loaded on first
- * composition, paused/resumed with the lifecycle, destroyed when it leaves composition. Keyed on
+ * Owns its own [BannerAdLoader] for screens without a ViewModel to hold one: loaded once
+ * [AdConsentManager] allows ad requests (shimmering until then, collapsed if consent never allows
+ * them), paused/resumed with the lifecycle, destroyed when it leaves composition. Keyed on
  * the available width, so a rotation reloads at the new orientation's adaptive size -- which
  * Google's adaptive-banner guidance calls for anyway.
  */
@@ -59,10 +65,17 @@ internal fun BannerAdWithShimmer(adUnitId: String, modifier: Modifier = Modifier
             AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, widthDp)
         }
         val loader = remember(adUnitId, adSize) { BannerAdLoader(context, adUnitId, adSize) }
+        val consentManager = remember(context) {
+            EntryPointAccessors.fromApplication(context.applicationContext, AdConsentEntryPoint::class.java)
+                .adConsentManager()
+        }
+        val consent by consentManager.state.collectAsStateWithLifecycle()
 
         DisposableEffect(loader) {
-            loader.start()
             onDispose { loader.destroy() }
+        }
+        LaunchedEffect(loader, consent) {
+            if (consent == AdConsentState.Allowed) loader.start()
         }
         // Declared after the effect above so it disposes first: pause, then destroy.
         LifecycleResumeEffect(loader) {
@@ -71,7 +84,10 @@ internal fun BannerAdWithShimmer(adUnitId: String, modifier: Modifier = Modifier
         }
 
         val state by loader.state.collectAsStateWithLifecycle()
-        when (val current = state) {
+        when (val current = state.takeIf { consent == AdConsentState.Allowed }) {
+            null -> if (consent == AdConsentState.Pending) {
+                AdShimmerPlaceholder(height = adSize.height.dp, shape = RectangleShape)
+            }
             BannerAdState.Loading -> AdShimmerPlaceholder(height = adSize.height.dp, shape = RectangleShape)
             is BannerAdState.Loaded -> LoadedBannerAd(adView = current.adView)
             BannerAdState.Failed -> Unit

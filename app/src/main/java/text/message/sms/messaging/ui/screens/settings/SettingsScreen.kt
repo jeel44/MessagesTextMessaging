@@ -1,6 +1,9 @@
 package text.message.sms.messaging.ui.screens.settings
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import android.text.format.DateFormat
 import android.widget.Toast
@@ -29,6 +32,7 @@ import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.FormatSize
+import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -99,6 +103,7 @@ fun SettingsScreen(
     var showSimPicker by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
+    val hostActivity = remember(context) { context.findActivity() }
     val operation by viewModel.operation.collectAsStateWithLifecycle()
     val event by viewModel.event.collectAsStateWithLifecycle()
     val lastBackupAtMillis by viewModel.lastBackupAtMillis.collectAsStateWithLifecycle()
@@ -107,6 +112,7 @@ fun SettingsScreen(
     val activeSims by viewModel.activeSims.collectAsStateWithLifecycle()
     val simSendPreference by viewModel.simSendPreference.collectAsStateWithLifecycle()
     val currentLanguageTag by viewModel.languageTag.collectAsStateWithLifecycle()
+    val adPrivacyOptionsRequired by viewModel.adPrivacyOptionsRequired.collectAsStateWithLifecycle()
     val backupBusy = operation != BackupOperation.IDLE
 
     // Re-checked on resume, not just once: the user may grant READ_PHONE_STATE from the system
@@ -288,7 +294,7 @@ fun SettingsScreen(
         ),
         SettingsSection(
             title = stringResource(R.string.settings_section_about),
-            rows = listOf(
+            rows = listOfNotNull(
                 SettingsRow(
                     icon = SettingsIcon.Drawable(R.drawable.ic_info),
                     title = stringResource(R.string.settings_app_version_title),
@@ -302,6 +308,17 @@ fun SettingsScreen(
                     icon = SettingsIcon.Drawable(R.drawable.ic_privacy),
                     title = stringResource(R.string.settings_privacy_policy_title),
                 ),
+                // UMP's consent-change entry point -- only shown where it's required (EEA/UK).
+                if (adPrivacyOptionsRequired) {
+                    SettingsRow(
+                        icon = SettingsIcon.Vector(Icons.Filled.PrivacyTip),
+                        title = stringResource(R.string.settings_ad_privacy_options_title),
+                        summary = stringResource(R.string.settings_ad_privacy_options_summary),
+                        onClick = { hostActivity?.let { viewModel.showAdPrivacyOptions(it) } },
+                    )
+                } else {
+                    null
+                },
                 SettingsRow(
                     icon = SettingsIcon.Vector(Icons.Filled.Description),
                     title = stringResource(R.string.settings_licenses_title),
@@ -390,6 +407,14 @@ private fun simSendPreferenceSummary(
     }
     val sim = sims.firstOrNull { it.slotIndex == slotIndex } ?: return stringResource(R.string.settings_sim_ask_every_time)
     return stringResource(R.string.settings_sim_slot_summary, sim.slotNumber, sim.displayName.ifBlank { sim.carrierName })
+}
+
+/** [LocalContext] is MainActivity's localized [ContextWrapper], not the Activity itself -- UMP's
+ * privacy options form needs the real Activity. */
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 /** Not reactive -- [text.message.sms.messaging.ui.screens.onboarding.currentLanguageOption] is a

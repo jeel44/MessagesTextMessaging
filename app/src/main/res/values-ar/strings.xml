@@ -320,6 +320,8 @@
     <string name="settings_app_version_title">إصدار التطبيق</string>
     <string name="settings_rate_app_title">تقييم التطبيق</string>
     <string name="settings_privacy_policy_title">سياسة الخصوصية</string>
+    <string name="settings_ad_privacy_options_title">خيارات الخصوصية</string>
+    <string name="settings_ad_privacy_options_summary">إدارة خيارات موافقتك على الإعلانات</string>
     <string name="settings_licenses_title">تراخيص المصدر المفتوح</string>
     <string name="settings_help_feedback_title">المساعدة والملاحظات</string>
 

@@ -320,6 +320,8 @@
     <string name="settings_app_version_title">App-Version</string>
     <string name="settings_rate_app_title">App bewerten</string>
     <string name="settings_privacy_policy_title">Datenschutz-Bestimmungen</string>
+    <string name="settings_ad_privacy_options_title">Datenschutzoptionen</string>
+    <string name="settings_ad_privacy_options_summary">Einwilligung für Werbung verwalten</string>
     <string name="settings_licenses_title">Open-Source-Lizenzen</string>
     <string name="settings_help_feedback_title">Hilfe &amp; Feedback</string>
 

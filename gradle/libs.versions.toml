@@ -38,6 +38,9 @@ coil = "2.7.0"
 
 # Ads -- call-end screen's native/banner ad slot (see CallEndAdLoader). No mediation.
 playServicesAds = "25.5.0"
+# Declared explicitly (Google's documented setup) even though play-services-ads 25.5.0 already
+# pulls 4.0.0 in transitively -- see AdConsentManager.
+userMessagingPlatform = "4.0.0"
 
 # Kotlin libraries
 coroutines = "1.11.0"
@@ -101,6 +104,7 @@ coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coi
 
 # Ads
 google-play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playServicesAds" }
+google-ump = { group = "com.google.android.ump", name = "user-messaging-platform", version.ref = "userMessagingPlatform" }
 
 # Kotlin libraries
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }

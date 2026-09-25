@@ -1,5 +1,6 @@
 package text.message.sms.messaging.ui.screens.settings
 
+import android.app.Activity
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.data.local.datastore.BackupPreferences
 import text.message.sms.messaging.data.local.datastore.SimPreferences
 import text.message.sms.messaging.data.local.datastore.SimSendPreference
@@ -55,7 +57,16 @@ class SettingsViewModel @Inject constructor(
     private val simPreferences: SimPreferences,
     private val simRepository: SimRepository,
     private val onboardingPreferences: OnboardingPreferences,
+    private val adConsentManager: AdConsentManager,
 ) : ViewModel() {
+
+    /** Whether the About section shows the "Privacy options" row -- UMP requires that entry point
+     * only for users in regions where ad consent can be changed later (EEA/UK). */
+    internal val adPrivacyOptionsRequired: StateFlow<Boolean> = adConsentManager.privacyOptionsRequired
+
+    internal fun showAdPrivacyOptions(activity: Activity) {
+        adConsentManager.showPrivacyOptionsForm(activity)
+    }
 
     internal val languageTag: StateFlow<String?> = onboardingPreferences.languageTag
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)

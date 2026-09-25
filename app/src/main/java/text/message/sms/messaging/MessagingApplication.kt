@@ -9,12 +9,12 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import com.google.android.gms.ads.MobileAds
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
 import text.message.sms.messaging.data.local.provider.ContactChangeObserver
@@ -61,6 +61,9 @@ class MessagingApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var themePreferences: ThemePreferences
+
+    @Inject
+    lateinit var adConsentManager: AdConsentManager
 
     @Inject
     @ApplicationScope
@@ -121,11 +124,11 @@ class MessagingApplication : Application(), Configuration.Provider {
         notificationChannels.register()
         ColdStartTracer.mark("Application.onCreate:afterNotificationChannels")
 
-        // Fire-and-forget: MobileAds' own init work (fetching config, warming up the SDK) runs on
-        // its own background thread regardless, so this never blocks first frame the way the
-        // runBlocking theme migration above deliberately does -- see CallEndAdLoader, the only
-        // current ad-loading call site, for why this app needs the SDK initialized at all.
-        MobileAds.initialize(this)
+        // MobileAds.initialize only runs once UMP consent allows ad requests -- here, only when
+        // consent from a previous session already does; otherwise AdConsentManager initializes
+        // it once MainActivity/CallEndActivity's consent check settles on Allowed. Fire-and-forget
+        // either way, so it never blocks first frame.
+        adConsentManager.initializeAdsIfAllowed()
         ColdStartTracer.mark("Application.onCreate:afterMobileAdsInitialize")
 
         // READ_CONTACTS is a separate runtime permission from the default-SMS-app role SMS/MMS
