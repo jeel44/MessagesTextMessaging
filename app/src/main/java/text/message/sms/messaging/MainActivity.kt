@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.core.app.LocaleManagerCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -158,8 +159,12 @@ class MainActivity : ComponentActivity() {
 
             val localizedContextAndConfig = remember(languageTag, currentContext, currentConfig) {
                 val tag = languageTag
+                // System Default reads the device's own locale, not Locale.getDefault(): the
+                // Language screen persists the tag before calling setApplicationLocales (held
+                // until its interstitial closes), so an earlier per-app override is still the
+                // process default at that point and would keep the old language on screen.
                 val locale = if (tag.isNullOrBlank() || tag == "system") {
-                    Locale.getDefault()
+                    LocaleManagerCompat.getSystemLocales(currentContext).get(0) ?: Locale.getDefault()
                 } else {
                     Locale.forLanguageTag(tag)
                 }

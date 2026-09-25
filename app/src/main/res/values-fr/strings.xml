@@ -49,7 +49,7 @@
 
     <!-- Language -->
     <string name="language_title">Sélectionner la langue</string>
-    <string name="language_continue">Continuer</string>
+    <string name="language_apply">Appliquer</string>
 
     <!-- Screen titles -->
     <string name="screen_conversations">#Messages</string>

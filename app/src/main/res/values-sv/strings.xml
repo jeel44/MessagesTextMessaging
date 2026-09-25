@@ -32,7 +32,7 @@
 
     <!-- Language -->
     <string name="language_title">Välj appens språk</string>
-    <string name="language_continue">Fortsätt</string>
+    <string name="language_apply">Verkställ</string>
 
     <!-- Screen titles -->
     <string name="screen_conversations">#Meddelanden</string>

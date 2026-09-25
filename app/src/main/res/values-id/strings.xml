@@ -50,7 +50,7 @@
 
     <!-- Language -->
     <string name="language_title">Pilih Bahasa Aplikasi</string>
-    <string name="language_continue">Lanjutkan</string>
+    <string name="language_apply">Terapkan</string>
 
     <!-- Screen titles -->
     <string name="screen_conversations">#Pesan</string>

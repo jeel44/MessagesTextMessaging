@@ -49,7 +49,7 @@
 
     <!-- Language -->
     <string name="language_title">App-Sprache auswählen</string>
-    <string name="language_continue">Weiter</string>
+    <string name="language_apply">Übernehmen</string>
 
     <!-- Screen titles -->
     <string name="screen_conversations">#Nachrichten</string>

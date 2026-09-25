@@ -49,7 +49,7 @@
 
     <!-- Language -->
     <string name="language_title">Selecteer app-taal</string>
-    <string name="language_continue">Doorgaan</string>
+    <string name="language_apply">Toepassen</string>
 
     <!-- Screen titles -->
     <string name="screen_conversations">#Berichten</string>

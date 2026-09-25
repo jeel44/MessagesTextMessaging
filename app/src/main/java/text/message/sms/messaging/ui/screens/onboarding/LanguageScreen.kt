@@ -57,37 +57,36 @@ import text.message.sms.messaging.ui.components.ads.NativeAdCardShape
 import text.message.sms.messaging.ui.theme.Pill
 
 /**
- * The language picker, reused for two different entry points -- exactly one of [onContinue] /
- * [onBack] is non-null and picks which:
+ * The language picker, reused for two different entry points -- [onBack] picks which:
  *
- * - Onboarding's third step (`onContinue` set, `onBack` null): no top bar, just this screen's own
- *   small title, plus a bottom "Continue" bar that also marks onboarding complete, with a native ad
- *   below it and an interstitial on Continue (see [LanguageViewModel.startOnboardingAds]) -- the
- *   ad sits below the button, not above, so its own CTA is never stacked right against Continue.
- *   [LanguageViewModel] silently syncs the message cache in the background while this is up (see
- *   its `init` block); Continue never waits on that sync -- Home's own Flow-backed repository
- *   query picks up any rows that land after navigation.
- * - Settings' "Language" row (`onBack` set, `onContinue` null): a top bar with a back arrow and
- *   its own "Language" title -- this screen's own title is skipped here so the two don't stack --
- *   no bottom bar, since picking a row applies immediately (see [LanguageViewModel.selectLanguage]),
- *   and no ads.
+ * - Onboarding's third step (`onBack` null): no top bar, just this screen's own small title.
+ *   Apply also marks onboarding complete. [LanguageViewModel] silently syncs the message cache in
+ *   the background while this is up (see its `init` block); Apply never waits on that sync --
+ *   Home's own Flow-backed repository query picks up any rows that land after navigation.
+ * - Settings' "Language" row (`onBack` set): a top bar with a back arrow and its own "Language"
+ *   title -- this screen's own title is skipped here so the two don't stack.
+ *
+ * Both share the rest: rows start unselected and a tap only highlights one; the bottom "Apply"
+ * bar (disabled until a row is picked) applies it, shows an interstitial, then calls [onApplied]
+ * (see [LanguageViewModel.onApplyClicked]). A native ad sits below Apply, not above, so its own
+ * CTA is never stacked right against the button.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LanguageScreen(
-    onContinue: (() -> Unit)? = null,
+    onApplied: () -> Unit,
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     viewModel: LanguageViewModel = hiltViewModel(),
 ) {
     val selectedLanguage by viewModel.selectedLanguage.collectAsStateWithLifecycle()
+    val nativeAdState by viewModel.nativeAdState.collectAsStateWithLifecycle()
     val backgroundColor = languageScreenBackground()
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
+    val isOnboarding = onBack == null
 
-    if (onContinue != null) {
-        LaunchedEffect(Unit) { viewModel.startOnboardingAds() }
-    }
+    LaunchedEffect(Unit) { viewModel.startAds() }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -98,27 +97,25 @@ fun LanguageScreen(
             }
         },
         bottomBar = {
-            if (onContinue != null) {
-                val nativeAdState by viewModel.nativeAdState.collectAsStateWithLifecycle()
-                Surface(color = backgroundColor) {
-                    // navigationBarsPadding: the ad is the bottom-most element, and an ad drawn
-                    // under the system navigation bar would be partly obscured.
-                    Column(modifier = Modifier.navigationBarsPadding()) {
-                        Button(
-                            onClick = { viewModel.onContinueClicked(activity, onAdvance = onContinue) },
-                            shape = Pill,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp, vertical = 16.dp)
-                                .height(52.dp),
-                        ) {
-                            Text(stringResource(R.string.language_continue))
-                        }
-                        LanguageNativeAdSlot(
-                            state = nativeAdState,
-                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
-                        )
+            Surface(color = backgroundColor) {
+                // navigationBarsPadding: the ad is the bottom-most element, and an ad drawn
+                // under the system navigation bar would be partly obscured.
+                Column(modifier = Modifier.navigationBarsPadding()) {
+                    Button(
+                        onClick = { viewModel.onApplyClicked(activity, isOnboarding, onDone = onApplied) },
+                        enabled = selectedLanguage != null,
+                        shape = Pill,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 16.dp)
+                            .height(52.dp),
+                    ) {
+                        Text(stringResource(R.string.language_apply))
                     }
+                    LanguageNativeAdSlot(
+                        state = nativeAdState,
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                    )
                 }
             }
         },
@@ -131,7 +128,7 @@ fun LanguageScreen(
         ) {
             // Onboarding only -- Settings already shows "Language" in the top bar above, so
             // repeating a heading here would stack two titles.
-            if (onBack == null) {
+            if (isOnboarding) {
                 Text(
                     text = stringResource(R.string.language_title),
                     fontSize = 17.sp,
@@ -151,7 +148,7 @@ fun LanguageScreen(
                     val (avatarContainer, avatarContent) = avatarTones[index % avatarTones.size]
                     LanguageRow(
                         language = language,
-                        selected = language.id == selectedLanguage.id,
+                        selected = language.id == selectedLanguage?.id,
                         avatarContainerColor = avatarContainer,
                         avatarContentColor = avatarContent,
                         displayNameColor = displayNameColor,
@@ -166,7 +163,7 @@ fun LanguageScreen(
 }
 
 /** Shimmer while the first load is in flight, then the card; nothing if it failed. Both reserve
- * [NativeAdCardReservedHeight], so Continue above doesn't move when the ad arrives or is swapped
+ * [NativeAdCardReservedHeight], so Apply above doesn't move when the ad arrives or is swapped
  * by the first-selection refresh (a refresh keeps the current card up, see
  * [text.message.sms.messaging.ads.NativeAdLoader.refresh]). */
 @Composable

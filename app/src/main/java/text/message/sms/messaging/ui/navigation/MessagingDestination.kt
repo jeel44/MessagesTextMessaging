@@ -45,7 +45,8 @@ sealed class MessagingDestination(val route: String) {
     data object Settings : MessagingDestination("settings")
 
     /** Settings' "Language" row -- distinct from onboarding's [Language] since it behaves
-     * differently (a back arrow, not a "Continue" bar; see [text.message.sms.messaging.ui.screens.onboarding.LanguageScreen]). */
+     * differently (a back arrow, and Apply returns to Settings rather than completing onboarding;
+     * see [text.message.sms.messaging.ui.screens.onboarding.LanguageScreen]). */
     data object LanguageSettings : MessagingDestination("settings/language")
 
     /** [ARG_INITIAL_TEXT] seeds the composer with a Forward's prefilled text -- see

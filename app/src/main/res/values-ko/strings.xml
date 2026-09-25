@@ -49,7 +49,7 @@
 
     <!-- Language -->
     <string name="language_title">앱 언어 선택</string>
-    <string name="language_continue">계속</string>
+    <string name="language_apply">적용</string>
 
     <!-- Screen titles -->
     <string name="screen_conversations">#메시지</string>

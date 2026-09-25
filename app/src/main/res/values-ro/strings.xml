@@ -32,7 +32,7 @@
 
     <!-- Language -->
     <string name="language_title">Selectați limba aplicației</string>
-    <string name="language_continue">Continuă</string>
+    <string name="language_apply">Aplică</string>
 
     <!-- Screen titles -->
     <string name="screen_conversations">#Mesaje</string>

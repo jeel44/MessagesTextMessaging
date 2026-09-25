@@ -32,7 +32,7 @@
 
     <!-- Language -->
     <string name="language_title">เลือกภาษาของแอป</string>
-    <string name="language_continue">ดำเนินการต่อ</string>
+    <string name="language_apply">นำไปใช้</string>
 
     <!-- Screen titles -->
     <string name="screen_conversations">#ข้อความ</string>

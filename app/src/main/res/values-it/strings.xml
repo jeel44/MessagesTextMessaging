@@ -50,7 +50,7 @@
 
     <!-- Language -->
     <string name="language_title">Seleziona la lingua dell\'app</string>
-    <string name="language_continue">Continua</string>
+    <string name="language_apply">Applica</string>
 
     <!-- Screen titles -->
     <string name="screen_conversations">#Messaggi</string>

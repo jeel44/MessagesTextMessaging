@@ -49,7 +49,7 @@
 
     <!-- Language -->
     <string name="language_title">اختر لغة التطبيق</string>
-    <string name="language_continue">متابعة</string>
+    <string name="language_apply">تطبيق</string>
 
     <!-- Screen titles -->
     <string name="screen_conversations">#الرسائل</string>

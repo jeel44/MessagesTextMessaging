@@ -71,7 +71,6 @@ import text.message.sms.messaging.ui.components.AppTopBar
 import text.message.sms.messaging.ui.components.labelRes
 import text.message.sms.messaging.ui.components.sharpIconPainter
 import text.message.sms.messaging.ui.screens.onboarding.LanguageOptions
-import text.message.sms.messaging.ui.screens.onboarding.currentLanguageOption
 import text.message.sms.messaging.ui.theme.ConversationRowDivider
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -417,10 +416,8 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-/** Not reactive -- [text.message.sms.messaging.ui.screens.onboarding.currentLanguageOption] is a
- * plain synchronous read of [androidx.appcompat.app.AppCompatDelegate]'s own state, not a Flow.
- * That's fine here: navigating to the Language screen and back already recomposes this screen
- * fresh, so the summary is correct by the time it's visible again. */
+/** [languageTag] is [SettingsViewModel.languageTag] -- the tag the Language screen's Apply
+ * persists before its interstitial, so the summary is already current when Apply pops back here. */
 @Composable
 private fun languageSummary(languageTag: String?): String {
     val option = LanguageOptions.firstOrNull { it.languageTag == languageTag }

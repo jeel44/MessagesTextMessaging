@@ -49,7 +49,7 @@
 
     <!-- Language -->
     <string name="language_title">ऐप की भाषा चुनें</string>
-    <string name="language_continue">आगे बढ़ें</string>
+    <string name="language_apply">लागू करें</string>
 
     <!-- Screen titles -->
     <string name="screen_conversations">#संदेश</string>
