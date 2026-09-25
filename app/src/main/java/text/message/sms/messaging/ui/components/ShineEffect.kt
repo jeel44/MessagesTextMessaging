@@ -36,7 +36,7 @@ private const val SHINE_SWEEP_DURATION_MILLIS = 1400
  * is on, or when [enabled] is false.
  *
  * Extracted from [ShineButton]'s own inline shine-sweep drawing so both it and any other shined
- * surface (see [text.message.sms.messaging.ui.screens.callend.CallEndNativeAd]'s native-ad CTA)
+ * surface (see [text.message.sms.messaging.ui.components.ads.NativeAdCard]'s native-ad CTA)
  * share one implementation; [ShineButton] still owns its separate pulsing-halo animation, which
  * this doesn't touch.
  *

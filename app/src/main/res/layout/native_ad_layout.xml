@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Native ad asset views for CallEndNativeAd.kt. A real View hierarchy, not Compose, because the
+  Native ad asset views for NativeAdCard.kt (shared by every native slot). A real View hierarchy, not Compose, because the
   Native Ads API requires registering genuine android.view.View instances on NativeAdView for its
   own click/impression tracking. MediaView specifically must be that exact SDK class, since it
   renders the ad's image/video itself. Colors/rounding are set programmatically in
-  CallEndNativeAd.kt's `update` block (theme-reactive), not hardcoded here.
+  NativeAdCard.kt's `update` block (theme-reactive), not hardcoded here.
 -->
 <com.google.android.gms.ads.nativead.NativeAdView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"

@@ -28,4 +28,11 @@ internal object AdUnitIds {
     /** Interstitial shown once the default-SMS role and core permissions are granted, before
      * advancing to Language (see [InterstitialAdLoader]). Google's interstitial test unit. */
     const val SET_DEFAULT_SMS_INTERSTITIAL = "ca-app-pub-3940256099942544/1033173712"
+
+    /** Onboarding Language screen's native ad, below Continue (see [NativeAdLoader]). Same native
+     * test unit as [CALL_END_NATIVE], but its own constant so each gets its own real unit later. */
+    const val LANGUAGE_NATIVE = "ca-app-pub-3940256099942544/2247696110"
+
+    /** Interstitial shown on the onboarding Language screen's Continue, before Home. */
+    const val LANGUAGE_INTERSTITIAL = "ca-app-pub-3940256099942544/1033173712"
 }

@@ -1,5 +1,8 @@
 package text.message.sms.messaging.ui.screens.onboarding
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -9,6 +12,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,11 +28,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
@@ -40,7 +48,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import text.message.sms.messaging.R
+import text.message.sms.messaging.ads.NativeAdState
 import text.message.sms.messaging.ui.components.AppTopBar
+import text.message.sms.messaging.ui.components.ads.AdShimmerPlaceholder
+import text.message.sms.messaging.ui.components.ads.NativeAdCard
+import text.message.sms.messaging.ui.components.ads.NativeAdCardReservedHeight
+import text.message.sms.messaging.ui.components.ads.NativeAdCardShape
 import text.message.sms.messaging.ui.theme.Pill
 
 /**
@@ -48,13 +61,16 @@ import text.message.sms.messaging.ui.theme.Pill
  * [onBack] is non-null and picks which:
  *
  * - Onboarding's third step (`onContinue` set, `onBack` null): no top bar, just this screen's own
- *   small title, plus a bottom "Continue" bar that also marks onboarding complete.
+ *   small title, plus a bottom "Continue" bar that also marks onboarding complete, with a native ad
+ *   below it and an interstitial on Continue (see [LanguageViewModel.startOnboardingAds]) -- the
+ *   ad sits below the button, not above, so its own CTA is never stacked right against Continue.
  *   [LanguageViewModel] silently syncs the message cache in the background while this is up (see
  *   its `init` block); Continue never waits on that sync -- Home's own Flow-backed repository
  *   query picks up any rows that land after navigation.
  * - Settings' "Language" row (`onBack` set, `onContinue` null): a top bar with a back arrow and
  *   its own "Language" title -- this screen's own title is skipped here so the two don't stack --
- *   no bottom bar, since picking a row applies immediately (see [LanguageViewModel.selectLanguage]).
+ *   no bottom bar, since picking a row applies immediately (see [LanguageViewModel.selectLanguage]),
+ *   and no ads.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +82,12 @@ fun LanguageScreen(
 ) {
     val selectedLanguage by viewModel.selectedLanguage.collectAsStateWithLifecycle()
     val backgroundColor = languageScreenBackground()
+    val context = LocalContext.current
+    val activity = remember(context) { context.findActivity() }
+
+    if (onContinue != null) {
+        LaunchedEffect(Unit) { viewModel.startOnboardingAds() }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -77,19 +99,25 @@ fun LanguageScreen(
         },
         bottomBar = {
             if (onContinue != null) {
+                val nativeAdState by viewModel.nativeAdState.collectAsStateWithLifecycle()
                 Surface(color = backgroundColor) {
-                    Button(
-                        onClick = {
-                            viewModel.completeOnboarding()
-                            onContinue()
-                        },
-                        shape = Pill,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 16.dp)
-                            .height(52.dp),
-                    ) {
-                        Text(stringResource(R.string.language_continue))
+                    // navigationBarsPadding: the ad is the bottom-most element, and an ad drawn
+                    // under the system navigation bar would be partly obscured.
+                    Column(modifier = Modifier.navigationBarsPadding()) {
+                        Button(
+                            onClick = { viewModel.onContinueClicked(activity, onAdvance = onContinue) },
+                            shape = Pill,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 16.dp)
+                                .height(52.dp),
+                        ) {
+                            Text(stringResource(R.string.language_continue))
+                        }
+                        LanguageNativeAdSlot(
+                            state = nativeAdState,
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                        )
                     }
                 }
             }
@@ -134,6 +162,26 @@ fun LanguageScreen(
                 }
             }
         }
+    }
+}
+
+/** Shimmer while the first load is in flight, then the card; nothing if it failed. Both reserve
+ * [NativeAdCardReservedHeight], so Continue above doesn't move when the ad arrives or is swapped
+ * by the first-selection refresh (a refresh keeps the current card up, see
+ * [text.message.sms.messaging.ads.NativeAdLoader.refresh]). */
+@Composable
+private fun LanguageNativeAdSlot(state: NativeAdState, modifier: Modifier = Modifier) {
+    when (state) {
+        NativeAdState.Loading -> AdShimmerPlaceholder(
+            height = NativeAdCardReservedHeight,
+            shape = NativeAdCardShape,
+            modifier = modifier,
+        )
+        is NativeAdState.Loaded -> NativeAdCard(
+            nativeAd = state.nativeAd,
+            modifier = modifier.heightIn(min = NativeAdCardReservedHeight),
+        )
+        NativeAdState.Failed -> Unit
     }
 }
 
@@ -230,4 +278,10 @@ private fun LanguageRadioIndicator(selected: Boolean, outlineColor: Color, modif
             )
         }
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
