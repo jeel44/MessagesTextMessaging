@@ -6,12 +6,6 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -24,9 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
@@ -36,17 +27,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdView
 import text.message.sms.messaging.R
 import text.message.sms.messaging.ads.CallEndAdState
+import text.message.sms.messaging.ui.components.ads.AdShimmerPlaceholder
+import text.message.sms.messaging.ui.components.ads.LoadedBannerAd
 import text.message.sms.messaging.ui.components.shineEffect
 import text.message.sms.messaging.ui.theme.ConversationFabBlue
 
 private val AdCardShape = RoundedCornerShape(16.dp)
-private const val SHIMMER_SWEEP_DURATION_MILLIS = 1400
 private const val CTA_SHINE_PERIOD_MILLIS = 3000
 
 /**
@@ -59,67 +50,19 @@ private const val CTA_SHINE_PERIOD_MILLIS = 3000
 @Composable
 internal fun CallEndAdSlot(adState: CallEndAdState, modifier: Modifier = Modifier) {
     when (adState) {
-        CallEndAdState.Loading -> AdShimmerPlaceholder(modifier = modifier)
+        CallEndAdState.Loading -> CallEndAdShimmer(modifier = modifier)
         is CallEndAdState.NativeLoaded -> CallEndNativeAd(nativeAd = adState.nativeAd, modifier = modifier)
-        is CallEndAdState.BannerLoaded -> CallEndBannerAd(adView = adState.adView, modifier = modifier)
+        is CallEndAdState.BannerLoaded -> LoadedBannerAd(adView = adState.adView, modifier = modifier)
         CallEndAdState.Failed -> Unit
     }
 }
 
-/** Dark placeholder box, sized to a 300x250 ad unit's aspect ratio scaled to the available width --
- * matches [CallEndBannerAd]'s own sizing, since neither format is known yet while this shows. An
- * animated light band sweeps continuously left-to-right across it -- unlike [shineEffect]'s
- * periodic sweep, a loading placeholder should read as "still working" for as long as it's up. */
+/** [AdShimmerPlaceholder] sized to a 300x250 ad unit's aspect ratio scaled to the available width
+ * -- neither format is known yet while this shows, and the banner fallback is 300x250. */
 @Composable
-private fun AdShimmerPlaceholder(modifier: Modifier = Modifier) {
+private fun CallEndAdShimmer(modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val height = maxWidth * (250f / 300f)
-        val baseColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        val highlightColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f)
-
-        val infiniteTransition = rememberInfiniteTransition(label = "ad-shimmer")
-        val sweep = infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(SHIMMER_SWEEP_DURATION_MILLIS, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart,
-            ),
-            label = "shimmer-sweep",
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(height)
-                .clip(AdCardShape)
-                .background(baseColor)
-                .drawWithContent {
-                    drawContent()
-                    val bandWidth = size.width * 0.5f
-                    val x = -bandWidth + sweep.value * (size.width + bandWidth)
-                    drawRect(
-                        brush = Brush.linearGradient(
-                            colors = listOf(Color.Transparent, highlightColor, Color.Transparent),
-                            start = Offset(x, 0f),
-                            end = Offset(x + bandWidth, 0f),
-                        ),
-                    )
-                },
-        )
-    }
-}
-
-/** Real banner [AdView], already loaded by [text.message.sms.messaging.ads.CallEndAdLoader] --
- * centered at its own fixed 300x250dp size rather than stretched to fill the width, since resizing
- * a loaded ad's rendered creative isn't something publishers are allowed to do. */
-@Composable
-private fun CallEndBannerAd(adView: AdView, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center,
-    ) {
-        AndroidView(factory = { adView })
+        AdShimmerPlaceholder(height = maxWidth * (250f / 300f), shape = AdCardShape)
     }
 }
 

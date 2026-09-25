@@ -39,7 +39,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import text.message.sms.messaging.R
+import text.message.sms.messaging.ads.AdUnitIds
 import text.message.sms.messaging.ui.components.ShineButton
+import text.message.sms.messaging.ui.components.ads.BannerAdWithShimmer
 import text.message.sms.messaging.ui.components.sharpIconPainter
 import text.message.sms.messaging.ui.screens.conversationlist.screenSurfaceColor
 import text.message.sms.messaging.ui.theme.AppTheme
@@ -84,91 +86,110 @@ fun WelcomeScreen(
     WelcomeScreenContent(
         onContinueClick = { callPhonePermissionLauncher.launch(Manifest.permission.CALL_PHONE) },
         modifier = modifier,
+        bannerSlot = { BannerAdWithShimmer(adUnitId = AdUnitIds.WELCOME_BANNER) },
     )
 }
 
 /**
  * The screen's actual visual content -- factored out purely so [WelcomeScreen]'s layout can be
  * exercised by `WelcomeScreenRenderTest` and a `@Preview`. [WelcomeScreen] above is the only real
- * caller; it owns the real [onContinueClick] side effect.
+ * caller; it owns the real [onContinueClick] side effect and the real ad in [bannerSlot] (empty
+ * by default, so the test and preview never make ad requests).
+ *
+ * [bannerSlot] is pinned full-width (outside the 24dp content padding) at the very bottom, below
+ * the privacy line, and outside the scrolling content -- the illustration's `weight(1f)` gives up
+ * the banner's height, so the text, CTA and privacy line keep their size.
  */
 @Composable
 internal fun WelcomeScreenContent(
     onContinueClick: () -> Unit,
     modifier: Modifier = Modifier,
+    bannerSlot: @Composable () -> Unit = {},
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = screenSurfaceColor()) {
-        BoxWithConstraints(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 24.dp),
+                .navigationBarsPadding(),
         ) {
-            val useScroll = maxHeight < MinComfortableHeight
-            Column(
+            WelcomeMainContent(
+                onContinueClick = onContinueClick,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .let { if (useScroll) it.verticalScroll(rememberScrollState()) else it },
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Spacer(modifier = Modifier.height(40.dp))
+                    .weight(1f)
+                    .padding(horizontal = 24.dp),
+            )
+            bannerSlot()
+        }
+    }
+}
 
-                Text(
-                    text = stringResource(R.string.welcome_eyebrow),
-                    fontSize = 16.sp,
-                    color = onboardingSecondaryTextColor(OnboardingEyebrowGray),
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.app_name),
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = onboardingPrimaryTextColor(),
-                )
+@Composable
+private fun WelcomeMainContent(onContinueClick: () -> Unit, modifier: Modifier = Modifier) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val useScroll = maxHeight < MinComfortableHeight
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .let { if (useScroll) it.verticalScroll(rememberScrollState()) else it },
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(modifier = Modifier.height(40.dp))
 
-                val illustration = Modifier
-                    .widthIn(max = IllustrationMaxWidth)
-                    .padding(vertical = 16.dp)
-                Image(
-                    painter = sharpIconPainter(R.drawable.ic_welcome_illustration),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = if (useScroll) illustration.heightIn(max = 300.dp) else illustration.weight(1f),
-                )
+            Text(
+                text = stringResource(R.string.welcome_eyebrow),
+                fontSize = 16.sp,
+                color = onboardingSecondaryTextColor(OnboardingEyebrowGray),
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.app_name),
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Medium,
+                color = onboardingPrimaryTextColor(),
+            )
 
-                Text(
-                    text = stringResource(R.string.welcome_tagline),
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = onboardingPrimaryTextColor(),
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.welcome_subtitle),
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    color = onboardingSecondaryTextColor(OnboardingSubtitleGray),
-                    textAlign = TextAlign.Center,
-                    maxLines = 3,
-                )
+            val illustration = Modifier
+                .widthIn(max = IllustrationMaxWidth)
+                .padding(vertical = 16.dp)
+            Image(
+                painter = sharpIconPainter(R.drawable.ic_welcome_illustration),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = if (useScroll) illustration.heightIn(max = 300.dp) else illustration.weight(1f),
+            )
 
-                Spacer(modifier = Modifier.height(28.dp))
+            Text(
+                text = stringResource(R.string.welcome_tagline),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Medium,
+                color = onboardingPrimaryTextColor(),
+                textAlign = TextAlign.Center,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.welcome_subtitle),
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                color = onboardingSecondaryTextColor(OnboardingSubtitleGray),
+                textAlign = TextAlign.Center,
+                maxLines = 3,
+            )
 
-                ShineButton(
-                    text = stringResource(R.string.welcome_continue),
-                    onClick = onContinueClick,
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    showHalo = true,
-                )
+            Spacer(modifier = Modifier.height(28.dp))
 
-                Spacer(modifier = Modifier.height(16.dp))
+            ShineButton(
+                text = stringResource(R.string.welcome_continue),
+                onClick = onContinueClick,
+                modifier = Modifier.padding(horizontal = 8.dp),
+                showHalo = true,
+            )
 
-                PrivacyLine()
+            Spacer(modifier = Modifier.height(16.dp))
 
-                Spacer(modifier = Modifier.height(20.dp))
-            }
+            PrivacyLine()
+
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

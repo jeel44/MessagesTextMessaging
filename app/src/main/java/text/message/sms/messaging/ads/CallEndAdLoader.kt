@@ -25,8 +25,9 @@ internal sealed interface CallEndAdState {
 /**
  * Loads exactly one ad for the call-end screen's ad slot: tries a native ad first
  * ([AdUnitIds.CALL_END_NATIVE]); if it fails to load, falls back to a fixed 300x250 banner
- * ([AdUnitIds.CALL_END_BANNER]) in the same slot; if the banner also fails, [state] settles on
- * [CallEndAdState.Failed]. Pure AdMob -- no mediation adapters.
+ * ([AdUnitIds.CALL_END_BANNER], loaded via the shared [BannerAdLoader]) in the same slot; if the
+ * banner also fails, [state] settles on [CallEndAdState.Failed]. Pure AdMob -- no mediation
+ * adapters.
  *
  * One loader instance per screen, owned by [text.message.sms.messaging.ui.screens.callend
  * .CallEndViewModel]: [start] is called once from its `init` (load once when the screen appears),
@@ -38,7 +39,7 @@ internal class CallEndAdLoader(private val context: Context) {
     private val _state = MutableStateFlow<CallEndAdState>(CallEndAdState.Loading)
     val state: StateFlow<CallEndAdState> = _state.asStateFlow()
 
-    private var bannerAdView: AdView? = null
+    private var bannerLoader: BannerAdLoader? = null
     private var started = false
 
     fun start() {
@@ -64,26 +65,24 @@ internal class CallEndAdLoader(private val context: Context) {
     }
 
     private fun loadBanner() {
-        val adView = AdView(context)
-        adView.adUnitId = AdUnitIds.CALL_END_BANNER
-        adView.setAdSize(AdSize.MEDIUM_RECTANGLE)
-        adView.adListener = object : AdListener() {
-            override fun onAdLoaded() {
-                _state.value = CallEndAdState.BannerLoaded(adView)
-            }
-
-            override fun onAdFailedToLoad(adError: LoadAdError) {
-                _state.value = CallEndAdState.Failed
-                adView.destroy()
-            }
-        }
-        bannerAdView = adView
-        adView.loadAd(AdRequest.Builder().build())
+        val loader = BannerAdLoader(
+            context = context,
+            adUnitId = AdUnitIds.CALL_END_BANNER,
+            adSize = AdSize.MEDIUM_RECTANGLE,
+            onSettled = { bannerState ->
+                _state.value = when (bannerState) {
+                    is BannerAdState.Loaded -> CallEndAdState.BannerLoaded(bannerState.adView)
+                    else -> CallEndAdState.Failed
+                }
+            },
+        )
+        bannerLoader = loader
+        loader.start()
     }
 
     fun destroy() {
         (_state.value as? CallEndAdState.NativeLoaded)?.nativeAd?.destroy()
-        bannerAdView?.destroy()
-        bannerAdView = null
+        bannerLoader?.destroy()
+        bannerLoader = null
     }
 }
