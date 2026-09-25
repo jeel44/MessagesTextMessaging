@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">#Meddelanden</string>
+
+    <!-- Onboarding -->
+    <string name="splash_tagline">Enkelt. Snabbt. Säkert.</string>
+
+    <!-- Welcome -->
+    <string name="welcome_eyebrow">Välkommen till</string>
+    <string name="welcome_tagline">Snabbt. Enkelt. Pålitligt.</string>
+    <string name="welcome_subtitle">Håll kontakten med smidiga meddelanden direkt efter att ditt samtal avslutas.</string>
+    <string name="welcome_privacy_prefix">Genom att fortsätta godkänner du våra </string>
+    <string name="welcome_privacy_suffix">.</string>
+    <string name="welcome_headline">Välkommen till #Meddelanden</string>
+    <string name="welcome_feature_sms_title">Snabb &amp; Pålitlig SMS</string>
+    <string name="welcome_feature_sms_desc">Skicka och ta emot meddelanden snabbt med en smidig upplevelse.</string>
+    <string name="welcome_feature_notifications_title">Smarta aviseringar</string>
+    <string name="welcome_feature_notifications_desc">Håll dig uppdaterad med viktiga meddelanden och anpassade aviseringar.</string>
+    <string name="welcome_feature_privacy_title">Privat &amp; Säkert</string>
+    <string name="welcome_feature_privacy_desc">Dina konversationer förblir skyddade och synliga endast för dig.</string>
+    <string name="welcome_feature_search_title">Sök &amp; Organisera</string>
+    <string name="welcome_feature_search_desc">Hitta meddelanden snabbare och håll din inkorg ren.</string>
+    <string name="welcome_consent_prefix">Hjälp oss förbättra appen. Jag godkänner </string>
+    <string name="welcome_consent_terms">Användarvillkoren</string>
+    <string name="welcome_consent_and"> och </string>
+    <string name="welcome_consent_privacy">Integritetspolicyn</string>
+    <string name="welcome_consent_suffix">.</string>
+    <string name="welcome_continue">Fortsätt</string>
+    <string name="welcome_permission_denied_message">SMS-behörigheter krävs för att skicka och ta emot meddelanden.</string>
+    <string name="welcome_permission_settings_message">Behörigheter krävs. Aktivera dem i Inställningar.</string>
+    <string name="welcome_open_settings">Öppna inställningar</string>
+
+    <!-- Language -->
+    <string name="language_title">Välj appens språk</string>
+    <string name="language_continue">Fortsätt</string>
+
+    <!-- Screen titles -->
+    <string name="screen_conversations">#Meddelanden</string>
+    <string name="screen_new_message">Nytt meddelande</string>
+    <string name="screen_search">Sök</string>
+    <string name="screen_settings">Inställningar</string>
+    <string name="screen_archived">Arkiverade</string>
+
+    <!-- Home -->
+    <string name="home_filter_all">Alla</string>
+    <string name="home_filter_personal">Personligt</string>
+    <string name="home_filter_transactions">Transaktioner</string>
+    <string name="home_filter_otp">OTP</string>
+    <string name="home_empty_title">Inga meddelanden ännu</string>
+    <string name="home_search_placeholder">Sök meddelanden</string>
+
+    <!-- Actions -->
+    <string name="action_search">Sök</string>
+    <string name="action_new_message">Nytt meddelande</string>
+    <string name="action_settings">Inställningar</string>
+    <string name="action_menu">Meny</string>
+    <string name="action_back">Tillbaka</string>
+    <string name="action_close">Stäng</string>
+    <string name="action_cancel">Avbryt</string>
+    <string name="action_undo">Ångra</string>
+
+    <!-- Swipe actions -->
+    <string name="swipe_action_none">Ingen</string>
+    <string name="swipe_action_archive">Arkivera</string>
+    <string name="swipe_action_delete">Ta bort</string>
+    <string name="swipe_action_toggle_read">Markera som läst/oläst</string>
+    <string name="swipe_action_call">Ring</string>
+
+    <!-- Settings -->
+    <string name="settings_section_appearance">Utseende</string>
+    <string name="settings_section_general">Allmänt</string>
+    <string name="settings_section_backup_sync">Säkerhetskopiering &amp; Synk</string>
+    <string name="settings_section_about">Om</string>
+
+    <string name="settings_theme_title">Tema</string>
+    <string name="settings_theme_summary">Tema %1$s · %2$s</string>
+    <string name="settings_text_size_title">Textstorlek</string>
+    <string name="settings_text_size_value">Medium</string>
+
+    <string name="theme_mode_system">System</string>
+    <string name="theme_mode_light">Ljust</string>
+    <string name="theme_mode_dark">Mörkt</string>
+    <string name="theme_picker_mode_header">Temaläge</string>
+    <string name="theme_picker_color_header">Accentfärg</string>
+
+    <string name="settings_default_app_title">Standard-SMS-app</string>
+    <string name="settings_default_app_summary">Ställ in #Meddelanden som din standardapp</string>
+    <string name="settings_language_title">Språk</string>
+    <string name="settings_notifications_title">Aviseringar</string>
+    <string name="settings_notifications_summary">Visa aviseringar för nya meddelanden</string>
+    <string name="settings_delivery_reports_title">Leveransrapporter</string>
+    <string name="settings_delivery_reports_summary">Få avisering när ett meddelande har levererats</string>
+    <string name="settings_quick_reply_title">Snabbsvar</string>
+    <string name="settings_quick_reply_summary">Svara direkt från aviseringsfältet</string>
+
+    <string name="settings_swipe_actions_title">Svepfunktioner</string>
+    <string name="settings_swipe_actions_summary">%1$s · %2$s</string>
+
+    <string name="settings_auto_backup_title">Automatisk säkerhetskopiering</string>
+    <string name="settings_auto_backup_summary">Säkerhetskopiera meddelanden automatiskt</string>
+    <string name="settings_backup_now_title">Säkerhetskopiera nu</string>
+    <string name="settings_last_backup_never">Senaste säkerhetskopia: Aldrig</string>
+    <string name="settings_last_backup_at">Senaste säkerhetskopia: %1$s</string>
+    <string name="settings_restore_title">Återställ</string>
+    <string name="settings_restore_summary">Återställ från en tidigare säkerhetskopia</string>
+    <string name="settings_wifi_only_title">Endast Wi-Fi</string>
+
+    <string name="settings_app_version_title">Appversion</string>
+    <string name="settings_rate_app_title">Betygsätt appen</string>
+    <string name="settings_privacy_policy_title">Integritetspolicy</string>
+    <string name="settings_licenses_title">Lincenser för öppen källkod</string>
+    <string name="settings_help_feedback_title">Hjälp &amp; feedback</string>
+
+    <!-- Call end -->
+    <string name="call_end_unknown_caller">Okänd</string>
+    <string name="call_end_duration_label">Varaktighet • %1$s</string>
+    <string name="call_end_call_back">Ring tillbaka</string>
+    <string name="call_end_whatsapp">WhatsApp</string>
+    <string name="call_end_whatsapp_business">WhatsApp Business</string>
+    <string name="call_end_telegram">Telegram</string>
+    <string name="call_end_tab_list">Llista</string>
+    <string name="call_end_tab_archive">Arkiv</string>
+    <string name="call_end_tab_more">Mer</string>
+    <string name="call_end_list_empty">Inga senaste konversationer</string>
+    <string name="call_end_archive_empty">Inga arkiverade konversationer</string>
+    <string name="call_end_archive_empty_description">Arkivera konversationer för att komma åt dem när som helst</string>
+    <string name="call_end_archive_button">Arkiv</string>
+    <string name="call_end_menu_contacts">Visa kontakter</string>
+    <string name="call_end_menu_messages">Meddelanden</string>
+    <string name="call_end_menu_schedule">Schemalägg meddelande</string>
+    <string name="call_end_menu_backup">Säkerhetskopiering &amp; återställning</string>
+</resources>

@@ -117,6 +117,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:configChanges="locale|layoutDirection"
             android:theme="@style/Theme.App.Starting"
             android:windowSoftInputMode="adjustResize">
 
@@ -261,6 +262,7 @@
             android:name=".ui.screens.callend.CallEndActivity"
             android:exported="false"
             android:excludeFromRecents="true"
+            android:configChanges="locale|layoutDirection"
             android:launchMode="singleTask"
             android:taskAffinity="${applicationId}.callend"
             android:theme="@style/Theme.Messaging" />

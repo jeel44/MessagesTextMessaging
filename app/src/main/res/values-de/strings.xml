@@ -1,0 +1,353 @@
+<resources>
+    <string name="app_name">#Nachrichten</string>
+
+    <!-- Onboarding -->
+    <string name="splash_tagline">Einfach. Schnell. Sicher.</string>
+
+    <!-- Welcome -->
+    <string name="welcome_eyebrow">Willkommen bei</string>
+    <string name="welcome_tagline">Schnell. Einfach. Zuverlässig.</string>
+    <string name="welcome_subtitle">Bleiben Sie direkt nach Ihrem Anruf mit nahtlosem Messaging in Verbindung.</string>
+    <string name="welcome_privacy_prefix">Indem Sie fortfahren, stimmen Sie unseren zu</string>
+    <string name="welcome_privacy_suffix">.</string>
+    <string name="welcome_headline">Willkommen bei #Nachrichten</string>
+    <string name="welcome_feature_sms_title">Schnelle und zuverlässige SMS</string>
+    <string name="welcome_feature_sms_desc">Senden und empfangen Sie schnell Nachrichten mit einem reibungslosen SMS-Erlebnis.</string>
+    <string name="welcome_feature_notifications_title">Intelligente Benachrichtigungen</string>
+    <string name="welcome_feature_notifications_desc">Bleiben Sie mit wichtigen Nachrichten und benutzerdefinierten Benachrichtigungen auf dem Laufenden.</string>
+    <string name="welcome_feature_privacy_title">Privat und sicher</string>
+    <string name="welcome_feature_privacy_desc">Ihre Gespräche bleiben geschützt und nur für Sie sichtbar.</string>
+    <string name="welcome_feature_search_title">Suchen und organisieren</string>
+    <string name="welcome_feature_search_desc">Finden Sie Nachrichten schneller und halten Sie Ihren Posteingang übersichtlich und übersichtlich.</string>
+    <string name="welcome_consent_prefix">Helfen Sie uns, uns mit anonymen Erkenntnissen zu verbessern. Ihre Daten bleiben privat und sicher. Ich stimme dem zu</string>
+    <string name="welcome_consent_terms">Allgemeine Geschäftsbedingungen</string>
+    <string name="welcome_consent_and">Und</string>
+    <string name="welcome_consent_privacy">Datenschutzrichtlinie</string>
+    <string name="welcome_consent_suffix">.</string>
+    <string name="welcome_continue">Weiter</string>
+    <string name="welcome_permission_denied_message">Für #Messages sind SMS-Berechtigungen zum Senden und Empfangen von Texten erforderlich. Tippen Sie auf Weiter, um es erneut zu versuchen.</string>
+    <string name="welcome_permission_settings_message">Damit #Messages funktioniert, sind SMS-Berechtigungen erforderlich. Aktivieren Sie sie in den Einstellungen, um fortzufahren.</string>
+    <string name="welcome_open_settings">Öffnen Sie Einstellungen</string>
+
+    <!-- Set default SMS -->
+    <string name="set_default_sms_placeholder_label">Lottie-Animation hier</string>
+    <string name="set_default_sms_body">Legen Sie #Messages als Ihre Standard-SMS-App fest, um mit dem Senden und Empfangen von Texten zu beginnen.</string>
+    <string name="set_default_sms_button">Als Standard festlegen</string>
+    <string name="set_default_sms_hint">#Messages muss Ihre Standard-SMS-App zum Senden und Empfangen von Texten sein. Tippen Sie auf die Schaltfläche, wann immer Sie bereit sind.</string>
+
+    <string name="overlay_permission_title">Anrufbenachrichtigungen aktivieren</string>
+    <string name="overlay_permission_body">Sehen Sie, wer anruft, und antworten Sie sofort, auch wenn Ihr Bildschirm gesperrt ist.</string>
+    <string name="overlay_permission_button">Aktivieren und fortfahren</string>
+    <string name="overlay_permission_reassurance">Sie können dies jederzeit in den Einstellungen deaktivieren.</string>
+    <string name="overlay_permission_mock_row_allow">Anzeige über anderen Apps zulassen und oben erscheinen</string>
+    <string name="overlay_permission_mock_row_app">Nachrichten</string>
+
+    <string name="battery_optimization_title">Halten Sie Anrufbenachrichtigungen zuverlässig</string>
+    <string name="battery_optimization_body">Ohne dies kann Android #Messages im Hintergrund anhalten und den Moment verpassen, in dem ein Anruf endet.</string>
+    <string name="battery_optimization_button">Zulassen und fortfahren</string>
+    <string name="battery_optimization_reassurance">Sie können dies jederzeit in den Einstellungen deaktivieren.</string>
+
+    <!-- Language -->
+    <string name="language_title">App-Sprache auswählen</string>
+    <string name="language_continue">Weiter</string>
+
+    <!-- Screen titles -->
+    <string name="screen_conversations">#Nachrichten</string>
+    <string name="screen_new_message">Neue Nachricht</string>
+    <string name="screen_search">Suchen</string>
+    <string name="screen_settings">Einstellungen</string>
+    <string name="screen_archived">Archiviert</string>
+
+    <!-- Home (conversation list) -->
+    <string name="home_filter_all">Alle</string>
+    <string name="home_filter_personal">Persönlich</string>
+    <string name="home_filter_transactions">Transaktionen</string>
+    <string name="home_filter_otp">OTP</string>
+    <string name="home_empty_title">Noch keine Nachrichten</string>
+    <string name="home_empty_message">Starten Sie ein Gespräch und es wird hier angezeigt.</string>
+    <string name="home_not_default_title">Legen Sie #Messages als Ihre Standard-SMS-App fest</string>
+    <string name="home_not_default_message">#Messages muss Ihre Standard-SMS-App sein, um Ihre Konversationen hier zu synchronisieren und anzuzeigen.</string>
+    <string name="home_sync_failed_message">Einige Nachrichten konnten nicht geladen werden</string>
+    <string name="home_sync_retry">Wiederholen</string>
+    <string name="home_archived_row_title">Archiviert</string>
+    <string name="home_archived_snackbar">Archiviert</string>
+    <string name="home_search_placeholder">Nachrichten durchsuchen</string>
+    <string name="home_new_chat_label">Neuer Chat</string>
+    <string name="home_otp_copy_label">OTP kopieren</string>
+    <string name="home_otp_copied_toast">Code kopiert</string>
+    <string name="home_otp_copy_content_description">Bestätigungscode kopieren</string>
+    <string name="home_deleted_snackbar">Gelöscht</string>
+
+    <!-- Home multi-select -->
+    <string name="home_selection_close">Auswahl verlassen</string>
+    <string name="home_selection_count_format">%1$d/%2$d</string>
+    <string name="home_selection_archive">Archiv</string>
+    <string name="home_selection_delete">Löschen</string>
+    <string name="home_selection_more">Weitere Optionen</string>
+    <string name="home_selection_select_all">Alles auswählen</string>
+    <string name="home_selection_mark_read">Als gelesen markieren</string>
+    <string name="home_selection_mark_unread">Als ungelesen markieren</string>
+    <string name="home_selection_pin">Stift</string>
+    <string name="home_selection_unpin">Lösen</string>
+    <string name="home_pinned_content_description">Angepinnt</string>
+    <string name="home_selection_block">Block</string>
+    <string name="home_selection_delete_confirm_message">Dadurch werden alle darin enthaltenen Nachrichten gelöscht. Dies kann nicht rückgängig gemacht werden.</string>
+    <string name="home_selection_block_confirm_message">Von diesen Absendern erhalten Sie keine Nachrichten oder Anrufe. Sie können sie später in jeder Konversation entsperren.</string>
+
+    <!-- Archived -->
+    <string name="archived_unarchive">Dearchivieren</string>
+    <string name="archived_empty_title">Keine archivierten Gespräche</string>
+    <string name="archived_empty_message">Von Ihnen archivierte Gespräche werden hier angezeigt.</string>
+
+    <!-- Actions -->
+    <string name="action_search">Suchen</string>
+    <string name="action_new_message">Neue Nachricht</string>
+    <string name="action_settings">Einstellungen</string>
+    <string name="action_menu">Speisekarte</string>
+    <string name="action_back">Zurück</string>
+    <string name="action_close">Schließen</string>
+    <string name="action_cancel">Stornieren</string>
+    <string name="action_undo">Rückgängig machen</string>
+
+    <!-- Swipe actions (conversation list + Settings picker) -->
+    <string name="swipe_action_none">Keiner</string>
+    <string name="swipe_action_archive">Archiv</string>
+    <string name="swipe_action_delete">Löschen</string>
+    <string name="swipe_action_toggle_read">Als gelesen/ungelesen markieren</string>
+    <string name="swipe_action_call">Anruf</string>
+
+    <!-- Chat -->
+    <string name="chat_call">Anruf</string>
+    <string name="chat_more_options">Weitere Optionen</string>
+    <string name="chat_composer_hint">Nachricht schreiben...</string>
+    <string name="chat_send">Schicken</string>
+    <string name="chat_add_attachment">Anhang hinzufügen</string>
+    <string name="chat_schedule_button_description">Nachricht planen</string>
+    <string name="chat_schedule_tooltip">Tippen Sie hier, um Ihre Nachricht zu planen</string>
+    <string name="chat_remove_attachment">Anhang entfernen</string>
+    <string name="chat_status_sending">Senden…</string>
+    <string name="chat_status_sent">Gesendet</string>
+    <string name="chat_status_delivered">Geliefert</string>
+    <string name="chat_status_failed">Fehlgeschlagen</string>
+    <string name="chat_status_failed_retry">Fehlgeschlagen. Tippen Sie, um es noch einmal zu versuchen</string>
+    <string name="chat_conversation_info">Gesprächsinfo</string>
+    <string name="chat_topbar_pin">Konversation anpinnen</string>
+    <string name="chat_topbar_unpin">Konversation lösen</string>
+    <string name="chat_topbar_block">Blocknummer</string>
+    <string name="chat_topbar_unblock">Nummer entsperren</string>
+    <string name="chat_topbar_archive">Archiv</string>
+    <string name="chat_topbar_unarchive">Dearchivieren</string>
+    <string name="chat_topbar_block_confirm_title">Dieses Gespräch blockieren?</string>
+    <string name="chat_topbar_block_confirm_message">Sie erhalten von dieser Nummer keine Nachrichten oder Anrufe. Sie können die Sperre später hier aufheben.</string>
+    <string name="chat_attachment_sheet_title">Zu Ihrer Nachricht hinzufügen</string>
+    <string name="chat_attachment_gallery">Galerie</string>
+    <string name="chat_attachment_camera">Kamera</string>
+    <string name="chat_attachment_files">Dateien</string>
+    <string name="chat_attachment_location">Standort</string>
+    <string name="chat_attachment_contact">Kontakt</string>
+    <string name="chat_attachment_schedule">Zeitplan</string>
+    <string name="chat_attachment_coming_soon">Kommt bald</string>
+    <string name="chat_media_viewer_title">Foto</string>
+    <string name="chat_security_notice">Diese SMS ist 100 % sicher. #Messages sammelt niemals Daten ohne vorherige Zustimmung. Alles wird auf Ihrem Telefon verarbeitet und gespeichert.</string>
+    <string name="chat_cant_reply_short_code">Auf diesen Kurzcode kann nicht geantwortet werden</string>
+    <string name="chat_learn_more">Erfahren Sie mehr</string>
+    <string name="chat_learn_more_dialog_message">Sie können nicht auf Nachrichten von geschäftlichen Absendern und Kurzcodes antworten.</string>
+    <string name="chat_learn_more_ok">OK</string>
+    <string name="chat_otp_copy_label">Kopieren Sie „%1$s“</string>
+    <string name="chat_otp_copy_content_description">Bestätigungscode kopieren</string>
+
+    <!-- Chat multi-select -->
+    <string name="chat_selection_close">Auswahl verlassen</string>
+    <string name="chat_selection_select_all">Alles auswählen</string>
+    <string name="chat_selection_copy">Kopie</string>
+    <string name="chat_selection_forward">Nach vorne</string>
+    <string name="chat_selection_share">Aktie</string>
+    <string name="chat_selection_delete">Löschen</string>
+    <string name="chat_selection_details">Nachrichtendetails</string>
+    <string name="chat_selection_more">Weitere Optionen</string>
+    <string name="chat_selection_copied_toast">Kopiert</string>
+    <string name="chat_selection_forward_attachments_unsupported">Anhänge können noch nicht weitergeleitet werden</string>
+    <string name="chat_selection_share_title">Nachricht teilen</string>
+    <string name="chat_selection_selected_indicator">Ausgewählt</string>
+    <string name="chat_selection_delete_confirm_message">Dies kann nicht rückgängig gemacht werden.</string>
+
+    <!-- Message details -->
+    <string name="message_details_title">Nachrichtendetails</string>
+    <string name="message_details_type">Typ</string>
+    <string name="message_details_type_sms">Textnachricht</string>
+    <string name="message_details_type_mms">Multimedia-Nachricht</string>
+    <string name="message_details_from">Aus</string>
+    <string name="message_details_to">Zu</string>
+    <string name="message_details_time_sent">Gesendet</string>
+    <string name="message_details_time_received">Erhalten</string>
+    <string name="message_details_size">Größe</string>
+    <string name="message_details_size_characters">%1$d-Zeichen</string>
+    <string name="message_details_status">Status</string>
+    <string name="message_details_status_received">Erhalten</string>
+    <string name="message_details_sim">SIM</string>
+    <string name="message_details_sim_value">SIM%1$d</string>
+    <string name="message_details_ok">OK</string>
+
+    <!-- Dual-SIM send picker -->
+    <string name="chat_sim_picker_title">Senden Sie mit</string>
+    <string name="chat_sim_picker_row_title">SIM%1$d-%2$s</string>
+    <string name="chat_sim_picker_remember">Denken Sie an dieses Gespräch</string>
+    <string name="chat_sim_fallback_notice">Ihre bevorzugte SIM-Karte war nicht verfügbar, daher wurde diese stattdessen mit SIM%1$dgesendet</string>
+    <string name="chat_sim_indicator_description">Senden mit SIM%1$d. Zum Ändern tippen.</string>
+    <string name="chat_sim_indicator_description_unknown">Wählen Sie aus, welche SIM-Karte diese Nachricht sendet</string>
+
+    <!-- Conversation info -->
+    <string name="conversation_info_title">Gesprächsinfo</string>
+    <string name="conversation_info_group_subtitle">%1$d-Leute</string>
+    <string name="conversation_info_notifications_title">Benachrichtigungen</string>
+    <string name="conversation_info_notifications_muted_summary">Stummgeschaltet</string>
+    <string name="conversation_info_notifications_on_summary">An</string>
+    <string name="conversation_info_participants_header">%1$d-Teilnehmer</string>
+    <string name="conversation_info_view_contact_not_available">Keine Kontakte-App gefunden</string>
+    <string name="conversation_info_media_header">Geteilte Medien</string>
+    <string name="conversation_info_media_empty">Noch keine Fotos oder Videos</string>
+    <string name="conversation_info_video_content_description">Video</string>
+    <string name="conversation_info_pin">Konversation anpinnen</string>
+    <string name="conversation_info_unpin">Konversation lösen</string>
+    <string name="conversation_info_archive">Archiv</string>
+    <string name="conversation_info_unarchive">Dearchivieren</string>
+    <string name="conversation_info_block">Blocknummer</string>
+    <string name="conversation_info_unblock">Nummer entsperren</string>
+    <string name="conversation_info_delete">Konversation löschen</string>
+    <string name="conversation_info_block_confirm_title">Dieses Gespräch blockieren?</string>
+    <string name="conversation_info_block_confirm_message">Sie erhalten von dieser Nummer keine Nachrichten oder Anrufe. Sie können die Sperre später hier aufheben.</string>
+    <string name="conversation_info_delete_confirm_title">Diese Konversation löschen?</string>
+    <string name="conversation_info_delete_confirm_message">Dadurch wird jede Nachricht in dieser Konversation gelöscht. Dies kann nicht rückgängig gemacht werden.</string>
+
+    <!-- New message -->
+    <string name="new_message_to_label">Zu</string>
+    <string name="new_message_to_hint">Name oder Telefonnummer</string>
+    <string name="new_message_send_to">Senden an „%1$s“</string>
+    <string name="new_message_contacts_permission_message">Erlauben Sie Kontakten den Zugriff in den Einstellungen, um einen Empfänger anhand des Namens auszuwählen.</string>
+    <string name="new_message_no_contacts">Keine Kontakte gefunden</string>
+
+    <!-- Search -->
+    <string name="search_hint">Gespräche suchen</string>
+    <string name="search_clear">Suche löschen</string>
+    <string name="search_filter_all">Alle</string>
+    <string name="search_filter_people">Menschen</string>
+    <string name="search_filter_messages">Nachrichten</string>
+    <string name="search_recent_header">Aktuelle Suchanfragen</string>
+    <string name="search_section_people">Menschen</string>
+    <string name="search_section_messages">Nachrichten</string>
+    <string name="search_no_results">Keine Ergebnisse für „%1$s“</string>
+    <string name="search_empty_state">Ihre Gespräche werden hier angezeigt</string>
+
+    <!-- Notification channels -->
+    <string name="channel_incoming_messages">Eingehende Nachrichten</string>
+    <string name="channel_send_failures">Fehler senden</string>
+    <string name="channel_call_monitor">Anrufüberwachung</string>
+
+    <!-- CallEndTriggerService notifications -->
+    <string name="call_monitor_notification_title">Warten auf Anrufende</string>
+
+    <!-- Incoming-message notification -->
+    <string name="notification_mms_photo_placeholder">Foto</string>
+    <string name="notification_mms_placeholder">MMS</string>
+    <string name="notification_action_mark_read">Als gelesen markieren</string>
+    <string name="notification_action_reply">Antwort</string>
+    <string name="notification_self_name">Du</string>
+    <string name="notification_unknown_sender">Unbekannt</string>
+
+    <!-- Settings -->
+    <string name="settings_section_appearance">Erscheinungsbild</string>
+    <string name="settings_section_general">Allgemein</string>
+    <string name="settings_section_backup_sync">Sicherung &amp; Sync</string>
+    <string name="settings_section_about">Über</string>
+
+    <string name="settings_theme_title">Design</string>
+    <string name="settings_theme_summary">%1$s-Design · %2$s</string>
+    <string name="settings_text_size_title">Textgröße</string>
+    <string name="settings_text_size_value">Mittel</string>
+
+    <!-- Theme picker -->
+    <string name="theme_mode_system">System</string>
+    <string name="theme_mode_light">Hell</string>
+    <string name="theme_mode_dark">Dunkel</string>
+    <string name="theme_picker_mode_header">Themenmodus</string>
+    <string name="theme_picker_color_header">Akzentfarbe</string>
+    <string name="theme_picker_color_default">Standard</string>
+    <string name="theme_picker_color_custom">Brauch</string>
+    <string name="theme_picker_default_swatch_description">Verwenden Sie die Standardfarbe</string>
+    <string name="theme_picker_custom_swatch_description">Wählen Sie eine benutzerdefinierte Farbe</string>
+    <string name="theme_picker_custom_color_title">Benutzerdefinierte Farbe</string>
+    <string name="action_done">Erledigt</string>
+    <string name="action_select">Wählen</string>
+
+    <string name="settings_default_app_title">Standard-SMS-App</string>
+    <string name="settings_default_app_summary">#Nachrichten als Standard-SMS-App festlegen</string>
+    <string name="settings_language_title">Sprache</string>
+    <string name="settings_notifications_title">Benachrichtigungen</string>
+    <string name="settings_notifications_summary">Benachrichtigung bei neuen Nachrichten anzeigen</string>
+    <string name="settings_delivery_reports_title">Zustellberichte</string>
+    <string name="settings_delivery_reports_summary">Benachrichtigung erhalten, wenn Nachricht zugestellt wurde</string>
+    <string name="settings_quick_reply_title">Schnellantwort</string>
+    <string name="settings_quick_reply_summary">Direkt aus der Benachrichtigungsleiste antworten</string>
+
+    <string name="settings_swipe_actions_title">Wischaktionen</string>
+    <string name="settings_swipe_actions_summary">%1$s · %2$s</string>
+    <string name="settings_swipe_right_header">Wischen Sie nach rechts</string>
+    <string name="settings_swipe_left_header">Wischen Sie nach links</string>
+
+    <!-- Dual-SIM send preference (dual-SIM devices only, entirely hidden otherwise) -->
+    <string name="settings_sim_for_sending_title">SIM zum Senden von Nachrichten</string>
+    <string name="settings_sim_slot_summary">SIM%1$d-%2$s</string>
+    <string name="settings_sim_ask_every_time">Fragen Sie jedes Mal</string>
+    <string name="settings_sim_permission_needed">Erlaubnis erforderlich</string>
+
+    <string name="settings_auto_backup_title">Automatische Sicherung</string>
+    <string name="settings_auto_backup_summary">Nachrichten automatisch sichern</string>
+    <string name="settings_backup_now_title">Jetzt sichern</string>
+    <string name="settings_last_backup_never">Letzte Sicherung: Nie</string>
+    <string name="settings_last_backup_at">Letzte Sicherung: %1$s</string>
+    <string name="settings_restore_title">Wiederherstellen</string>
+    <string name="settings_restore_summary">Aus einer vorherigen Sicherung wiederherstellen</string>
+    <string name="settings_wifi_only_title">Nur WLAN</string>
+
+    <string name="settings_backup_exporting">Nachrichten werden gesichert…</string>
+    <string name="settings_backup_importing">Nachrichten werden wiederhergestellt…</string>
+    <string name="settings_backup_export_success">Gesicherte%1$d-Nachricht(en)</string>
+    <string name="settings_backup_import_success">%1$d-Nachricht(en) wiederhergestellt</string>
+    <string name="settings_backup_not_default_app">Legen Sie #Messages als Ihre Standard-SMS-App fest, bevor Sie ein Backup wiederherstellen</string>
+    <string name="settings_backup_destination_unavailable">Diese Datei konnte nicht geöffnet werden</string>
+    <string name="settings_backup_error">Sicherung fehlgeschlagen:%1$s</string>
+
+    <string name="settings_app_version_title">App-Version</string>
+    <string name="settings_rate_app_title">App bewerten</string>
+    <string name="settings_privacy_policy_title">Datenschutz-Bestimmungen</string>
+    <string name="settings_licenses_title">Open-Source-Lizenzen</string>
+    <string name="settings_help_feedback_title">Hilfe &amp; Feedback</string>
+
+    <!-- Contacts list (call-end screen's "View Contacts") -->
+    <string name="screen_contacts">Kontakte</string>
+    <string name="contacts_list_empty">Keine Kontakte gefunden</string>
+
+    <!-- Call-end screen -->
+    <string name="call_end_unknown_caller">Unbekannt</string>
+    <string name="call_end_duration_label">Dauer • %1$s</string>
+    <string name="call_end_call_back">Rückruf</string>
+    <string name="call_end_whatsapp">WhatsApp</string>
+    <string name="call_end_whatsapp_business">WhatsApp Business</string>
+    <string name="call_end_telegram">Telegramm</string>
+    <string name="call_end_tab_list">Liste</string>
+    <string name="call_end_tab_archive">Archiv</string>
+    <string name="call_end_tab_more">Mehr</string>
+    <string name="call_end_list_empty">Keine Kürzlichen Unterhaltungen</string>
+    <string name="call_end_archive_empty">Keine archivierten Unterhaltungen</string>
+    <string name="call_end_archive_empty_description">Archivieren Sie Unterhaltungen, um jederzeit darauf zuzugreifen</string>
+    <string name="call_end_archive_button">Archivieren</string>
+    <string name="call_end_menu_contacts">Kontakte anzeigen</string>
+    <string name="call_end_menu_messages">Nachrichten</string>
+    <string name="call_end_menu_schedule">Nachricht planen</string>
+    <string name="call_end_menu_backup">Sichern &amp; Wiederherstellen</string>
+    <string name="call_end_ad_label">Anzeige</string>
+
+    <!-- ComingSoonScreen stub -->
+    <string name="coming_soon_title">%1$skommt bald</string>
+    <string name="coming_soon_body">Wir arbeiten noch an dieser Funktion. Schauen Sie in einem zukünftigen Update noch einmal vorbei.</string>
+</resources>

@@ -34,6 +34,9 @@ class OnboardingPreferences @Inject constructor(
     val isOnboardingComplete: Flow<Boolean> =
         context.onboardingDataStore.data.map { it[Keys.ONBOARDING_COMPLETE] == true }
 
+    val languageTag: Flow<String?> =
+        context.onboardingDataStore.data.map { it[Keys.LANGUAGE_TAG] }
+
     suspend fun setOnboardingComplete() {
         context.onboardingDataStore.edit { it[Keys.ONBOARDING_COMPLETE] = true }
     }

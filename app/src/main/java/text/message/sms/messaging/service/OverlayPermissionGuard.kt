@@ -24,4 +24,5 @@ object OverlayPermissionGuard {
 
     fun buildRequestIntent(context: Context): Intent =
         Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:${context.packageName}".toUri())
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 }

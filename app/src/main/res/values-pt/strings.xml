@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">#Mensagens</string>
+
+    <!-- Onboarding -->
+    <string name="splash_tagline">Simples. Rápido. Seguro.</string>
+
+    <!-- Welcome -->
+    <string name="welcome_eyebrow">Bem-vindo ao</string>
+    <string name="welcome_tagline">Rápido. Fácil. Confiável.</string>
+    <string name="welcome_subtitle">Mantenha-se conectado com mensagens suaves logo após o término da ligação.</string>
+    <string name="welcome_privacy_prefix">Ao continuar, você concorda com nossos </string>
+    <string name="welcome_privacy_suffix">.</string>
+    <string name="welcome_headline">Bem-vindo ao #Mensagens</string>
+    <string name="welcome_feature_sms_title">SMS Rápido e Confiável</string>
+    <string name="welcome_feature_sms_desc">Envie e receba mensagens rapidamente com uma experiência de mensagens de texto tranquila.</string>
+    <string name="welcome_feature_notifications_title">Notificações Inteligentes</string>
+    <string name="welcome_feature_notifications_desc">Fique atualizado com mensagens importantes e notificações personalizadas.</string>
+    <string name="welcome_feature_privacy_title">Privado e Seguro</string>
+    <string name="welcome_feature_privacy_desc">Suas conversas permanecem protegidas e visíveis apenas para você.</string>
+    <string name="welcome_feature_search_title">Pesquisar e Organizar</string>
+    <string name="welcome_feature_search_desc">Encontre mensagens com mais rapidez e mantenha sua caixa de entrada organizada e simples.</string>
+    <string name="welcome_consent_prefix">Ajude-nos a melhorar com insights anônimos. Seus dados permanecem privados e seguros. Eu concordo com os</string>
+    <string name="welcome_consent_terms">Termos e Condições</string>
+    <string name="welcome_consent_and"> e a </string>
+    <string name="welcome_consent_privacy">política de Privacidade</string>
+    <string name="welcome_consent_suffix">.</string>
+    <string name="welcome_continue">Continuar</string>
+    <string name="welcome_permission_denied_message">Permissões de SMS são necessárias para enviar e receber mensagens.</string>
+    <string name="welcome_permission_settings_message">Permissões de SMS são necessárias. Ative-as nas Configurações.</string>
+    <string name="welcome_open_settings">Abra Configurações</string>
+
+    <!-- Set default SMS -->
+    <string name="set_default_sms_placeholder_label">Animação Lottie aqui</string>
+    <string name="set_default_sms_body">Defina #Mensagens como seu aplicativo de SMS padrão para começar a enviar e receber mensagens.</string>
+    <string name="set_default_sms_button">Definir como padrão</string>
+    <string name="set_default_sms_hint">#Mensagens precisa ser seu aplicativo de SMS padrão para enviar e receber textos.</string>
+
+    <string name="overlay_permission_title">Habilitar alertas de chamada</string>
+    <string name="overlay_permission_body">Veja quem está ligando e responda instantaneamente, mesmo quando a tela estiver bloqueada.</string>
+    <string name="overlay_permission_button">Ativar e continuar</string>
+    <string name="overlay_permission_reassurance">Você pode desativar isso a qualquer momento nas Configurações.</string>
+
+    <!-- Language -->
+    <string name="language_title">Selecionar idioma do aplicativo</string>
+    <string name="language_continue">Continuar</string>
+
+    <!-- Screen titles -->
+    <string name="screen_conversations">#Mensagens</string>
+    <string name="screen_new_message">Nova mensagem</string>
+    <string name="screen_search">Pesquisar</string>
+    <string name="screen_settings">Configurações</string>
+    <string name="screen_archived">Arquivadas</string>
+
+    <!-- Home -->
+    <string name="home_filter_all">Tudo</string>
+    <string name="home_filter_personal">Pessoal</string>
+    <string name="home_filter_transactions">Transações</string>
+    <string name="home_filter_otp">OTP</string>
+    <string name="home_empty_title">Nenhuma mensagem ainda</string>
+    <string name="home_search_placeholder">Pesquisar mensagens</string>
+    <string name="home_new_chat_label">Nova conversa</string>
+
+    <!-- Actions -->
+    <string name="action_search">Pesquisar</string>
+    <string name="action_new_message">Nova mensagem</string>
+    <string name="action_settings">Configurações</string>
+    <string name="action_menu">Menu</string>
+    <string name="action_back">Voltar</string>
+    <string name="action_close">Fechar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_undo">Desfazer</string>
+
+    <!-- Swipe actions -->
+    <string name="swipe_action_none">Nenhuma</string>
+    <string name="swipe_action_archive">Arquivar</string>
+    <string name="swipe_action_delete">Excluir</string>
+    <string name="swipe_action_toggle_read">Marcar como lida/não lida</string>
+    <string name="swipe_action_call">Ligar</string>
+
+    <!-- Settings -->
+    <string name="settings_section_appearance">Aparência</string>
+    <string name="settings_section_general">Geral</string>
+    <string name="settings_section_backup_sync">Backup e Sincronização</string>
+    <string name="settings_section_about">Sobre</string>
+
+    <string name="settings_theme_title">Tema</string>
+    <string name="settings_theme_summary">Tema %1$s · %2$s</string>
+    <string name="settings_text_size_title">Tamanho do texto</string>
+    <string name="settings_text_size_value">Médio</string>
+
+    <string name="theme_mode_system">Sistema</string>
+    <string name="theme_mode_light">Claro</string>
+    <string name="theme_mode_dark">Escuro</string>
+    <string name="theme_picker_mode_header">Modo de tema</string>
+    <string name="theme_picker_color_header">Cor de destaque</string>
+    <string name="theme_picker_color_default">Padrão</string>
+    <string name="theme_picker_color_custom">Personalizado</string>
+
+    <string name="settings_default_app_title">App SMS padrão</string>
+    <string name="settings_default_app_summary">Definir #Mensagens como seu app de SMS padrão</string>
+    <string name="settings_language_title">Idioma</string>
+    <string name="settings_notifications_title">Notificações</string>
+    <string name="settings_notifications_summary">Mostrar notificação para novas mensagens</string>
+    <string name="settings_delivery_reports_title">Relatórios de entrega</string>
+    <string name="settings_delivery_reports_summary">Receber notificação quando a mensagem for entregue</string>
+    <string name="settings_quick_reply_title">Resposta rápida</string>
+    <string name="settings_quick_reply_summary">Responder a partir da barra de notificações</string>
+
+    <string name="settings_swipe_actions_title">Ações de deslizar</string>
+    <string name="settings_swipe_actions_summary">%1$s · %2$s</string>
+
+    <string name="settings_auto_backup_title">Backup automático</string>
+    <string name="settings_auto_backup_summary">Fazer backup de mensagens automaticamente</string>
+    <string name="settings_backup_now_title">Fazer backup agora</string>
+    <string name="settings_last_backup_never">Último backup: Nunca</string>
+    <string name="settings_last_backup_at">Último backup: %1$s</string>
+    <string name="settings_restore_title">Restaurar</string>
+    <string name="settings_restore_summary">Restaurar a partir de um backup anterior</string>
+    <string name="settings_wifi_only_title">Apenas Wi-Fi</string>
+
+    <string name="settings_app_version_title">Versão do app</string>
+    <string name="settings_rate_app_title">Avaliar o app</string>
+    <string name="settings_privacy_policy_title">Política de privacidade</string>
+    <string name="settings_licenses_title">Licenças de código aberto</string>
+    <string name="settings_help_feedback_title">Ajuda e feedback</string>
+
+    <!-- Call end -->
+    <string name="call_end_unknown_caller">Desconhecido</string>
+    <string name="call_end_duration_label">Duração • %1$s</string>
+    <string name="call_end_call_back">Retornar chamada</string>
+    <string name="call_end_whatsapp">WhatsApp</string>
+    <string name="call_end_whatsapp_business">WhatsApp Business</string>
+    <string name="call_end_telegram">Telegram</string>
+    <string name="call_end_tab_list">Lista</string>
+    <string name="call_end_tab_archive">Arquivo</string>
+    <string name="call_end_tab_more">Mais</string>
+    <string name="call_end_list_empty">Nenhuma conversa recente</string>
+    <string name="call_end_archive_empty">Nenhuma conversa arquivada</string>
+    <string name="call_end_archive_empty_description">Arquive conversas para acessá-las a qualquer momento</string>
+    <string name="call_end_archive_button">Arquivo</string>
+    <string name="call_end_menu_contacts">Ver contatos</string>
+    <string name="call_end_menu_messages">Mensagens</string>
+    <string name="call_end_menu_schedule">Agendar mensagem</string>
+    <string name="call_end_menu_backup">Backup e restauração</string>
+</resources>

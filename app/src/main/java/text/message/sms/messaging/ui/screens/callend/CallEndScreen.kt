@@ -27,7 +27,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -41,18 +40,24 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import text.message.sms.messaging.R
+import text.message.sms.messaging.ads.CallEndAdState
+import text.message.sms.messaging.domain.model.CallDirection
+import text.message.sms.messaging.domain.model.CallOutcome
 import text.message.sms.messaging.domain.model.CallSession
 import text.message.sms.messaging.domain.model.Contact
 import text.message.sms.messaging.domain.model.Conversation
+import text.message.sms.messaging.domain.model.Recipient
 import text.message.sms.messaging.ui.components.ContactAvatar
 import text.message.sms.messaging.ui.components.sharpIconPainter
 import text.message.sms.messaging.ui.screens.conversationlist.ConversationRow
+import text.message.sms.messaging.ui.theme.AppTheme
 
 /**
  * The call-end screen: header for the call just finished, quick-launch tiles into third-party chat
@@ -75,8 +80,41 @@ fun CallEndScreen(
     val inboxConversations by viewModel.inboxConversations.collectAsStateWithLifecycle()
     val archivedConversations by viewModel.archivedConversations.collectAsStateWithLifecycle()
     val adState by viewModel.adState.collectAsStateWithLifecycle()
+
+    CallEndScreenContent(
+        contact = contact,
+        callSession = viewModel.callSession,
+        quickLaunchApps = viewModel.quickLaunchApps,
+        selectedTab = selectedTab,
+        inboxConversations = inboxConversations,
+        archivedConversations = archivedConversations,
+        adState = adState,
+        onTabSelected = viewModel::onTabSelected,
+        onConversationClick = onConversationClick,
+        onViewContactsClick = onViewContactsClick,
+        onMessagesClick = onMessagesClick,
+        onComingSoonClick = onComingSoonClick,
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun CallEndScreenContent(
+    contact: Contact?,
+    callSession: CallSession,
+    quickLaunchApps: QuickLaunchApps,
+    selectedTab: CallEndTab,
+    inboxConversations: List<Conversation>,
+    archivedConversations: List<Conversation>,
+    adState: CallEndAdState,
+    onTabSelected: (CallEndTab) -> Unit,
+    onConversationClick: (threadId: Long) -> Unit,
+    onViewContactsClick: () -> Unit,
+    onMessagesClick: () -> Unit,
+    onComingSoonClick: (featureTitle: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
-    val callSession = viewModel.callSession
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -94,17 +132,17 @@ fun CallEndScreen(
             )
 
             val phoneNumber = callSession.phoneNumber
-            if (phoneNumber != null && viewModel.quickLaunchApps.any) {
+            if (phoneNumber != null && quickLaunchApps.any) {
                 QuickLaunchRow(
                     phoneNumber = phoneNumber,
-                    apps = viewModel.quickLaunchApps,
+                    apps = quickLaunchApps,
                     modifier = Modifier.padding(top = 20.dp),
                 )
             }
 
             CallEndTabBar(
                 selectedTab = selectedTab,
-                onTabSelected = viewModel::onTabSelected,
+                onTabSelected = onTabSelected,
                 modifier = Modifier.padding(top = 20.dp),
             )
 
@@ -183,12 +221,13 @@ private fun CallEndHeader(
 
         if (callSession.phoneNumber != null) {
             Spacer(modifier = Modifier.width(12.dp))
-            IconButton(
-                onClick = onCallBackClick,
+            Box(
                 modifier = Modifier
                     .size(42.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
+                    .background(MaterialTheme.colorScheme.primary)
+                    .clickable(onClick = onCallBackClick),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     painter = sharpIconPainter(R.drawable.ic_call_back),
@@ -241,7 +280,7 @@ private fun QuickLaunchRow(phoneNumber: String, apps: QuickLaunchApps, modifier:
 private fun QuickLaunchTile(iconRes: Int, contentDescription: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .height(50.dp)
+            .height(52.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(onClick = onClick),
@@ -260,7 +299,7 @@ private fun CallEndTabBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = 24.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
         CallEndTabItem(
@@ -303,26 +342,31 @@ private fun RowScope.CallEndTabItem(
     Column(
         modifier = Modifier
             .weight(1f)
-            .clickable { onClick(tab) },
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick(tab) }
+            .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (isSelected) {
-            // The active asset bakes in its own fixed blue-badge/white-glyph design, unlike the
-            // inactive asset below -- tinting it would flatten that two-tone badge to a single color.
-            Image(
-                painter = sharpIconPainter(activeIconRes),
-                contentDescription = contentDescription,
-                modifier = Modifier.size(24.dp),
-            )
-        } else {
-            Icon(
-                painter = sharpIconPainter(iconRes),
-                contentDescription = contentDescription,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp),
-            )
+        Box(
+            modifier = Modifier.size(36.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (isSelected) {
+                Image(
+                    painter = sharpIconPainter(activeIconRes),
+                    contentDescription = contentDescription,
+                    modifier = Modifier.size(32.dp),
+                )
+            } else {
+                Icon(
+                    painter = sharpIconPainter(iconRes),
+                    contentDescription = contentDescription,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Box(
             modifier = Modifier
                 .width(20.dp)
@@ -493,5 +537,68 @@ private fun launchExternal(context: Context, intent: Intent) {
         context.startActivity(intent)
     } catch (e: ActivityNotFoundException) {
         Log.w("CallEndScreen", "No activity to handle ${intent.action} ${intent.data}", e)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+internal fun CallEndScreenPreview() {
+    AppTheme {
+        CallEndScreenContent(
+            contact = Contact(
+                id = 1L,
+                lookupKey = "key_1",
+                displayName = "Jane Doe",
+                photoUri = null,
+                numbers = listOf("+15551234567"),
+            ),
+            callSession = CallSession(
+                phoneNumber = "+15551234567",
+                direction = CallDirection.INCOMING,
+                startedAt = 0L,
+                endedAt = 125000L,
+                durationMillis = 125000L,
+                outcome = CallOutcome.ANSWERED,
+            ),
+            quickLaunchApps = QuickLaunchApps(
+                whatsApp = true,
+                whatsAppBusiness = true,
+                telegram = true,
+            ),
+            selectedTab = CallEndTab.LIST,
+            inboxConversations = listOf(
+                Conversation(
+                    id = 1L,
+                    threadId = 1L,
+                    recipients = listOf(
+                        Recipient(
+                            id = 1L,
+                            address = "+15551234567",
+                            contact = Contact(
+                                id = 1L,
+                                lookupKey = "key_1",
+                                displayName = "Jane Doe",
+                                photoUri = null,
+                            ),
+                        )
+                    ),
+                    snippet = "Hey! Talk to you soon.",
+                    lastMessageAtMillis = System.currentTimeMillis(),
+                    unreadCount = 0,
+                    isArchived = false,
+                    isPinned = false,
+                    isBlocked = false,
+                    isMuted = false,
+                    draft = null,
+                )
+            ),
+            archivedConversations = emptyList(),
+            adState = CallEndAdState.Loading,
+            onTabSelected = {},
+            onConversationClick = {},
+            onViewContactsClick = {},
+            onMessagesClick = {},
+            onComingSoonClick = {},
+        )
     }
 }

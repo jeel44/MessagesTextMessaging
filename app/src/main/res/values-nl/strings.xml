@@ -1,0 +1,353 @@
+<resources>
+    <string name="app_name">#Berichten</string>
+
+    <!-- Onboarding -->
+    <string name="splash_tagline">Eenvoudig. Snel. Veilig.</string>
+
+    <!-- Welcome -->
+    <string name="welcome_eyebrow">Welkom bij</string>
+    <string name="welcome_tagline">Snel. Makkelijk. Betrouwbaar.</string>
+    <string name="welcome_subtitle">Blijf in verbinding met vloeiende berichten direct na uw gesprek.</string>
+    <string name="welcome_privacy_prefix">Als u doorgaat, gaat u akkoord met onze</string>
+    <string name="welcome_privacy_suffix">.</string>
+    <string name="welcome_headline">Welkom bij #Berichten</string>
+    <string name="welcome_feature_sms_title">Snel en betrouwbaar sms\'en</string>
+    <string name="welcome_feature_sms_desc">Verzend en ontvang snel berichten met een soepele sms-ervaring.</string>
+    <string name="welcome_feature_notifications_title">Slimme meldingen</string>
+    <string name="welcome_feature_notifications_desc">Stay updated with important messages and custom notifications.</string>
+    <string name="welcome_feature_privacy_title">Privé en veilig</string>
+    <string name="welcome_feature_privacy_desc">Uw gesprekken blijven beschermd en alleen voor u zichtbaar.</string>
+    <string name="welcome_feature_search_title">Zoek en organiseer</string>
+    <string name="welcome_feature_search_desc">Vind berichten sneller en houd uw inbox netjes en eenvoudig.</string>
+    <string name="welcome_consent_prefix">Help ons verbeteren met anonieme inzichten. Uw gegevens blijven privé en veilig. Ik ga akkoord met de</string>
+    <string name="welcome_consent_terms">Algemene voorwaarden</string>
+    <string name="welcome_consent_and">En</string>
+    <string name="welcome_consent_privacy">Privacybeleid</string>
+    <string name="welcome_consent_suffix">.</string>
+    <string name="welcome_continue">Doorgaan</string>
+    <string name="welcome_permission_denied_message">Voor het verzenden en ontvangen van sms-berichten zijn sms-machtigingen vereist. Tik op Doorgaan om het opnieuw te proberen.</string>
+    <string name="welcome_permission_settings_message">Sms-machtigingen zijn vereist om #Messages te laten werken. Schakel ze in Instellingen in om door te gaan.</string>
+    <string name="welcome_open_settings">Instellingen openen</string>
+
+    <!-- Set default SMS -->
+    <string name="set_default_sms_placeholder_label">Lottie-animatie hier</string>
+    <string name="set_default_sms_body">Stel #Messages in als uw standaard sms-app om te beginnen met het verzenden en ontvangen van sms-berichten.</string>
+    <string name="set_default_sms_button">Instellen als standaard</string>
+    <string name="set_default_sms_hint">#Berichten moet je standaard sms-app zijn om sms-berichten te kunnen verzenden en ontvangen. Tik op de knop wanneer u er klaar voor bent.</string>
+
+    <string name="overlay_permission_title">Schakel oproepwaarschuwingen in</string>
+    <string name="overlay_permission_body">Zie wie er belt en antwoord direct, zelfs als uw scherm is vergrendeld.</string>
+    <string name="overlay_permission_button">Inschakelen en doorgaan</string>
+    <string name="overlay_permission_reassurance">Je kunt dit op elk gewenst moment uitschakelen via Instellingen.</string>
+    <string name="overlay_permission_mock_row_allow">Weergave boven andere apps toestaan ​​en bovenaan verschijnen</string>
+    <string name="overlay_permission_mock_row_app">Berichten</string>
+
+    <string name="battery_optimization_title">Houd oproepwaarschuwingen betrouwbaar</string>
+    <string name="battery_optimization_body">Zonder dit kan Android #Berichten op de achtergrond pauzeren en het moment missen waarop een gesprek wordt beëindigd.</string>
+    <string name="battery_optimization_button">Toestaan ​​en doorgaan</string>
+    <string name="battery_optimization_reassurance">Je kunt dit op elk gewenst moment uitschakelen via Instellingen.</string>
+
+    <!-- Language -->
+    <string name="language_title">Selecteer app-taal</string>
+    <string name="language_continue">Doorgaan</string>
+
+    <!-- Screen titles -->
+    <string name="screen_conversations">#Berichten</string>
+    <string name="screen_new_message">Nieuw bericht</string>
+    <string name="screen_search">Zoeken</string>
+    <string name="screen_settings">Instellingen</string>
+    <string name="screen_archived">Gearchiveerd</string>
+
+    <!-- Home (conversation list) -->
+    <string name="home_filter_all">Alles</string>
+    <string name="home_filter_personal">Persoonlijk</string>
+    <string name="home_filter_transactions">Transacties</string>
+    <string name="home_filter_otp">OTP</string>
+    <string name="home_empty_title">Nog geen berichten</string>
+    <string name="home_empty_message">Start een gesprek en het zal hier verschijnen.</string>
+    <string name="home_not_default_title">Stel #Berichten in als uw standaard sms-app</string>
+    <string name="home_not_default_message">#Messages moet uw standaard sms-app zijn om uw gesprekken hier te kunnen synchroniseren en weergeven.</string>
+    <string name="home_sync_failed_message">Sommige berichten konden niet worden geladen</string>
+    <string name="home_sync_retry">Opnieuw proberen</string>
+    <string name="home_archived_row_title">Gearchiveerd</string>
+    <string name="home_archived_snackbar">Gearchiveerd</string>
+    <string name="home_search_placeholder">Berichten zoeken</string>
+    <string name="home_new_chat_label">Nieuwe chat</string>
+    <string name="home_otp_copy_label">Kopieer OTP</string>
+    <string name="home_otp_copied_toast">Code copied</string>
+    <string name="home_otp_copy_content_description">Kopieer de verificatiecode</string>
+    <string name="home_deleted_snackbar">Verwijderd</string>
+
+    <!-- Home multi-select -->
+    <string name="home_selection_close">Sluit de selectie af</string>
+    <string name="home_selection_count_format">%1$d/%2$d</string>
+    <string name="home_selection_archive">Archief</string>
+    <string name="home_selection_delete">Verwijderen</string>
+    <string name="home_selection_more">More options</string>
+    <string name="home_selection_select_all">Selecteer alles</string>
+    <string name="home_selection_mark_read">Markeer als gelezen</string>
+    <string name="home_selection_mark_unread">Markeer als ongelezen</string>
+    <string name="home_selection_pin">Pin</string>
+    <string name="home_selection_unpin">Losmaken</string>
+    <string name="home_pinned_content_description">Vastgezet</string>
+    <string name="home_selection_block">Blok</string>
+    <string name="home_selection_delete_confirm_message">Hierdoor worden alle berichten daarin verwijderd. Dit kan niet ongedaan worden gemaakt.</string>
+    <string name="home_selection_block_confirm_message">Je ontvangt geen berichten of oproepen van deze afzenders. Je kunt ze later bij elk gesprek deblokkeren.</string>
+
+    <!-- Archived -->
+    <string name="archived_unarchive">Uit het archief halen</string>
+    <string name="archived_empty_title">Geen gearchiveerde gesprekken</string>
+    <string name="archived_empty_message">Conversations you archive show up here.</string>
+
+    <!-- Actions -->
+    <string name="action_search">Zoekopdracht</string>
+    <string name="action_new_message">Nieuw bericht</string>
+    <string name="action_settings">Instellingen</string>
+    <string name="action_menu">Menu</string>
+    <string name="action_back">Rug</string>
+    <string name="action_close">Dichtbij</string>
+    <string name="action_cancel">Annuleren</string>
+    <string name="action_undo">Ongedaan maken</string>
+
+    <!-- Swipe actions (conversation list + Settings picker) -->
+    <string name="swipe_action_none">Geen</string>
+    <string name="swipe_action_archive">Archief</string>
+    <string name="swipe_action_delete">Delete</string>
+    <string name="swipe_action_toggle_read">Markeer gelezen/ongelezen</string>
+    <string name="swipe_action_call">Call</string>
+
+    <!-- Chat -->
+    <string name="chat_call">Telefoongesprek</string>
+    <string name="chat_more_options">Meer opties</string>
+    <string name="chat_composer_hint">Schrijf een bericht...</string>
+    <string name="chat_send">Versturen</string>
+    <string name="chat_add_attachment">Bijlage toevoegen</string>
+    <string name="chat_schedule_button_description">Bericht plannen</string>
+    <string name="chat_schedule_tooltip">Tik om uw bericht te plannen</string>
+    <string name="chat_remove_attachment">Bijlage verwijderen</string>
+    <string name="chat_status_sending">Verzenden…</string>
+    <string name="chat_status_sent">Verstuurd</string>
+    <string name="chat_status_delivered">Afgeleverd</string>
+    <string name="chat_status_failed">Mislukt</string>
+    <string name="chat_status_failed_retry">Mislukt. Tik om het opnieuw te proberen</string>
+    <string name="chat_conversation_info">Gespreksinformatie</string>
+    <string name="chat_topbar_pin">Gesprek vastzetten</string>
+    <string name="chat_topbar_unpin">Gesprek losmaken</string>
+    <string name="chat_topbar_block">Bloknummer</string>
+    <string name="chat_topbar_unblock">Nummer deblokkeren</string>
+    <string name="chat_topbar_archive">Archief</string>
+    <string name="chat_topbar_unarchive">Uit het archief halen</string>
+    <string name="chat_topbar_block_confirm_title">Dit gesprek blokkeren?</string>
+    <string name="chat_topbar_block_confirm_message">Je ontvangt geen berichten of oproepen van dit nummer. Je kunt de blokkering later hier vandaan deblokkeren.</string>
+    <string name="chat_attachment_sheet_title">Voeg toe aan uw bericht</string>
+    <string name="chat_attachment_gallery">Galerij</string>
+    <string name="chat_attachment_camera">Camera</string>
+    <string name="chat_attachment_files">Bestanden</string>
+    <string name="chat_attachment_location">Locatie</string>
+    <string name="chat_attachment_contact">Contact</string>
+    <string name="chat_attachment_schedule">Schema</string>
+    <string name="chat_attachment_coming_soon">Coming soon</string>
+    <string name="chat_media_viewer_title">Foto</string>
+    <string name="chat_security_notice">Deze sms is 100% veilig. #Messages verzamelt nooit gegevens zonder voorafgaande toestemming. Alles wordt verwerkt en opgeslagen op je telefoon.</string>
+    <string name="chat_cant_reply_short_code">Kan niet reageren op deze korte code</string>
+    <string name="chat_learn_more">Meer informatie</string>
+    <string name="chat_learn_more_dialog_message">U kunt geen berichten van zakelijke afzenders en shortcodes beantwoorden.</string>
+    <string name="chat_learn_more_ok">OK</string>
+    <string name="chat_otp_copy_label">Kopieer "%1$s"</string>
+    <string name="chat_otp_copy_content_description">Kopieer de verificatiecode</string>
+
+    <!-- Chat multi-select -->
+    <string name="chat_selection_close">Sluit de selectie af</string>
+    <string name="chat_selection_select_all">Selecteer alles</string>
+    <string name="chat_selection_copy">Kopiëren</string>
+    <string name="chat_selection_forward">Vooruit</string>
+    <string name="chat_selection_share">Deel</string>
+    <string name="chat_selection_delete">Verwijderen</string>
+    <string name="chat_selection_details">Berichtdetails</string>
+    <string name="chat_selection_more">Meer opties</string>
+    <string name="chat_selection_copied_toast">Copied</string>
+    <string name="chat_selection_forward_attachments_unsupported">Bijlagen kunnen nog niet worden doorgestuurd</string>
+    <string name="chat_selection_share_title">Deel bericht</string>
+    <string name="chat_selection_selected_indicator">Gekozen</string>
+    <string name="chat_selection_delete_confirm_message">Dit kan niet ongedaan worden gemaakt.</string>
+
+    <!-- Message details -->
+    <string name="message_details_title">Berichtdetails</string>
+    <string name="message_details_type">Type</string>
+    <string name="message_details_type_sms">Sms-bericht</string>
+    <string name="message_details_type_mms">Multimediabericht</string>
+    <string name="message_details_from">Van</string>
+    <string name="message_details_to">To</string>
+    <string name="message_details_time_sent">Verstuurd</string>
+    <string name="message_details_time_received">Ontvangen</string>
+    <string name="message_details_size">Maat</string>
+    <string name="message_details_size_characters">%1$d-tekens</string>
+    <string name="message_details_status">Status</string>
+    <string name="message_details_status_received">Ontvangen</string>
+    <string name="message_details_sim">SIM-kaart</string>
+    <string name="message_details_sim_value">SIM-%1$d</string>
+    <string name="message_details_ok">OK</string>
+
+    <!-- Dual-SIM send picker -->
+    <string name="chat_sim_picker_title">Verzenden met</string>
+    <string name="chat_sim_picker_row_title">SIM-%1$d-%2$s</string>
+    <string name="chat_sim_picker_remember">Onthoud voor dit gesprek</string>
+    <string name="chat_sim_fallback_notice">De simkaart van jouw voorkeur was niet beschikbaar, dus deze is verzonden met simkaart%1$d</string>
+    <string name="chat_sim_indicator_description">Verzenden met SIM%1$d. Tik om te wijzigen.</string>
+    <string name="chat_sim_indicator_description_unknown">Kies welke simkaart dit bericht verzendt</string>
+
+    <!-- Conversation info -->
+    <string name="conversation_info_title">Conversation info</string>
+    <string name="conversation_info_group_subtitle">%1$d-mensen</string>
+    <string name="conversation_info_notifications_title">Notifications</string>
+    <string name="conversation_info_notifications_muted_summary">Muted</string>
+    <string name="conversation_info_notifications_on_summary">On</string>
+    <string name="conversation_info_participants_header">%1$d participants</string>
+    <string name="conversation_info_view_contact_not_available">Geen contacten-app gevonden</string>
+    <string name="conversation_info_media_header">Gedeelde media</string>
+    <string name="conversation_info_media_empty">Nog geen foto\'s of video\'s</string>
+    <string name="conversation_info_video_content_description">Video</string>
+    <string name="conversation_info_pin">Gesprek vastzetten</string>
+    <string name="conversation_info_unpin">Gesprek losmaken</string>
+    <string name="conversation_info_archive">Archief</string>
+    <string name="conversation_info_unarchive">Uit het archief halen</string>
+    <string name="conversation_info_block">Block number</string>
+    <string name="conversation_info_unblock">Nummer deblokkeren</string>
+    <string name="conversation_info_delete">Gesprek verwijderen</string>
+    <string name="conversation_info_block_confirm_title">Dit gesprek blokkeren?</string>
+    <string name="conversation_info_block_confirm_message">Je ontvangt geen berichten of oproepen van dit nummer. Je kunt de blokkering later hier vandaan deblokkeren.</string>
+    <string name="conversation_info_delete_confirm_title">Dit gesprek verwijderen?</string>
+    <string name="conversation_info_delete_confirm_message">Hiermee wordt elk bericht in dit gesprek verwijderd. Dit kan niet ongedaan worden gemaakt.</string>
+
+    <!-- New message -->
+    <string name="new_message_to_label">Naar</string>
+    <string name="new_message_to_hint">Naam of telefoonnummer</string>
+    <string name="new_message_send_to">Verzenden naar "%1$s"</string>
+    <string name="new_message_contacts_permission_message">Geef contacten toegang via Instellingen om een ​​ontvanger op naam te kiezen.</string>
+    <string name="new_message_no_contacts">Geen contacten gevonden</string>
+
+    <!-- Search -->
+    <string name="search_hint">Zoek gesprekken</string>
+    <string name="search_clear">Duidelijke zoekopdracht</string>
+    <string name="search_filter_all">Alle</string>
+    <string name="search_filter_people">Mensen</string>
+    <string name="search_filter_messages">Messages</string>
+    <string name="search_recent_header">Recente zoekopdrachten</string>
+    <string name="search_section_people">Mensen</string>
+    <string name="search_section_messages">Berichten</string>
+    <string name="search_no_results">Geen resultaat voor \'%1$s\'</string>
+    <string name="search_empty_state">Your conversations will appear here</string>
+
+    <!-- Notification channels -->
+    <string name="channel_incoming_messages">Inkomende berichten</string>
+    <string name="channel_send_failures">Send failures</string>
+    <string name="channel_call_monitor">Oproepbewaking</string>
+
+    <!-- CallEndTriggerService notifications -->
+    <string name="call_monitor_notification_title">Luisteren naar einde gesprek</string>
+
+    <!-- Incoming-message notification -->
+    <string name="notification_mms_photo_placeholder">Foto</string>
+    <string name="notification_mms_placeholder">MMS</string>
+    <string name="notification_action_mark_read">Markeer als gelezen</string>
+    <string name="notification_action_reply">Antwoord</string>
+    <string name="notification_self_name">You</string>
+    <string name="notification_unknown_sender">Onbekend</string>
+
+    <!-- Settings -->
+    <string name="settings_section_appearance">Weergave</string>
+    <string name="settings_section_general">Algemeen</string>
+    <string name="settings_section_backup_sync">Back-up en synchronisatie</string>
+    <string name="settings_section_about">Over</string>
+
+    <string name="settings_theme_title">Thema</string>
+    <string name="settings_theme_summary">%1$s theme · %2$s</string>
+    <string name="settings_text_size_title">Tekstgrootte</string>
+    <string name="settings_text_size_value">Medium</string>
+
+    <!-- Theme picker -->
+    <string name="theme_mode_system">Systeem</string>
+    <string name="theme_mode_light">Licht</string>
+    <string name="theme_mode_dark">Dark</string>
+    <string name="theme_picker_mode_header">Thema-modus</string>
+    <string name="theme_picker_color_header">Accentkleur</string>
+    <string name="theme_picker_color_default">Standaard</string>
+    <string name="theme_picker_color_custom">Aangepast</string>
+    <string name="theme_picker_default_swatch_description">Use the default color</string>
+    <string name="theme_picker_custom_swatch_description">Kies een aangepaste kleur</string>
+    <string name="theme_picker_custom_color_title">Aangepaste kleur</string>
+    <string name="action_done">Klaar</string>
+    <string name="action_select">Selecteer</string>
+
+    <string name="settings_default_app_title">Standaard sms-app</string>
+    <string name="settings_default_app_summary">Stel #Berichten in als uw standaard sms-app</string>
+    <string name="settings_language_title">Taal</string>
+    <string name="settings_notifications_title">Meldingen</string>
+    <string name="settings_notifications_summary">Toon een melding voor nieuwe berichten</string>
+    <string name="settings_delivery_reports_title">Delivery reports</string>
+    <string name="settings_delivery_reports_summary">Ontvang een melding wanneer een bericht is afgeleverd</string>
+    <string name="settings_quick_reply_title">Snel antwoord</string>
+    <string name="settings_quick_reply_summary">Beantwoord berichten vanuit het meldingenpaneel</string>
+
+    <string name="settings_swipe_actions_title">Veeg acties</string>
+    <string name="settings_swipe_actions_summary">%1$s·%2$s</string>
+    <string name="settings_swipe_right_header">Veeg naar rechts</string>
+    <string name="settings_swipe_left_header">Veeg naar links</string>
+
+    <!-- Dual-SIM send preference (dual-SIM devices only, entirely hidden otherwise) -->
+    <string name="settings_sim_for_sending_title">Simkaart voor het verzenden van berichten</string>
+    <string name="settings_sim_slot_summary">SIM-%1$d-%2$s</string>
+    <string name="settings_sim_ask_every_time">Vraag het elke keer</string>
+    <string name="settings_sim_permission_needed">Toestemming nodig</string>
+
+    <string name="settings_auto_backup_title">Auto backup</string>
+    <string name="settings_auto_backup_summary">Back up messages automatically</string>
+    <string name="settings_backup_now_title">Maak nu een back-up</string>
+    <string name="settings_last_backup_never">Last backup: Never</string>
+    <string name="settings_last_backup_at">Laatste back-up:%1$s</string>
+    <string name="settings_restore_title">Restore</string>
+    <string name="settings_restore_summary">Herstellen vanaf een eerdere back-up</string>
+    <string name="settings_wifi_only_title">Wi-Fi only</string>
+
+    <string name="settings_backup_exporting">Een back-up maken van berichten…</string>
+    <string name="settings_backup_importing">Berichten herstellen…</string>
+    <string name="settings_backup_export_success">Backed up %1$d message(s)</string>
+    <string name="settings_backup_import_success">Herstelde%1$d-bericht(en)</string>
+    <string name="settings_backup_not_default_app">Stel #Messages in als uw standaard sms-app voordat u een back-up herstelt</string>
+    <string name="settings_backup_destination_unavailable">Kan dat bestand niet openen</string>
+    <string name="settings_backup_error">Backup failed: %1$s</string>
+
+    <string name="settings_app_version_title">App-versie</string>
+    <string name="settings_rate_app_title">Rate the app</string>
+    <string name="settings_privacy_policy_title">Privacybeleid</string>
+    <string name="settings_licenses_title">Open source licenses</string>
+    <string name="settings_help_feedback_title">Hulp en feedback</string>
+
+    <!-- Contacts list (call-end screen's "View Contacts") -->
+    <string name="screen_contacts">Contacten</string>
+    <string name="contacts_list_empty">No contacts found</string>
+
+    <!-- Call-end screen -->
+    <string name="call_end_unknown_caller">Onbekend</string>
+    <string name="call_end_duration_label">Duur • %1$s</string>
+    <string name="call_end_call_back">Terugbellen</string>
+    <string name="call_end_whatsapp">WhatsApp</string>
+    <string name="call_end_whatsapp_business">WhatsApp Zakelijk</string>
+    <string name="call_end_telegram">Telegram</string>
+    <string name="call_end_tab_list">Lijst</string>
+    <string name="call_end_tab_archive">Archief</string>
+    <string name="call_end_tab_more">Meer</string>
+    <string name="call_end_list_empty">No recent conversations</string>
+    <string name="call_end_archive_empty">Geen gearchiveerde gesprekken</string>
+    <string name="call_end_archive_empty_description">Archiveer gesprekken en open ze op elk gewenst moment</string>
+    <string name="call_end_archive_button">Archief</string>
+    <string name="call_end_menu_contacts">View Contacts</string>
+    <string name="call_end_menu_messages">Berichten</string>
+    <string name="call_end_menu_schedule">Schedule message</string>
+    <string name="call_end_menu_backup">Back-up en herstel</string>
+    <string name="call_end_ad_label">Ad</string>
+
+    <!-- ComingSoonScreen stub -->
+    <string name="coming_soon_title">%1$s is coming soon</string>
+    <string name="coming_soon_body">We werken nog steeds aan deze functie. Kom later terug in een toekomstige update.</string>
+</resources>

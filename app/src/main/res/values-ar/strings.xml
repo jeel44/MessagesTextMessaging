@@ -1,0 +1,353 @@
+<resources>
+    <string name="app_name">#الرسائل</string>
+
+    <!-- Onboarding -->
+    <string name="splash_tagline">بسيط. سريع. آمن.</string>
+
+    <!-- Welcome -->
+    <string name="welcome_eyebrow">مرحباً بك في</string>
+    <string name="welcome_tagline">سريع. سهل. موثوق.</string>
+    <string name="welcome_subtitle">ابقَ على اتصال مع مراسلة سلسة مباشرة بعد انتهاء مكالمتك.</string>
+    <string name="welcome_privacy_prefix">بالمتابعة، فإنك توافق على </string>
+    <string name="welcome_privacy_suffix">.</string>
+    <string name="welcome_headline">مرحباً بك في #الرسائل</string>
+    <string name="welcome_feature_sms_title">رسائل قصيرة سريعة وموثوقة</string>
+    <string name="welcome_feature_sms_desc">أرسل واستقبل الرسائل بسرعة مع تجربة مراسلة سلسة.</string>
+    <string name="welcome_feature_notifications_title">إشعارات ذكية</string>
+    <string name="welcome_feature_notifications_desc">ابقَ على اطلاع بالرسائل المهمة والإشعارات المخصصة.</string>
+    <string name="welcome_feature_privacy_title">خاص وآمن</string>
+    <string name="welcome_feature_privacy_desc">تبقى محادثاتك محمية ومراة لك فقط.</string>
+    <string name="welcome_feature_search_title">البحث والتنظيم</string>
+    <string name="welcome_feature_search_desc">اعثر على الرسائل بشكل أسرع وحافظ على ترتيب صندوق الوارد.</string>
+    <string name="welcome_consent_prefix">ساعدنا في التحسين من خلال رؤى مجهولة. أوافق على </string>
+    <string name="welcome_consent_terms">الشروط والأحكام</string>
+    <string name="welcome_consent_and"> و </string>
+    <string name="welcome_consent_privacy">سياسة الخصوصية</string>
+    <string name="welcome_consent_suffix">.</string>
+    <string name="welcome_continue">متابعة</string>
+    <string name="welcome_permission_denied_message">تتطلب الرسائل أذونات لإرسال واستقبال النصوص. اضغط على متابعة للمحاولة مرة أخرى.</string>
+    <string name="welcome_permission_settings_message">الأذونات مطلوبة للعمل. قم بتمكينها في الإعدادات للمتابعة.</string>
+    <string name="welcome_open_settings">فتح الإعدادات</string>
+
+    <!-- Set default SMS -->
+    <string name="set_default_sms_placeholder_label">لوتي الرسوم المتحركة هنا</string>
+    <string name="set_default_sms_body">قم بتعيين #Messages كتطبيق الرسائل القصيرة الافتراضي لبدء إرسال واستقبال الرسائل النصية.</string>
+    <string name="set_default_sms_button">تعيين كافتراضي</string>
+    <string name="set_default_sms_hint">يجب أن يكون #Messages هو تطبيق الرسائل القصيرة الافتراضي لديك لإرسال واستقبال النصوص. اضغط على الزر عندما تكون مستعدًا.</string>
+
+    <string name="overlay_permission_title">تمكين تنبيهات المكالمات</string>
+    <string name="overlay_permission_body">تعرف على المتصل وقم بالرد عليه على الفور، حتى عندما تكون شاشتك مقفلة.</string>
+    <string name="overlay_permission_button">تمكين ومتابعة</string>
+    <string name="overlay_permission_reassurance">يمكنك إيقاف هذا في أي وقت في الإعدادات.</string>
+    <string name="overlay_permission_mock_row_allow">السماح بالعرض على التطبيقات الأخرى والظهور في الأعلى</string>
+    <string name="overlay_permission_mock_row_app">رسائل</string>
+
+    <string name="battery_optimization_title">حافظ على موثوقية تنبيهات المكالمات</string>
+    <string name="battery_optimization_body">وبدون ذلك، يمكن لنظام Android إيقاف #Messages مؤقتًا في الخلفية وتفويت لحظة انتهاء المكالمة.</string>
+    <string name="battery_optimization_button">السماح والمتابعة</string>
+    <string name="battery_optimization_reassurance">يمكنك إيقاف هذا في أي وقت في الإعدادات.</string>
+
+    <!-- Language -->
+    <string name="language_title">اختر لغة التطبيق</string>
+    <string name="language_continue">متابعة</string>
+
+    <!-- Screen titles -->
+    <string name="screen_conversations">#الرسائل</string>
+    <string name="screen_new_message">رسالة جديدة</string>
+    <string name="screen_search">بحث</string>
+    <string name="screen_settings">الإعدادات</string>
+    <string name="screen_archived">الأرشيف</string>
+
+    <!-- Home (conversation list) -->
+    <string name="home_filter_all">الكل</string>
+    <string name="home_filter_personal">شخصي</string>
+    <string name="home_filter_transactions">معاملات</string>
+    <string name="home_filter_otp">رمز التحقق</string>
+    <string name="home_empty_title">لا توجد رسائل بعد</string>
+    <string name="home_empty_message">ابدأ محادثة وستظهر هنا.</string>
+    <string name="home_not_default_title">قم بتعيين #Messages كتطبيق الرسائل القصيرة الافتراضي لديك</string>
+    <string name="home_not_default_message">يجب أن يكون #Messages هو تطبيق الرسائل القصيرة الافتراضي لديك لمزامنة محادثاتك وإظهارها هنا.</string>
+    <string name="home_sync_failed_message">تعذر تحميل بعض الرسائل</string>
+    <string name="home_sync_retry">أعد المحاولة</string>
+    <string name="home_archived_row_title">مؤرشف</string>
+    <string name="home_archived_snackbar">مؤرشف</string>
+    <string name="home_search_placeholder">البحث في الرسائل</string>
+    <string name="home_new_chat_label">دردشة جديدة</string>
+    <string name="home_otp_copy_label">انسخ كلمة مرور لمرة واحدة</string>
+    <string name="home_otp_copied_toast">تم نسخ الكود</string>
+    <string name="home_otp_copy_content_description">انسخ رمز التحقق</string>
+    <string name="home_deleted_snackbar">تم الحذف</string>
+
+    <!-- Home multi-select -->
+    <string name="home_selection_close">الخروج من التحديد</string>
+    <string name="home_selection_count_format">%1$d/%2$d</string>
+    <string name="home_selection_archive">أرشيف</string>
+    <string name="home_selection_delete">يمسح</string>
+    <string name="home_selection_more">المزيد من الخيارات</string>
+    <string name="home_selection_select_all">حدد الكل</string>
+    <string name="home_selection_mark_read">وضع علامة كمقروءة</string>
+    <string name="home_selection_mark_unread">وضع علامة كغير مقروءة</string>
+    <string name="home_selection_pin">دبوس</string>
+    <string name="home_selection_unpin">إزالة التثبيت</string>
+    <string name="home_pinned_content_description">مثبت</string>
+    <string name="home_selection_block">حاجز</string>
+    <string name="home_selection_delete_confirm_message">سيؤدي هذا إلى حذف جميع الرسائل الموجودة فيها. لا يمكن التراجع عن هذا.</string>
+    <string name="home_selection_block_confirm_message">لن تتلقى رسائل أو مكالمات من هؤلاء المرسلين. ويمكنك إلغاء حظرهم لاحقًا من كل محادثة.</string>
+
+    <!-- Archived -->
+    <string name="archived_unarchive">إلغاء الأرشفة</string>
+    <string name="archived_empty_title">لا توجد محادثات مؤرشفة</string>
+    <string name="archived_empty_message">تظهر هنا المحادثات التي قمت بأرشفتها.</string>
+
+    <!-- Actions -->
+    <string name="action_search">يبحث</string>
+    <string name="action_new_message">رسالة جديدة</string>
+    <string name="action_settings">إعدادات</string>
+    <string name="action_menu">قائمة طعام</string>
+    <string name="action_back">خلف</string>
+    <string name="action_close">يغلق</string>
+    <string name="action_cancel">يلغي</string>
+    <string name="action_undo">تراجع</string>
+
+    <!-- Swipe actions (conversation list + Settings picker) -->
+    <string name="swipe_action_none">لا شيء</string>
+    <string name="swipe_action_archive">أرشيف</string>
+    <string name="swipe_action_delete">حذف</string>
+    <string name="swipe_action_toggle_read">تحديد كمقروء/غير مقروء</string>
+    <string name="swipe_action_call">اتصال</string>
+
+    <!-- Chat -->
+    <string name="chat_call">يتصل</string>
+    <string name="chat_more_options">المزيد من الخيارات</string>
+    <string name="chat_composer_hint">أكتب رسالة...</string>
+    <string name="chat_send">يرسل</string>
+    <string name="chat_add_attachment">إضافة مرفق</string>
+    <string name="chat_schedule_button_description">جدولة الرسالة</string>
+    <string name="chat_schedule_tooltip">انقر لجدولة رسالتك</string>
+    <string name="chat_remove_attachment">إزالة المرفق</string>
+    <string name="chat_status_sending">إرسال…</string>
+    <string name="chat_status_sent">مرسل</string>
+    <string name="chat_status_delivered">تم التوصيل</string>
+    <string name="chat_status_failed">فشل</string>
+    <string name="chat_status_failed_retry">فشل. انقر لإعادة المحاولة</string>
+    <string name="chat_conversation_info">معلومات المحادثة</string>
+    <string name="chat_topbar_pin">تثبيت المحادثة</string>
+    <string name="chat_topbar_unpin">إزالة تثبيت المحادثة</string>
+    <string name="chat_topbar_block">رقم الكتلة</string>
+    <string name="chat_topbar_unblock">إلغاء حظر الرقم</string>
+    <string name="chat_topbar_archive">أرشيف</string>
+    <string name="chat_topbar_unarchive">إلغاء الأرشفة</string>
+    <string name="chat_topbar_block_confirm_title">هل تريد حظر هذه المحادثة؟</string>
+    <string name="chat_topbar_block_confirm_message">لن تتلقى رسائل أو مكالمات من هذا الرقم. ويمكنك إلغاء حظره لاحقًا من هنا.</string>
+    <string name="chat_attachment_sheet_title">أضف إلى رسالتك</string>
+    <string name="chat_attachment_gallery">معرض</string>
+    <string name="chat_attachment_camera">آلة تصوير</string>
+    <string name="chat_attachment_files">ملفات</string>
+    <string name="chat_attachment_location">موقع</string>
+    <string name="chat_attachment_contact">اتصال</string>
+    <string name="chat_attachment_schedule">جدول</string>
+    <string name="chat_attachment_coming_soon">قريباً</string>
+    <string name="chat_media_viewer_title">صورة</string>
+    <string name="chat_security_notice">هذه الرسالة النصية القصيرة آمنة بنسبة 100%. #الرسائل لا تجمع البيانات أبدًا دون موافقة مسبقة. تتم معالجة كل شيء وتخزينه على هاتفك.</string>
+    <string name="chat_cant_reply_short_code">لا يمكن الرد على هذا الرمز القصير</string>
+    <string name="chat_learn_more">يتعلم أكثر</string>
+    <string name="chat_learn_more_dialog_message">لا يمكنك الرد على الرسائل الواردة من مرسلي الأعمال والرموز القصيرة.</string>
+    <string name="chat_learn_more_ok">نعم</string>
+    <string name="chat_otp_copy_label">انسخ "%1$s"</string>
+    <string name="chat_otp_copy_content_description">انسخ رمز التحقق</string>
+
+    <!-- Chat multi-select -->
+    <string name="chat_selection_close">الخروج من التحديد</string>
+    <string name="chat_selection_select_all">حدد الكل</string>
+    <string name="chat_selection_copy">ينسخ</string>
+    <string name="chat_selection_forward">إلى الأمام</string>
+    <string name="chat_selection_share">يشارك</string>
+    <string name="chat_selection_delete">يمسح</string>
+    <string name="chat_selection_details">تفاصيل الرسالة</string>
+    <string name="chat_selection_more">المزيد من الخيارات</string>
+    <string name="chat_selection_copied_toast">منقول</string>
+    <string name="chat_selection_forward_attachments_unsupported">لا يمكن إعادة توجيه المرفقات بعد</string>
+    <string name="chat_selection_share_title">مشاركة الرسالة</string>
+    <string name="chat_selection_selected_indicator">مختارة</string>
+    <string name="chat_selection_delete_confirm_message">لا يمكن التراجع عن هذا.</string>
+
+    <!-- Message details -->
+    <string name="message_details_title">تفاصيل الرسالة</string>
+    <string name="message_details_type">يكتب</string>
+    <string name="message_details_type_sms">رسالة نصية</string>
+    <string name="message_details_type_mms">رسالة الوسائط المتعددة</string>
+    <string name="message_details_from">من</string>
+    <string name="message_details_to">ل</string>
+    <string name="message_details_time_sent">مرسل</string>
+    <string name="message_details_time_received">تلقى</string>
+    <string name="message_details_size">مقاس</string>
+    <string name="message_details_size_characters">أحرف%1$d</string>
+    <string name="message_details_status">حالة</string>
+    <string name="message_details_status_received">تلقى</string>
+    <string name="message_details_sim">سيم</string>
+    <string name="message_details_sim_value">شريحة الاتصال%1$d</string>
+    <string name="message_details_ok">نعم</string>
+
+    <!-- Dual-SIM send picker -->
+    <string name="chat_sim_picker_title">أرسل مع</string>
+    <string name="chat_sim_picker_row_title">شريحة SIM%1$d-%2$s</string>
+    <string name="chat_sim_picker_remember">تذكر لهذا الحديث</string>
+    <string name="chat_sim_fallback_notice">لم تكن بطاقة SIM المفضلة لديك متاحة، لذلك تم إرسالها مع بطاقة SIM%1$dبدلاً من ذلك</string>
+    <string name="chat_sim_indicator_description">الإرسال باستخدام بطاقة SIM%1$d. انقر للتغيير.</string>
+    <string name="chat_sim_indicator_description_unknown">اختر بطاقة SIM التي سترسل هذه الرسالة</string>
+
+    <!-- Conversation info -->
+    <string name="conversation_info_title">معلومات المحادثة</string>
+    <string name="conversation_info_group_subtitle">الناس%1$d</string>
+    <string name="conversation_info_notifications_title">إشعارات</string>
+    <string name="conversation_info_notifications_muted_summary">كتم الصوت</string>
+    <string name="conversation_info_notifications_on_summary">على</string>
+    <string name="conversation_info_participants_header">المشاركون%1$d</string>
+    <string name="conversation_info_view_contact_not_available">لم يتم العثور على تطبيق جهات الاتصال</string>
+    <string name="conversation_info_media_header">الوسائط المشتركة</string>
+    <string name="conversation_info_media_empty">لا توجد صور أو مقاطع فيديو حتى الآن</string>
+    <string name="conversation_info_video_content_description">فيديو</string>
+    <string name="conversation_info_pin">تثبيت المحادثة</string>
+    <string name="conversation_info_unpin">إزالة تثبيت المحادثة</string>
+    <string name="conversation_info_archive">أرشيف</string>
+    <string name="conversation_info_unarchive">إلغاء الأرشفة</string>
+    <string name="conversation_info_block">رقم الكتلة</string>
+    <string name="conversation_info_unblock">إلغاء حظر الرقم</string>
+    <string name="conversation_info_delete">حذف المحادثة</string>
+    <string name="conversation_info_block_confirm_title">هل تريد حظر هذه المحادثة؟</string>
+    <string name="conversation_info_block_confirm_message">لن تتلقى رسائل أو مكالمات من هذا الرقم. ويمكنك إلغاء حظره لاحقًا من هنا.</string>
+    <string name="conversation_info_delete_confirm_title">هل تريد حذف هذه المحادثة؟</string>
+    <string name="conversation_info_delete_confirm_message">يؤدي هذا إلى حذف كل رسالة في هذه المحادثة. لا يمكن التراجع عن هذا.</string>
+
+    <!-- New message -->
+    <string name="new_message_to_label">ل</string>
+    <string name="new_message_to_hint">الاسم أو رقم الهاتف</string>
+    <string name="new_message_send_to">أرسل إلى "%1$s"</string>
+    <string name="new_message_contacts_permission_message">السماح لجهات الاتصال بالوصول في الإعدادات لاختيار مستلم بالاسم.</string>
+    <string name="new_message_no_contacts">لم يتم العثور على جهات اتصال</string>
+
+    <!-- Search -->
+    <string name="search_hint">بحث في المحادثات</string>
+    <string name="search_clear">مسح البحث</string>
+    <string name="search_filter_all">الجميع</string>
+    <string name="search_filter_people">الناس</string>
+    <string name="search_filter_messages">رسائل</string>
+    <string name="search_recent_header">عمليات البحث الأخيرة</string>
+    <string name="search_section_people">الناس</string>
+    <string name="search_section_messages">رسائل</string>
+    <string name="search_no_results">لا توجد نتائج ل "%1$s"</string>
+    <string name="search_empty_state">ستظهر محادثاتك هنا</string>
+
+    <!-- Notification channels -->
+    <string name="channel_incoming_messages">الرسائل الواردة</string>
+    <string name="channel_send_failures">إرسال الفشل</string>
+    <string name="channel_call_monitor">مراقبة المكالمات</string>
+
+    <!-- CallEndTriggerService notifications -->
+    <string name="call_monitor_notification_title">الاستماع لنهاية المكالمة</string>
+
+    <!-- Incoming-message notification -->
+    <string name="notification_mms_photo_placeholder">صورة</string>
+    <string name="notification_mms_placeholder">رسائل الوسائط المتعددة</string>
+    <string name="notification_action_mark_read">وضع علامة كمقروءة</string>
+    <string name="notification_action_reply">رد</string>
+    <string name="notification_self_name">أنت</string>
+    <string name="notification_unknown_sender">مجهول</string>
+
+    <!-- Settings -->
+    <string name="settings_section_appearance">المظهر</string>
+    <string name="settings_section_general">عام</string>
+    <string name="settings_section_backup_sync">النسخ الاحتياطي والمزامنة</string>
+    <string name="settings_section_about">حول التطبيق</string>
+
+    <string name="settings_theme_title">السمة</string>
+    <string name="settings_theme_summary">سمة %1$s · %2$s</string>
+    <string name="settings_text_size_title">حجم النص</string>
+    <string name="settings_text_size_value">متوسط</string>
+
+    <!-- Theme picker -->
+    <string name="theme_mode_system">النظام</string>
+    <string name="theme_mode_light">فاتح</string>
+    <string name="theme_mode_dark">داكن</string>
+    <string name="theme_picker_mode_header">وضع السمة</string>
+    <string name="theme_picker_color_header">اللون الرئيسي</string>
+    <string name="theme_picker_color_default">الافتراضي</string>
+    <string name="theme_picker_color_custom">مخصص</string>
+    <string name="theme_picker_default_swatch_description">استخدم اللون الافتراضي</string>
+    <string name="theme_picker_custom_swatch_description">اختر لونًا مخصصًا</string>
+    <string name="theme_picker_custom_color_title">لون مخصص</string>
+    <string name="action_done">منتهي</string>
+    <string name="action_select">يختار</string>
+
+    <string name="settings_default_app_title">تطبيق الرسائل الافتراضي</string>
+    <string name="settings_default_app_summary">تعيين #الرسائل كتطبيق الرسائل الافتراضي</string>
+    <string name="settings_language_title">اللغة</string>
+    <string name="settings_notifications_title">الإشعارات</string>
+    <string name="settings_notifications_summary">إظهار إشعار للرسائل الجديدة</string>
+    <string name="settings_delivery_reports_title">تقارير التسليم</string>
+    <string name="settings_delivery_reports_summary">تلقي إشعار عند تسليم الرسالة</string>
+    <string name="settings_quick_reply_title">رد سريع</string>
+    <string name="settings_quick_reply_summary">الرد على الرسائل من شريط الإشعارات</string>
+
+    <string name="settings_swipe_actions_title">إجراءات السحب</string>
+    <string name="settings_swipe_actions_summary">%1$s · %2$s</string>
+    <string name="settings_swipe_right_header">اسحب لليمين</string>
+    <string name="settings_swipe_left_header">اسحب لليسار</string>
+
+    <!-- Dual-SIM send preference (dual-SIM devices only, entirely hidden otherwise) -->
+    <string name="settings_sim_for_sending_title">شريحة SIM لإرسال الرسائل</string>
+    <string name="settings_sim_slot_summary">شريحة SIM%1$d-%2$s</string>
+    <string name="settings_sim_ask_every_time">السؤال في كل مرة</string>
+    <string name="settings_sim_permission_needed">الإذن مطلوب</string>
+
+    <string name="settings_auto_backup_title">نسخ احتياطي تلقائي</string>
+    <string name="settings_auto_backup_summary">إنشاء نسخة احتياطية للرسائل تلقائياً</string>
+    <string name="settings_backup_now_title">إنشاء نسخة احتياطية الآن</string>
+    <string name="settings_last_backup_never">آخر نسخة احتياطية: أبداً</string>
+    <string name="settings_last_backup_at">آخر نسخة احتياطية: %1$s</string>
+    <string name="settings_restore_title">استعادة</string>
+    <string name="settings_restore_summary">الاستعادة من نسخة احتياطية سابقة</string>
+    <string name="settings_wifi_only_title">Wi-Fi فقط</string>
+
+    <string name="settings_backup_exporting">جارٍ الاحتفاظ بنسخة احتياطية من الرسائل...</string>
+    <string name="settings_backup_importing">جارٍ استعادة الرسائل...</string>
+    <string name="settings_backup_export_success">رسائل%1$dالتي تم نسخها احتياطيًا</string>
+    <string name="settings_backup_import_success">تمت استعادة رسالة (رسائل)%1$d</string>
+    <string name="settings_backup_not_default_app">قم بتعيين #Messages كتطبيق الرسائل القصيرة الافتراضي لديك قبل استعادة النسخة الاحتياطية</string>
+    <string name="settings_backup_destination_unavailable">لا يمكن فتح هذا الملف</string>
+    <string name="settings_backup_error">فشل النسخ الاحتياطي:%1$s</string>
+
+    <string name="settings_app_version_title">إصدار التطبيق</string>
+    <string name="settings_rate_app_title">تقييم التطبيق</string>
+    <string name="settings_privacy_policy_title">سياسة الخصوصية</string>
+    <string name="settings_licenses_title">تراخيص المصدر المفتوح</string>
+    <string name="settings_help_feedback_title">المساعدة والملاحظات</string>
+
+    <!-- Contacts list (call-end screen's "View Contacts") -->
+    <string name="screen_contacts">اتصالات</string>
+    <string name="contacts_list_empty">لم يتم العثور على جهات اتصال</string>
+
+    <!-- Call-end screen -->
+    <string name="call_end_unknown_caller">غير معروف</string>
+    <string name="call_end_duration_label">المدة • %1$s</string>
+    <string name="call_end_call_back">إعادة الاتصال</string>
+    <string name="call_end_whatsapp">واتساب</string>
+    <string name="call_end_whatsapp_business">واتساب للأعمال</string>
+    <string name="call_end_telegram">برقية</string>
+    <string name="call_end_tab_list">القائمة</string>
+    <string name="call_end_tab_archive">الأرشيف</string>
+    <string name="call_end_tab_more">المزيد</string>
+    <string name="call_end_list_empty">لا توجد محادثات حديثة</string>
+    <string name="call_end_archive_empty">لا توجد محادثات مؤرشفة</string>
+    <string name="call_end_archive_empty_description">قم بأرشفة المحادثات للوصول إليها في أي وقت</string>
+    <string name="call_end_archive_button">أرشيف</string>
+    <string name="call_end_menu_contacts">عرض جهات الاتصال</string>
+    <string name="call_end_menu_messages">الرسائل</string>
+    <string name="call_end_menu_schedule">جدولة رسالة</string>
+    <string name="call_end_menu_backup">النسخ الاحتياطي والاستعادة</string>
+    <string name="call_end_ad_label">إعلان</string>
+
+    <!-- ComingSoonScreen stub -->
+    <string name="coming_soon_title">%1$sقريبا</string>
+    <string name="coming_soon_body">ما زلنا نعمل على هذه الميزة. التحقق مرة أخرى في التحديث المستقبلي.</string>
+</resources>

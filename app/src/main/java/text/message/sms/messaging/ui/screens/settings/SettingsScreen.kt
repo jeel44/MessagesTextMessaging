@@ -34,7 +34,6 @@ import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -67,6 +66,7 @@ import text.message.sms.messaging.domain.model.SimInfo
 import text.message.sms.messaging.ui.components.AppTopBar
 import text.message.sms.messaging.ui.components.labelRes
 import text.message.sms.messaging.ui.components.sharpIconPainter
+import text.message.sms.messaging.ui.screens.onboarding.LanguageOptions
 import text.message.sms.messaging.ui.screens.onboarding.currentLanguageOption
 import text.message.sms.messaging.ui.theme.ConversationRowDivider
 import java.text.SimpleDateFormat
@@ -106,6 +106,7 @@ fun SettingsScreen(
     val swipeActionPreference by viewModel.swipeActionPreference.collectAsStateWithLifecycle()
     val activeSims by viewModel.activeSims.collectAsStateWithLifecycle()
     val simSendPreference by viewModel.simSendPreference.collectAsStateWithLifecycle()
+    val currentLanguageTag by viewModel.languageTag.collectAsStateWithLifecycle()
     val backupBusy = operation != BackupOperation.IDLE
 
     // Re-checked on resume, not just once: the user may grant READ_PHONE_STATE from the system
@@ -133,16 +134,17 @@ fun SettingsScreen(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri -> uri?.let { viewModel.importBackup(it.toString()) } }
 
-    LaunchedEffect(event) {
+    LaunchedEffect(event, context) {
         val current = event ?: return@LaunchedEffect
+        val res = context.resources
         val message = when (current) {
             is BackupEvent.ExportSucceeded ->
-                context.getString(R.string.settings_backup_export_success, current.messageCount)
+                res.getString(R.string.settings_backup_export_success, current.messageCount)
             is BackupEvent.ImportSucceeded ->
-                context.getString(R.string.settings_backup_import_success, current.messageCount)
-            BackupEvent.NotDefaultSmsApp -> context.getString(R.string.settings_backup_not_default_app)
-            BackupEvent.DestinationUnavailable -> context.getString(R.string.settings_backup_destination_unavailable)
-            is BackupEvent.Error -> context.getString(R.string.settings_backup_error, current.message)
+                res.getString(R.string.settings_backup_import_success, current.messageCount)
+            BackupEvent.NotDefaultSmsApp -> res.getString(R.string.settings_backup_not_default_app)
+            BackupEvent.DestinationUnavailable -> res.getString(R.string.settings_backup_destination_unavailable)
+            is BackupEvent.Error -> res.getString(R.string.settings_backup_error, current.message)
         }
         Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         viewModel.consumeBackupEvent()
@@ -190,7 +192,7 @@ fun SettingsScreen(
                     SettingsRow(
                         icon = SettingsIcon.Drawable(R.drawable.ic_language),
                         title = stringResource(R.string.settings_language_title),
-                        summary = languageSummary(),
+                        summary = languageSummary(currentLanguageTag),
                         onClick = onLanguageClick,
                     ),
                 )
@@ -395,7 +397,11 @@ private fun simSendPreferenceSummary(
  * That's fine here: navigating to the Language screen and back already recomposes this screen
  * fresh, so the summary is correct by the time it's visible again. */
 @Composable
-private fun languageSummary(): String = currentLanguageOption().displayName
+private fun languageSummary(languageTag: String?): String {
+    val option = LanguageOptions.firstOrNull { it.languageTag == languageTag }
+        ?: LanguageOptions.first()
+    return option.displayName
+}
 
 private data class SettingsSection(val title: String, val rows: List<SettingsRow>)
 

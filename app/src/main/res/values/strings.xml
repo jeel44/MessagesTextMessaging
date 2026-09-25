@@ -371,6 +371,8 @@
     <string name="call_end_tab_more">More</string>
     <string name="call_end_list_empty">No recent conversations</string>
     <string name="call_end_archive_empty">No archived conversations</string>
+    <string name="call_end_archive_empty_description">Archive conversations and access them anytime</string>
+    <string name="call_end_archive_button">Archive</string>
     <string name="call_end_menu_contacts">View Contacts</string>
     <string name="call_end_menu_messages">Messages</string>
     <string name="call_end_menu_schedule">Schedule message</string>

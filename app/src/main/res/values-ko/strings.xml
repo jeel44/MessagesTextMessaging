@@ -1,0 +1,353 @@
+<resources>
+    <string name="app_name">#메시지</string>
+
+    <!-- Onboarding -->
+    <string name="splash_tagline">간편함. 신속함. 안전함.</string>
+
+    <!-- Welcome -->
+    <string name="welcome_eyebrow">오신 것을 환영합니다</string>
+    <string name="welcome_tagline">빠름. 쉬움. 신뢰할 수 있음.</string>
+    <string name="welcome_subtitle">통화가 끝난 직후 원활한 메시징으로 연락을 유지하세요.</string>
+    <string name="welcome_privacy_prefix">계속하면 귀하는 당사의</string>
+    <string name="welcome_privacy_suffix">.</string>
+    <string name="welcome_headline">#메시지에 오신 것을 환영합니다</string>
+    <string name="welcome_feature_sms_title">빠르고 안정적인 SMS</string>
+    <string name="welcome_feature_sms_desc">원활한 문자 메시지 경험으로 빠르게 메시지를 보내고 받으세요.</string>
+    <string name="welcome_feature_notifications_title">스마트 알림</string>
+    <string name="welcome_feature_notifications_desc">중요한 메시지와 맞춤 알림으로 최신 소식을 받아보세요.</string>
+    <string name="welcome_feature_privacy_title">비공개 및 보안</string>
+    <string name="welcome_feature_privacy_desc">귀하의 대화는 보호되어 귀하에게만 표시됩니다.</string>
+    <string name="welcome_feature_search_title">검색 및 정리</string>
+    <string name="welcome_feature_search_desc">메시지를 더 빠르게 찾고 받은편지함을 깔끔하고 단순하게 유지하세요.</string>
+    <string name="welcome_consent_prefix">익명의 통찰력으로 개선할 수 있도록 도와주세요. 귀하의 데이터는 비공개로 안전하게 유지됩니다. 나는 다음에 동의한다.</string>
+    <string name="welcome_consent_terms">이용약관</string>
+    <string name="welcome_consent_and">그리고</string>
+    <string name="welcome_consent_privacy">개인 정보 보호 정책</string>
+    <string name="welcome_consent_suffix">.</string>
+    <string name="welcome_continue">계속</string>
+    <string name="welcome_permission_denied_message">#Messages에서 문자를 보내고 받으려면 SMS 권한이 필요합니다. 다시 시도하려면 계속을 탭하세요.</string>
+    <string name="welcome_permission_settings_message">#Messages가 작동하려면 SMS 권한이 필요합니다. 계속하려면 설정에서 활성화하세요.</string>
+    <string name="welcome_open_settings">설정 열기</string>
+
+    <!-- Set default SMS -->
+    <string name="set_default_sms_placeholder_label">로티 애니메이션은 여기</string>
+    <string name="set_default_sms_body">문자 보내기 및 받기를 시작하려면 #Messages를 기본 SMS 앱으로 설정하세요.</string>
+    <string name="set_default_sms_button">기본값으로 설정</string>
+    <string name="set_default_sms_hint">문자를 보내고 받으려면 #Messages가 기본 SMS 앱이어야 합니다. 준비가 되면 언제든지 버튼을 탭하세요.</string>
+
+    <string name="overlay_permission_title">통화 알림 활성화</string>
+    <string name="overlay_permission_body">화면이 잠겨 있어도 누가 전화했는지 확인하고 즉시 응답할 수 있습니다.</string>
+    <string name="overlay_permission_button">활성화 및 계속</string>
+    <string name="overlay_permission_reassurance">언제든지 설정에서 이 기능을 끌 수 있습니다.</string>
+    <string name="overlay_permission_mock_row_allow">다른 앱 위에 표시 및 맨 위에 표시 허용</string>
+    <string name="overlay_permission_mock_row_app">메시지</string>
+
+    <string name="battery_optimization_title">통화 알림을 안정적으로 유지하세요</string>
+    <string name="battery_optimization_body">이것이 없으면 Android는 백그라운드에서 #Messages를 일시 중지하고 통화가 끝나는 순간을 놓칠 수 있습니다.</string>
+    <string name="battery_optimization_button">허용 및 계속</string>
+    <string name="battery_optimization_reassurance">언제든지 설정에서 이 기능을 끌 수 있습니다.</string>
+
+    <!-- Language -->
+    <string name="language_title">앱 언어 선택</string>
+    <string name="language_continue">계속</string>
+
+    <!-- Screen titles -->
+    <string name="screen_conversations">#메시지</string>
+    <string name="screen_new_message">새 메시지</string>
+    <string name="screen_search">검색</string>
+    <string name="screen_settings">설정</string>
+    <string name="screen_archived">보관됨</string>
+
+    <!-- Home (conversation list) -->
+    <string name="home_filter_all">전체</string>
+    <string name="home_filter_personal">개인</string>
+    <string name="home_filter_transactions">거래</string>
+    <string name="home_filter_otp">OTP</string>
+    <string name="home_empty_title">아직 메시지가 없습니다</string>
+    <string name="home_empty_message">대화를 시작하면 여기에 표시됩니다.</string>
+    <string name="home_not_default_title">#Messages를 기본 SMS 앱으로 설정</string>
+    <string name="home_not_default_message">여기에서 대화를 동기화하고 표시하려면 #Messages가 기본 SMS 앱이어야 합니다.</string>
+    <string name="home_sync_failed_message">일부 메시지를 로드할 수 없습니다.</string>
+    <string name="home_sync_retry">다시 해 보다</string>
+    <string name="home_archived_row_title">보관됨</string>
+    <string name="home_archived_snackbar">보관됨</string>
+    <string name="home_search_placeholder">메시지 검색</string>
+    <string name="home_new_chat_label">새 채팅</string>
+    <string name="home_otp_copy_label">OTP 복사</string>
+    <string name="home_otp_copied_toast">코드가 복사되었습니다.</string>
+    <string name="home_otp_copy_content_description">인증코드 복사</string>
+    <string name="home_deleted_snackbar">삭제됨</string>
+
+    <!-- Home multi-select -->
+    <string name="home_selection_close">선택 종료</string>
+    <string name="home_selection_count_format">%1$d/%2$d</string>
+    <string name="home_selection_archive">보관소</string>
+    <string name="home_selection_delete">삭제</string>
+    <string name="home_selection_more">추가 옵션</string>
+    <string name="home_selection_select_all">모두 선택</string>
+    <string name="home_selection_mark_read">읽음으로 표시</string>
+    <string name="home_selection_mark_unread">읽지 않은 상태로 표시</string>
+    <string name="home_selection_pin">핀</string>
+    <string name="home_selection_unpin">고정 해제</string>
+    <string name="home_pinned_content_description">고정됨</string>
+    <string name="home_selection_block">차단하다</string>
+    <string name="home_selection_delete_confirm_message">그러면 그 안의 모든 메시지가 삭제됩니다. 이 작업은 취소할 수 없습니다.</string>
+    <string name="home_selection_block_confirm_message">해당 발신자로부터 메시지나 전화를 받을 수 없습니다. 나중에 각 대화에서 차단을 해제할 수 있습니다.</string>
+
+    <!-- Archived -->
+    <string name="archived_unarchive">보관 취소</string>
+    <string name="archived_empty_title">보관된 대화 없음</string>
+    <string name="archived_empty_message">보관처리한 대화가 여기에 표시됩니다.</string>
+
+    <!-- Actions -->
+    <string name="action_search">찾다</string>
+    <string name="action_new_message">새 메시지</string>
+    <string name="action_settings">설정</string>
+    <string name="action_menu">메뉴</string>
+    <string name="action_back">뒤쪽에</string>
+    <string name="action_close">닫다</string>
+    <string name="action_cancel">취소</string>
+    <string name="action_undo">끄르다</string>
+
+    <!-- Swipe actions (conversation list + Settings picker) -->
+    <string name="swipe_action_none">없음</string>
+    <string name="swipe_action_archive">보관소</string>
+    <string name="swipe_action_delete">삭제</string>
+    <string name="swipe_action_toggle_read">읽음/읽지 않음으로 표시</string>
+    <string name="swipe_action_call">부르다</string>
+
+    <!-- Chat -->
+    <string name="chat_call">부르다</string>
+    <string name="chat_more_options">추가 옵션</string>
+    <string name="chat_composer_hint">메시지를 작성하세요...</string>
+    <string name="chat_send">보내다</string>
+    <string name="chat_add_attachment">첨부파일 추가</string>
+    <string name="chat_schedule_button_description">메시지 예약</string>
+    <string name="chat_schedule_tooltip">메시지를 예약하려면 탭하세요.</string>
+    <string name="chat_remove_attachment">첨부파일 삭제</string>
+    <string name="chat_status_sending">배상…</string>
+    <string name="chat_status_sent">전송된</string>
+    <string name="chat_status_delivered">배달됨</string>
+    <string name="chat_status_failed">실패한</string>
+    <string name="chat_status_failed_retry">실패한. 다시 시도하려면 탭하세요.</string>
+    <string name="chat_conversation_info">대화 정보</string>
+    <string name="chat_topbar_pin">대화 고정</string>
+    <string name="chat_topbar_unpin">대화 고정 해제</string>
+    <string name="chat_topbar_block">블록 번호</string>
+    <string name="chat_topbar_unblock">번호 차단 해제</string>
+    <string name="chat_topbar_archive">보관소</string>
+    <string name="chat_topbar_unarchive">보관 취소</string>
+    <string name="chat_topbar_block_confirm_title">이 대화를 차단하시겠습니까?</string>
+    <string name="chat_topbar_block_confirm_message">이 번호에서는 메시지나 전화를 받을 수 없습니다. 나중에 여기에서 차단을 해제할 수 있습니다.</string>
+    <string name="chat_attachment_sheet_title">메시지에 추가</string>
+    <string name="chat_attachment_gallery">갱도</string>
+    <string name="chat_attachment_camera">카메라</string>
+    <string name="chat_attachment_files">파일</string>
+    <string name="chat_attachment_location">위치</string>
+    <string name="chat_attachment_contact">연락하다</string>
+    <string name="chat_attachment_schedule">일정</string>
+    <string name="chat_attachment_coming_soon">곧 출시 예정</string>
+    <string name="chat_media_viewer_title">사진</string>
+    <string name="chat_security_notice">이 SMS는 100% 안전합니다. #메시지는 사전 동의 없이 데이터를 수집하지 않습니다. 모든 것이 처리되어 휴대폰에 저장됩니다.</string>
+    <string name="chat_cant_reply_short_code">이 단축번호에 답장할 수 없습니다.</string>
+    <string name="chat_learn_more">자세히 알아보기</string>
+    <string name="chat_learn_more_dialog_message">비즈니스 발신자 및 단축 코드가 보낸 메시지에는 답장할 수 없습니다.</string>
+    <string name="chat_learn_more_ok">좋아요</string>
+    <string name="chat_otp_copy_label">"%1$s" 복사</string>
+    <string name="chat_otp_copy_content_description">인증코드 복사</string>
+
+    <!-- Chat multi-select -->
+    <string name="chat_selection_close">선택 종료</string>
+    <string name="chat_selection_select_all">모두 선택</string>
+    <string name="chat_selection_copy">복사</string>
+    <string name="chat_selection_forward">앞으로</string>
+    <string name="chat_selection_share">공유하다</string>
+    <string name="chat_selection_delete">삭제</string>
+    <string name="chat_selection_details">메시지 세부정보</string>
+    <string name="chat_selection_more">추가 옵션</string>
+    <string name="chat_selection_copied_toast">복사됨</string>
+    <string name="chat_selection_forward_attachments_unsupported">아직 첨부파일을 전달할 수 없습니다.</string>
+    <string name="chat_selection_share_title">메시지 공유</string>
+    <string name="chat_selection_selected_indicator">선택된</string>
+    <string name="chat_selection_delete_confirm_message">이 작업은 취소할 수 없습니다.</string>
+
+    <!-- Message details -->
+    <string name="message_details_title">메시지 세부정보</string>
+    <string name="message_details_type">유형</string>
+    <string name="message_details_type_sms">문자 메시지</string>
+    <string name="message_details_type_mms">멀티미디어 메시지</string>
+    <string name="message_details_from">에서</string>
+    <string name="message_details_to">에게</string>
+    <string name="message_details_time_sent">전송된</string>
+    <string name="message_details_time_received">받았다</string>
+    <string name="message_details_size">크기</string>
+    <string name="message_details_size_characters">%1$d문자</string>
+    <string name="message_details_status">상태</string>
+    <string name="message_details_status_received">받았다</string>
+    <string name="message_details_sim">SIM</string>
+    <string name="message_details_sim_value">SIM%1$d</string>
+    <string name="message_details_ok">좋아요</string>
+
+    <!-- Dual-SIM send picker -->
+    <string name="chat_sim_picker_title">다음으로 보내기</string>
+    <string name="chat_sim_picker_row_title">SIM%1$d-%2$s</string>
+    <string name="chat_sim_picker_remember">이 대화를 기억하세요</string>
+    <string name="chat_sim_fallback_notice">선호하는 SIM을 사용할 수 없어 대신 SIM%1$d를 사용하여 전송되었습니다.</string>
+    <string name="chat_sim_indicator_description">SIM%1$d로 전송 중입니다. 변경하려면 탭하세요.</string>
+    <string name="chat_sim_indicator_description_unknown">이 메시지를 보낼 SIM을 선택하세요.</string>
+
+    <!-- Conversation info -->
+    <string name="conversation_info_title">대화 정보</string>
+    <string name="conversation_info_group_subtitle">%1$d명</string>
+    <string name="conversation_info_notifications_title">알림</string>
+    <string name="conversation_info_notifications_muted_summary">음소거됨</string>
+    <string name="conversation_info_notifications_on_summary">~에</string>
+    <string name="conversation_info_participants_header">%1$d참가자</string>
+    <string name="conversation_info_view_contact_not_available">연락처 앱을 찾을 수 없습니다.</string>
+    <string name="conversation_info_media_header">공유 미디어</string>
+    <string name="conversation_info_media_empty">아직 사진이나 동영상이 없습니다.</string>
+    <string name="conversation_info_video_content_description">동영상</string>
+    <string name="conversation_info_pin">대화 고정</string>
+    <string name="conversation_info_unpin">대화 고정 해제</string>
+    <string name="conversation_info_archive">보관소</string>
+    <string name="conversation_info_unarchive">보관 취소</string>
+    <string name="conversation_info_block">블록 번호</string>
+    <string name="conversation_info_unblock">번호 차단 해제</string>
+    <string name="conversation_info_delete">대화 삭제</string>
+    <string name="conversation_info_block_confirm_title">이 대화를 차단하시겠습니까?</string>
+    <string name="conversation_info_block_confirm_message">이 번호에서는 메시지나 전화를 받을 수 없습니다. 나중에 여기에서 차단을 해제할 수 있습니다.</string>
+    <string name="conversation_info_delete_confirm_title">이 대화를 삭제하시겠습니까?</string>
+    <string name="conversation_info_delete_confirm_message">이 대화의 모든 메시지가 삭제됩니다. 이 작업은 취소할 수 없습니다.</string>
+
+    <!-- New message -->
+    <string name="new_message_to_label">에게</string>
+    <string name="new_message_to_hint">이름 또는 전화번호</string>
+    <string name="new_message_send_to">"%1$s"로 보내기</string>
+    <string name="new_message_contacts_permission_message">이름으로 수신자를 선택하려면 설정에서 연락처 액세스를 허용하세요.</string>
+    <string name="new_message_no_contacts">연락처를 찾을 수 없습니다.</string>
+
+    <!-- Search -->
+    <string name="search_hint">대화 검색</string>
+    <string name="search_clear">검색 지우기</string>
+    <string name="search_filter_all">모두</string>
+    <string name="search_filter_people">사람들</string>
+    <string name="search_filter_messages">메시지</string>
+    <string name="search_recent_header">최근 검색어</string>
+    <string name="search_section_people">사람들</string>
+    <string name="search_section_messages">메시지</string>
+    <string name="search_no_results">"%1$s"에 대한 검색결과가 없습니다.</string>
+    <string name="search_empty_state">대화가 여기에 표시됩니다.</string>
+
+    <!-- Notification channels -->
+    <string name="channel_incoming_messages">수신 메시지</string>
+    <string name="channel_send_failures">전송 실패</string>
+    <string name="channel_call_monitor">통화 모니터링</string>
+
+    <!-- CallEndTriggerService notifications -->
+    <string name="call_monitor_notification_title">통화 종료 듣기</string>
+
+    <!-- Incoming-message notification -->
+    <string name="notification_mms_photo_placeholder">사진</string>
+    <string name="notification_mms_placeholder">MMS</string>
+    <string name="notification_action_mark_read">읽음으로 표시</string>
+    <string name="notification_action_reply">회신하다</string>
+    <string name="notification_self_name">너</string>
+    <string name="notification_unknown_sender">알려지지 않은</string>
+
+    <!-- Settings -->
+    <string name="settings_section_appearance">모양</string>
+    <string name="settings_section_general">일반</string>
+    <string name="settings_section_backup_sync">백업 및 동기화</string>
+    <string name="settings_section_about">에 대한</string>
+
+    <string name="settings_theme_title">테마</string>
+    <string name="settings_theme_summary">%1$s테마 ·%2$s</string>
+    <string name="settings_text_size_title">텍스트 크기</string>
+    <string name="settings_text_size_value">중간</string>
+
+    <!-- Theme picker -->
+    <string name="theme_mode_system">체계</string>
+    <string name="theme_mode_light">빛</string>
+    <string name="theme_mode_dark">어두운</string>
+    <string name="theme_picker_mode_header">테마 모드</string>
+    <string name="theme_picker_color_header">악센트 색상</string>
+    <string name="theme_picker_color_default">기본</string>
+    <string name="theme_picker_color_custom">관습</string>
+    <string name="theme_picker_default_swatch_description">기본 색상 사용</string>
+    <string name="theme_picker_custom_swatch_description">맞춤 색상 선택</string>
+    <string name="theme_picker_custom_color_title">맞춤 색상</string>
+    <string name="action_done">완료</string>
+    <string name="action_select">선택하다</string>
+
+    <string name="settings_default_app_title">기본 SMS 앱</string>
+    <string name="settings_default_app_summary">#Messages를 기본 SMS 앱으로 설정</string>
+    <string name="settings_language_title">언어</string>
+    <string name="settings_notifications_title">알림</string>
+    <string name="settings_notifications_summary">새 메시지에 대한 알림 표시</string>
+    <string name="settings_delivery_reports_title">배달 보고서</string>
+    <string name="settings_delivery_reports_summary">메시지가 전달되면 알림 받기</string>
+    <string name="settings_quick_reply_title">빠른 답변</string>
+    <string name="settings_quick_reply_summary">알림 창에서 메시지에 답장하기</string>
+
+    <string name="settings_swipe_actions_title">스와이프 동작</string>
+    <string name="settings_swipe_actions_summary">%1$s·%2$s</string>
+    <string name="settings_swipe_right_header">오른쪽으로 스와이프</string>
+    <string name="settings_swipe_left_header">왼쪽으로 스와이프</string>
+
+    <!-- Dual-SIM send preference (dual-SIM devices only, entirely hidden otherwise) -->
+    <string name="settings_sim_for_sending_title">메시지 전송용 SIM</string>
+    <string name="settings_sim_slot_summary">SIM%1$d-%2$s</string>
+    <string name="settings_sim_ask_every_time">매번 물어보세요</string>
+    <string name="settings_sim_permission_needed">권한이 필요합니다</string>
+
+    <string name="settings_auto_backup_title">자동 백업</string>
+    <string name="settings_auto_backup_summary">자동으로 메시지 백업</string>
+    <string name="settings_backup_now_title">지금 백업</string>
+    <string name="settings_last_backup_never">마지막 백업: 없음</string>
+    <string name="settings_last_backup_at">마지막 백업:%1$s</string>
+    <string name="settings_restore_title">복원하다</string>
+    <string name="settings_restore_summary">이전 백업에서 복원</string>
+    <string name="settings_wifi_only_title">Wi-Fi 전용</string>
+
+    <string name="settings_backup_exporting">메시지 백업 중…</string>
+    <string name="settings_backup_importing">메시지 복원 중…</string>
+    <string name="settings_backup_export_success">%1$d메시지를 백업했습니다.</string>
+    <string name="settings_backup_import_success">복원된%1$d메시지</string>
+    <string name="settings_backup_not_default_app">백업을 복원하기 전에 #Messages를 기본 SMS 앱으로 설정하세요.</string>
+    <string name="settings_backup_destination_unavailable">해당 파일을 열 수 없습니다.</string>
+    <string name="settings_backup_error">백업 실패:%1$s</string>
+
+    <string name="settings_app_version_title">앱 버전</string>
+    <string name="settings_rate_app_title">앱 평가</string>
+    <string name="settings_privacy_policy_title">개인 정보 보호 정책</string>
+    <string name="settings_licenses_title">오픈소스 라이선스</string>
+    <string name="settings_help_feedback_title">도움말 및 피드백</string>
+
+    <!-- Contacts list (call-end screen's "View Contacts") -->
+    <string name="screen_contacts">콘택트 렌즈</string>
+    <string name="contacts_list_empty">연락처를 찾을 수 없습니다.</string>
+
+    <!-- Call-end screen -->
+    <string name="call_end_unknown_caller">알 수 없음</string>
+    <string name="call_end_duration_label">통화 시간 • %1$s</string>
+    <string name="call_end_call_back">다시 전화하기</string>
+    <string name="call_end_whatsapp">왓츠앱</string>
+    <string name="call_end_whatsapp_business">WhatsApp 비즈니스</string>
+    <string name="call_end_telegram">전보</string>
+    <string name="call_end_tab_list">목록</string>
+    <string name="call_end_tab_archive">보관함</string>
+    <string name="call_end_tab_more">더보기</string>
+    <string name="call_end_list_empty">최근 대화 없음</string>
+    <string name="call_end_archive_empty">보관된 대화 없음</string>
+    <string name="call_end_archive_empty_description">대화를 보관하고 언제든지 액세스하세요.</string>
+    <string name="call_end_archive_button">보관소</string>
+    <string name="call_end_menu_contacts">연락처 보기</string>
+    <string name="call_end_menu_messages">메시지</string>
+    <string name="call_end_menu_schedule">메시지 예약</string>
+    <string name="call_end_menu_backup">백업 및 복원</string>
+    <string name="call_end_ad_label">광고</string>
+
+    <!-- ComingSoonScreen stub -->
+    <string name="coming_soon_title">%1$s가 곧 출시됩니다</string>
+    <string name="coming_soon_body">We\'re still working on this feature. Check back in a future update.</string>
+</resources>

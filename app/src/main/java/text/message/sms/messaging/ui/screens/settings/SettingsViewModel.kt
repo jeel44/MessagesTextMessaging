@@ -24,6 +24,7 @@ import text.message.sms.messaging.domain.model.BackupResult
 import text.message.sms.messaging.domain.model.SimInfo
 import text.message.sms.messaging.domain.usecase.ExportBackup
 import text.message.sms.messaging.domain.usecase.ImportBackup
+import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import javax.inject.Inject
 
 /** Whether a backup export/import is in flight, so [SettingsScreen] can show progress and the
@@ -53,7 +54,11 @@ class SettingsViewModel @Inject constructor(
     private val swipeActionPreferences: SwipeActionPreferences,
     private val simPreferences: SimPreferences,
     private val simRepository: SimRepository,
+    private val onboardingPreferences: OnboardingPreferences,
 ) : ViewModel() {
+
+    internal val languageTag: StateFlow<String?> = onboardingPreferences.languageTag
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val _operation = MutableStateFlow(BackupOperation.IDLE)
     internal val operation: StateFlow<BackupOperation> = _operation.asStateFlow()

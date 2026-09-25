@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">#ข้อความ</string>
+
+    <!-- Onboarding -->
+    <string name="splash_tagline">เรียบง่าย. รวดเร็ว. ปลอดภัย.</string>
+
+    <!-- Welcome -->
+    <string name="welcome_eyebrow">ยินดีต้อนรับสู่</string>
+    <string name="welcome_tagline">รวดเร็ว. ง่ายดาย. เชื่อถือได้.</string>
+    <string name="welcome_subtitle">เชื่อมต่ออยู่เสมอด้วยการส่งข้อความที่ราบรื่นทันทีหลังจากวางสาย</string>
+    <string name="welcome_privacy_prefix">การดำเนินการต่อแสดงว่าคุณตกลงตาม </string>
+    <string name="welcome_privacy_suffix">.</string>
+    <string name="welcome_headline">ยินดีต้อนรับสู่ #ข้อความ</string>
+    <string name="welcome_feature_sms_title">SMS รวดเร็ว &amp; เชื่อถือได้</string>
+    <string name="welcome_feature_sms_desc">ส่งและรับข้อความอย่างรวดเร็วด้วยประสบการณ์การส่งข้อความที่ราบรื่น</string>
+    <string name="welcome_feature_notifications_title">การแจ้งเตือนอัจฉริยะ</string>
+    <string name="welcome_feature_notifications_desc">ติดตามข่าวสารด้วยข้อความสำคัญและการแจ้งเตือนที่กำหนดเอง</string>
+    <string name="welcome_feature_privacy_title">ส่วนตัว &amp; ปลอดภัย</string>
+    <string name="welcome_feature_privacy_desc">การสนทนาของคุณได้รับการปกป้องและมองเห็นได้เฉพาะคุณเท่านั้น</string>
+    <string name="welcome_feature_search_title">ค้นหา &amp; จัดระเบียบ</string>
+    <string name="welcome_feature_search_desc">ค้นหาข้อความได้เร็วขึ้นและจัดระเบียบกล่องจดหมายของคุณ</string>
+    <string name="welcome_consent_prefix">ช่วยเราปรับปรุงแอป ข้าพเจ้ายินยอมตาม </string>
+    <string name="welcome_consent_terms">ข้อกำหนดและเงื่อนไข</string>
+    <string name="welcome_consent_and"> และ </string>
+    <string name="welcome_consent_privacy">นโยบายความเป็นส่วนตัว</string>
+    <string name="welcome_consent_suffix">.</string>
+    <string name="welcome_continue">ดำเนินการต่อ</string>
+    <string name="welcome_permission_denied_message">จำเป็นต้องมีสิทธิ์ SMS เพื่อส่งและรับข้อความ</string>
+    <string name="welcome_permission_settings_message">จำเป็นต้องได้รับสิทธิ์ เปิดใช้งานในการตั้งค่าเพื่อดำเนินการต่อ</string>
+    <string name="welcome_open_settings">เปิดการตั้งค่า</string>
+
+    <!-- Language -->
+    <string name="language_title">เลือกภาษาของแอป</string>
+    <string name="language_continue">ดำเนินการต่อ</string>
+
+    <!-- Screen titles -->
+    <string name="screen_conversations">#ข้อความ</string>
+    <string name="screen_new_message">ข้อความใหม่</string>
+    <string name="screen_search">ค้นหา</string>
+    <string name="screen_settings">การตั้งค่า</string>
+    <string name="screen_archived">เก็บคลังแล้ว</string>
+
+    <!-- Home -->
+    <string name="home_filter_all">ทั้งหมด</string>
+    <string name="home_filter_personal">ส่วนตัว</string>
+    <string name="home_filter_transactions">ธุรกรรม</string>
+    <string name="home_filter_otp">OTP</string>
+    <string name="home_empty_title">ยังไม่มีข้อความ</string>
+    <string name="home_search_placeholder">ค้นหาข้อความ</string>
+
+    <!-- Actions -->
+    <string name="action_search">ค้นหา</string>
+    <string name="action_new_message">ข้อความใหม่</string>
+    <string name="action_settings">การตั้งค่า</string>
+    <string name="action_menu">เมนู</string>
+    <string name="action_back">ย้อนกลับ</string>
+    <string name="action_close">ปิด</string>
+    <string name="action_cancel">ยกเลิก</string>
+    <string name="action_undo">เลิกทำ</string>
+
+    <!-- Swipe actions -->
+    <string name="swipe_action_none">ไม่มี</string>
+    <string name="swipe_action_archive">เก็บคลัง</string>
+    <string name="swipe_action_delete">ลบ</string>
+    <string name="swipe_action_toggle_read">ทำให้อ่านแล้ว/ยังไม่ได้อ่าน</string>
+    <string name="swipe_action_call">โทร</string>
+
+    <!-- Settings -->
+    <string name="settings_section_appearance">การแสดงผล</string>
+    <string name="settings_section_general">ทั่วไป</string>
+    <string name="settings_section_backup_sync">สำรองข้อมูล &amp; ซิงค์</string>
+    <string name="settings_section_about">เกี่ยวกับ</string>
+
+    <string name="settings_theme_title">ธีม</string>
+    <string name="settings_theme_summary">ธีม %1$s · %2$s</string>
+    <string name="settings_text_size_title">ขนาดข้อความ</string>
+    <string name="settings_text_size_value">ปานกลาง</string>
+
+    <string name="theme_mode_system">ระบบ</string>
+    <string name="theme_mode_light">สว่าง</string>
+    <string name="theme_mode_dark">มืด</string>
+
+    <string name="settings_default_app_title">แอป SMS เริ่มต้น</string>
+    <string name="settings_default_app_summary">ตั้งค่า #ข้อความ เป็นแอป SMS เริ่มต้นของคุณ</string>
+    <string name="settings_language_title">ภาษา</string>
+    <string name="settings_notifications_title">การแจ้งเตือน</string>
+    <string name="settings_notifications_summary">แสดงการแจ้งเตือนสำหรับข้อความใหม่</string>
+    <string name="settings_delivery_reports_title">รายงานการส่ง</string>
+    <string name="settings_delivery_reports_summary">รับการแจ้งเตือนเมื่อส่งข้อความแล้ว</string>
+    <string name="settings_quick_reply_title">ตอบกลับอย่างรวดเร็ว</string>
+    <string name="settings_quick_reply_summary">ตอบกลับข้อความจากแถบการแจ้งเตือน</string>
+
+    <string name="settings_swipe_actions_title">การปัดเพื่อดำเนินการ</string>
+    <string name="settings_swipe_actions_summary">%1$s · %2$s</string>
+
+    <string name="settings_auto_backup_title">สำรองข้อมูลอัตโนมัติ</string>
+    <string name="settings_auto_backup_summary">สำรองข้อมูลข้อความโดยอัตโนมัติ</string>
+    <string name="settings_backup_now_title">สำรองข้อมูลตอนนี้</string>
+    <string name="settings_last_backup_never">การสำรองข้อมูลล่าสุด: ไม่เคย</string>
+    <string name="settings_last_backup_at">การสำรองข้อมูลล่าสุด: %1$s</string>
+    <string name="settings_restore_title">คืนค่า</string>
+    <string name="settings_restore_summary">คืนค่าจากการสำรองข้อมูลก่อนหน้า</string>
+    <string name="settings_wifi_only_title">Wi-Fi เท่านั้น</string>
+
+    <string name="settings_app_version_title">เวอร์ชันแอป</string>
+    <string name="settings_rate_app_title">ให้คะแนนแอป</string>
+    <string name="settings_privacy_policy_title">นโยบายความเป็นส่วนตัว</string>
+    <string name="settings_licenses_title">สัญญาอนุญาตโอเพ่นซอร์ส</string>
+    <string name="settings_help_feedback_title">ความช่วยเหลือ &amp; ข้อเสนอแนะ</string>
+
+    <!-- Call end -->
+    <string name="call_end_unknown_caller">ไม่ทราบชื่อ</string>
+    <string name="call_end_duration_label">ระยะเวลา • %1$s</string>
+    <string name="call_end_call_back">โทรกลับ</string>
+    <string name="call_end_whatsapp">WhatsApp</string>
+    <string name="call_end_whatsapp_business">WhatsApp Business</string>
+    <string name="call_end_telegram">Telegram</string>
+    <string name="call_end_tab_list">รายการ</string>
+    <string name="call_end_tab_archive">คลัง</string>
+    <string name="call_end_tab_more">เพิ่มเติม</string>
+    <string name="call_end_list_empty">ไม่มีการสนทนาล่าสุด</string>
+    <string name="call_end_archive_empty">ไม่มีการสนทนาที่เก็บคลังแล้ว</string>
+    <string name="call_end_archive_empty_description">เก็บคลังการสนทนาเพื่อเข้าถึงได้ตลอดเวลา</string>
+    <string name="call_end_archive_button">คลัง</string>
+    <string name="call_end_menu_contacts">ดูรายชื่อผู้ติดต่อ</string>
+    <string name="call_end_menu_messages">ข้อความ</string>
+    <string name="call_end_menu_schedule">กำหนดเวลาส่งข้อความ</string>
+    <string name="call_end_menu_backup">สำรองข้อมูล &amp; คืนค่า</string>
+</resources>

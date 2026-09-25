@@ -1,0 +1,353 @@
+<resources>
+    <string name="app_name">#संदेश</string>
+
+    <!-- Onboarding -->
+    <string name="splash_tagline">सरल. तेज़. सुरक्षित।</string>
+
+    <!-- Welcome -->
+    <string name="welcome_eyebrow">स्वागत है</string>
+    <string name="welcome_tagline">तेज़। आसान। विश्वसनीय।</string>
+    <string name="welcome_subtitle">कॉल समाप्त होने के तुरंत बाद सहज संदेश सेवा से जुड़े रहें।</string>
+    <string name="welcome_privacy_prefix">जारी रखकर, आप हमारी सहमति देते हैं </string>
+    <string name="welcome_privacy_suffix">।</string>
+    <string name="welcome_headline">#संदेश में आपका स्वागत है</string>
+    <string name="welcome_feature_sms_title">तेज़ और विश्वसनीय SMS</string>
+    <string name="welcome_feature_sms_desc">सहज टेक्स्टिंग अनुभव के साथ तेज़ी से संदेश भेजें और प्राप्त करें।</string>
+    <string name="welcome_feature_notifications_title">स्मार्ट सूचनाएं</string>
+    <string name="welcome_feature_notifications_desc">महत्वपूर्ण संदेशों और कस्टम सूचनाओं से अपडेट रहें।</string>
+    <string name="welcome_feature_privacy_title">निजी और सुरक्षित</string>
+    <string name="welcome_feature_privacy_desc">आपकी बातचीत सुरक्षित रहती है और केवल आपको दिखाई देती है।</string>
+    <string name="welcome_feature_search_title">खोजें और व्यवस्थित करें</string>
+    <string name="welcome_feature_search_desc">संदेश तेज़ी से खोजें और अपने इनबॉक्स को साफ़ और सरल रखें।</string>
+    <string name="welcome_consent_prefix">गुमनाम अंतर्दृष्टि के साथ सुधार करने में हमारी सहायता करें। आपका डेटा निजी और सुरक्षित रहता है। मैं स्वीकार करता हूँ </string>
+    <string name="welcome_consent_terms">नियम और शर्तें</string>
+    <string name="welcome_consent_and"> और </string>
+    <string name="welcome_consent_privacy">गोपनीयता नीति</string>
+    <string name="welcome_consent_suffix">।</string>
+    <string name="welcome_continue">आगे बढ़ें</string>
+    <string name="welcome_permission_denied_message">SMS भेजने और प्राप्त करने के लिए अनुमति आवश्यक है। पुनः प्रयास करने के लिए आगे बढ़ें पर टैप करें।</string>
+    <string name="welcome_permission_settings_message">अनुमतियाँ आवश्यक हैं। जारी रखने के लिए उन्हें सेटिंग्स में सक्षम करें।</string>
+    <string name="welcome_open_settings">सेटिंग्स खोलें</string>
+
+    <!-- Set default SMS -->
+    <string name="set_default_sms_placeholder_label">एनिमेशन</string>
+    <string name="set_default_sms_body">टेक्स्ट संदेश भेजना और प्राप्त करना शुरू करने के लिए #संदेश को अपने डिफ़ॉल्ट SMS ऐप के रूप में सेट करें।</string>
+    <string name="set_default_sms_button">डिफ़ॉल्ट के रूप में सेट करें</string>
+    <string name="set_default_sms_hint">संदेश भेजने और प्राप्त करने के लिए इसे आपका डिफ़ॉल्ट SMS ऐप होना आवश्यक है। तैयार होने पर बटन दबाएं।</string>
+
+    <string name="overlay_permission_title">कॉल अलर्ट सक्षम करें</string>
+    <string name="overlay_permission_body">देखें कि कौन कॉल कर रहा है और स्क्रीन लॉक होने पर भी तुरंत उत्तर दें।</string>
+    <string name="overlay_permission_button">सक्षम करें और आगे बढ़ें</string>
+    <string name="overlay_permission_reassurance">आप इसे सेटिंग्स में किसी भी समय बंद कर सकते हैं।</string>
+    <string name="overlay_permission_mock_row_allow">अन्य ऐप्स पर प्रदर्शन की अनुमति दें और शीर्ष पर प्रदर्शित हों</string>
+    <string name="overlay_permission_mock_row_app">संदेशों</string>
+
+    <string name="battery_optimization_title">कॉल अलर्ट विश्वसनीय रखें</string>
+    <string name="battery_optimization_body">इसके बिना, एंड्रॉइड पृष्ठभूमि में ऐप को रोक सकता है।</string>
+    <string name="battery_optimization_button">अनुमति दें और आगे बढ़ें</string>
+    <string name="battery_optimization_reassurance">आप इसे सेटिंग्स में किसी भी समय बंद कर सकते हैं।</string>
+
+    <!-- Language -->
+    <string name="language_title">ऐप की भाषा चुनें</string>
+    <string name="language_continue">आगे बढ़ें</string>
+
+    <!-- Screen titles -->
+    <string name="screen_conversations">#संदेश</string>
+    <string name="screen_new_message">नया संदेश</string>
+    <string name="screen_search">खोजें</string>
+    <string name="screen_settings">सेटिंग्स</string>
+    <string name="screen_archived">संग्रहीत</string>
+
+    <!-- Home (conversation list) -->
+    <string name="home_filter_all">सभी</string>
+    <string name="home_filter_personal">व्यक्तिगत</string>
+    <string name="home_filter_transactions">लेन-देन</string>
+    <string name="home_filter_otp">OTP</string>
+    <string name="home_empty_title">अभी तक कोई संदेश नहीं</string>
+    <string name="home_empty_message">बातचीत शुरू करें और यह यहाँ दिखाई देगी।</string>
+    <string name="home_not_default_title">#संदेश को अपने डिफ़ॉल्ट SMS ऐप के रूप में सेट करें</string>
+    <string name="home_not_default_message">यहाँ अपनी बातचीत देखने के लिए ऐप को डिफ़ॉल्ट SMS ऐप बनाना होगा।</string>
+    <string name="home_sync_failed_message">कुछ संदेश लोड नहीं हो सके</string>
+    <string name="home_sync_retry">पुनः प्रयास करें</string>
+    <string name="home_archived_row_title">संग्रहीत</string>
+    <string name="home_archived_snackbar">संग्रहीत किया गया</string>
+    <string name="home_search_placeholder">संदेश खोजें</string>
+    <string name="home_new_chat_label">नई बातचीत</string>
+    <string name="home_otp_copy_label">OTP कॉपी करें</string>
+    <string name="home_otp_copied_toast">कोड कॉपी किया गया</string>
+    <string name="home_otp_copy_content_description">सत्यापन कोड कॉपी करें</string>
+    <string name="home_deleted_snackbar">हटाया गया</string>
+
+    <!-- Home multi-select -->
+    <string name="home_selection_close">बाहर निकलें चयन</string>
+    <string name="home_selection_count_format">%1$d/%2$d</string>
+    <string name="home_selection_archive">पुरालेख</string>
+    <string name="home_selection_delete">मिटाना</string>
+    <string name="home_selection_more">अधिक विकल्प</string>
+    <string name="home_selection_select_all">सबका चयन करें</string>
+    <string name="home_selection_mark_read">पढ़े हुए का चिह्न</string>
+    <string name="home_selection_mark_unread">अपठित के रूप में चिह्नित करें</string>
+    <string name="home_selection_pin">नत्थी करना</string>
+    <string name="home_selection_unpin">अनपिन</string>
+    <string name="home_pinned_content_description">पिन की गई</string>
+    <string name="home_selection_block">अवरोध पैदा करना</string>
+    <string name="home_selection_delete_confirm_message">इससे उनमें मौजूद सभी संदेश हट जाएंगे. इसे पूर्ववत नहीं किया जा सकता.</string>
+    <string name="home_selection_block_confirm_message">आपको इन प्रेषकों से संदेश या कॉल प्राप्त नहीं होंगे. आप बाद में उन्हें प्रत्येक वार्तालाप से अनब्लॉक कर सकते हैं।</string>
+
+    <!-- Archived -->
+    <string name="archived_unarchive">संग्रह से निकालें</string>
+    <string name="archived_empty_title">कोई संग्रहीत वार्तालाप नहीं</string>
+    <string name="archived_empty_message">आपके द्वारा संग्रहीत वार्तालाप यहां दिखाई देते हैं।</string>
+
+    <!-- Actions -->
+    <string name="action_search">खोजें</string>
+    <string name="action_new_message">नया संदेश</string>
+    <string name="action_settings">सेटिंग्स</string>
+    <string name="action_menu">मेन्यू</string>
+    <string name="action_back">वापस</string>
+    <string name="action_close">बंद करें</string>
+    <string name="action_cancel">रद्द करें</string>
+    <string name="action_undo">पूर्ववत करें</string>
+
+    <!-- Swipe actions (conversation list + Settings picker) -->
+    <string name="swipe_action_none">कोई नहीं</string>
+    <string name="swipe_action_archive">संग्रहित करें</string>
+    <string name="swipe_action_delete">हटाएं</string>
+    <string name="swipe_action_toggle_read">पढ़ा/अपठित चिन्हित करें</string>
+    <string name="swipe_action_call">कॉल करें</string>
+
+    <!-- Chat -->
+    <string name="chat_call">पुकारना</string>
+    <string name="chat_more_options">अधिक विकल्प</string>
+    <string name="chat_composer_hint">एक सन्देश लिखिए...</string>
+    <string name="chat_send">भेजना</string>
+    <string name="chat_add_attachment">अय्टाचमेंट जोडे</string>
+    <string name="chat_schedule_button_description">संदेश शेड्यूल करें</string>
+    <string name="chat_schedule_tooltip">अपना संदेश शेड्यूल करने के लिए टैप करें</string>
+    <string name="chat_remove_attachment">अनुलग्नक हटाएँ</string>
+    <string name="chat_status_sending">भेजा जा रहा है...</string>
+    <string name="chat_status_sent">भेजा</string>
+    <string name="chat_status_delivered">पहुंचा दिया</string>
+    <string name="chat_status_failed">असफल</string>
+    <string name="chat_status_failed_retry">असफल। पुन: प्रयास करने के लिए ठोकिए</string>
+    <string name="chat_conversation_info">बातचीत की जानकारी</string>
+    <string name="chat_topbar_pin">वार्तालाप पिन करें</string>
+    <string name="chat_topbar_unpin">बातचीत अनपिन करें</string>
+    <string name="chat_topbar_block">ब्लॉक संख्या</string>
+    <string name="chat_topbar_unblock">नंबर अनब्लॉक करें</string>
+    <string name="chat_topbar_archive">पुरालेख</string>
+    <string name="chat_topbar_unarchive">संग्रह से निकालें</string>
+    <string name="chat_topbar_block_confirm_title">इस वार्तालाप को अवरुद्ध करें?</string>
+    <string name="chat_topbar_block_confirm_message">आपको इस नंबर से संदेश या कॉल प्राप्त नहीं होंगे. आप इसे बाद में यहां से अनब्लॉक कर सकते हैं।</string>
+    <string name="chat_attachment_sheet_title">अपने संदेश में जोड़ें</string>
+    <string name="chat_attachment_gallery">गैलरी</string>
+    <string name="chat_attachment_camera">कैमरा</string>
+    <string name="chat_attachment_files">फ़ाइलें</string>
+    <string name="chat_attachment_location">जगह</string>
+    <string name="chat_attachment_contact">संपर्क</string>
+    <string name="chat_attachment_schedule">अनुसूची</string>
+    <string name="chat_attachment_coming_soon">जल्द आ रहा है</string>
+    <string name="chat_media_viewer_title">तस्वीर</string>
+    <string name="chat_security_notice">यह एसएमएस 100% सुरक्षित है। #मैसेज कभी भी पूर्व सहमति के बिना डेटा एकत्र नहीं करता। हर चीज़ आपके फ़ोन पर संसाधित और संग्रहीत होती है।</string>
+    <string name="chat_cant_reply_short_code">इस संक्षिप्त कोड का उत्तर नहीं दिया जा सकता</string>
+    <string name="chat_learn_more">और अधिक जानें</string>
+    <string name="chat_learn_more_dialog_message">आप व्यावसायिक प्रेषकों और संक्षिप्त कोड के संदेशों का उत्तर नहीं दे सकते।</string>
+    <string name="chat_learn_more_ok">ठीक है</string>
+    <string name="chat_otp_copy_label">"%1$s" कॉपी करें</string>
+    <string name="chat_otp_copy_content_description">सत्यापन कोड कॉपी करें</string>
+
+    <!-- Chat multi-select -->
+    <string name="chat_selection_close">बाहर निकलें चयन</string>
+    <string name="chat_selection_select_all">सबका चयन करें</string>
+    <string name="chat_selection_copy">प्रतिलिपि</string>
+    <string name="chat_selection_forward">आगे</string>
+    <string name="chat_selection_share">शेयर करना</string>
+    <string name="chat_selection_delete">मिटाना</string>
+    <string name="chat_selection_details">संदेश विवरण</string>
+    <string name="chat_selection_more">अधिक विकल्प</string>
+    <string name="chat_selection_copied_toast">कॉपी किया गया</string>
+    <string name="chat_selection_forward_attachments_unsupported">अनुलग्नक अभी अग्रेषित नहीं किये जा सकते</string>
+    <string name="chat_selection_share_title">संदेश साझा करें</string>
+    <string name="chat_selection_selected_indicator">चयनित</string>
+    <string name="chat_selection_delete_confirm_message">इसे पूर्ववत नहीं किया जा सकता.</string>
+
+    <!-- Message details -->
+    <string name="message_details_title">संदेश विवरण</string>
+    <string name="message_details_type">प्रकार</string>
+    <string name="message_details_type_sms">पाठ संदेश</string>
+    <string name="message_details_type_mms">मल्टीमीडिया संदेश</string>
+    <string name="message_details_from">से</string>
+    <string name="message_details_to">को</string>
+    <string name="message_details_time_sent">भेजा</string>
+    <string name="message_details_time_received">प्राप्त</string>
+    <string name="message_details_size">आकार</string>
+    <string name="message_details_size_characters">%1$dवर्ण</string>
+    <string name="message_details_status">स्थिति</string>
+    <string name="message_details_status_received">प्राप्त</string>
+    <string name="message_details_sim">सिम</string>
+    <string name="message_details_sim_value">सिम%1$d</string>
+    <string name="message_details_ok">ठीक है</string>
+
+    <!-- Dual-SIM send picker -->
+    <string name="chat_sim_picker_title">साथ भेजें</string>
+    <string name="chat_sim_picker_row_title">सिम%1$d-%2$s</string>
+    <string name="chat_sim_picker_remember">इस बातचीत के लिए याद रखें</string>
+    <string name="chat_sim_fallback_notice">आपका पसंदीदा सिम उपलब्ध नहीं था, इसलिए इसके बजाय इसे सिम%1$dके साथ भेजा गया था</string>
+    <string name="chat_sim_indicator_description">सिम%1$dके साथ भेजा जा रहा है। बदलने के लिए टैप करें.</string>
+    <string name="chat_sim_indicator_description_unknown">चुनें कि कौन सा सिम यह संदेश भेजता है</string>
+
+    <!-- Conversation info -->
+    <string name="conversation_info_title">बातचीत की जानकारी</string>
+    <string name="conversation_info_group_subtitle">%1$dलोग</string>
+    <string name="conversation_info_notifications_title">सूचनाएं</string>
+    <string name="conversation_info_notifications_muted_summary">म्यूट किए गए</string>
+    <string name="conversation_info_notifications_on_summary">पर</string>
+    <string name="conversation_info_participants_header">%1$dप्रतिभागी</string>
+    <string name="conversation_info_view_contact_not_available">कोई संपर्क ऐप नहीं मिला</string>
+    <string name="conversation_info_media_header">साझा मीडिया</string>
+    <string name="conversation_info_media_empty">अभी तक कोई फ़ोटो या वीडियो नहीं</string>
+    <string name="conversation_info_video_content_description">वीडियो</string>
+    <string name="conversation_info_pin">वार्तालाप पिन करें</string>
+    <string name="conversation_info_unpin">बातचीत अनपिन करें</string>
+    <string name="conversation_info_archive">पुरालेख</string>
+    <string name="conversation_info_unarchive">संग्रह से निकालें</string>
+    <string name="conversation_info_block">ब्लॉक संख्या</string>
+    <string name="conversation_info_unblock">नंबर अनब्लॉक करें</string>
+    <string name="conversation_info_delete">बातचीत मिटाएं</string>
+    <string name="conversation_info_block_confirm_title">इस वार्तालाप को अवरुद्ध करें?</string>
+    <string name="conversation_info_block_confirm_message">आपको इस नंबर से संदेश या कॉल प्राप्त नहीं होंगे. आप इसे बाद में यहां से अनब्लॉक कर सकते हैं।</string>
+    <string name="conversation_info_delete_confirm_title">यह वार्तालाप हटाएं?</string>
+    <string name="conversation_info_delete_confirm_message">इससे इस वार्तालाप का प्रत्येक संदेश हटा दिया जाता है. इसे पूर्ववत नहीं किया जा सकता.</string>
+
+    <!-- New message -->
+    <string name="new_message_to_label">को</string>
+    <string name="new_message_to_hint">नाम या फ़ोन नंबर</string>
+    <string name="new_message_send_to">"%1$s" पर भेजें</string>
+    <string name="new_message_contacts_permission_message">किसी प्राप्तकर्ता को नाम से चुनने के लिए सेटिंग्स में संपर्कों को पहुंच की अनुमति दें।</string>
+    <string name="new_message_no_contacts">कोई संपर्क नहीं मिला</string>
+
+    <!-- Search -->
+    <string name="search_hint">वार्तालाप खोजें</string>
+    <string name="search_clear">स्पष्ट खोज</string>
+    <string name="search_filter_all">सभी</string>
+    <string name="search_filter_people">लोग</string>
+    <string name="search_filter_messages">संदेशों</string>
+    <string name="search_recent_header">हाल की खोजें</string>
+    <string name="search_section_people">लोग</string>
+    <string name="search_section_messages">संदेशों</string>
+    <string name="search_no_results">"%1$s" के लिए कोई परिणाम नहीं</string>
+    <string name="search_empty_state">आपकी बातचीत यहां दिखाई देगी</string>
+
+    <!-- Notification channels -->
+    <string name="channel_incoming_messages">आने वाले संदेश</string>
+    <string name="channel_send_failures">विफलताएँ भेजें</string>
+    <string name="channel_call_monitor">कॉल मॉनिटरिंग</string>
+
+    <!-- CallEndTriggerService notifications -->
+    <string name="call_monitor_notification_title">कॉल-एंड के लिए सुन रहा हूँ</string>
+
+    <!-- Incoming-message notification -->
+    <string name="notification_mms_photo_placeholder">तस्वीर</string>
+    <string name="notification_mms_placeholder">एमएमएस</string>
+    <string name="notification_action_mark_read">पढ़े हुए का चिह्न</string>
+    <string name="notification_action_reply">जवाब</string>
+    <string name="notification_self_name">आप</string>
+    <string name="notification_unknown_sender">अज्ञात</string>
+
+    <!-- Settings -->
+    <string name="settings_section_appearance">सजावट</string>
+    <string name="settings_section_general">सामान्य</string>
+    <string name="settings_section_backup_sync">बैकअप और सिंक</string>
+    <string name="settings_section_about">के बारे में</string>
+
+    <string name="settings_theme_title">थीम</string>
+    <string name="settings_theme_summary">%1$s थीम · %2$s</string>
+    <string name="settings_text_size_title">फ़ॉन्ट आकार</string>
+    <string name="settings_text_size_value">मध्यम</string>
+
+    <!-- Theme picker -->
+    <string name="theme_mode_system">सिस्टम</string>
+    <string name="theme_mode_light">लाइट</string>
+    <string name="theme_mode_dark">डार्क</string>
+    <string name="theme_picker_mode_header">थीम मोड</string>
+    <string name="theme_picker_color_header">मुख्य रंग</string>
+    <string name="theme_picker_color_default">डिफ़ॉल्ट</string>
+    <string name="theme_picker_color_custom">कस्टम</string>
+    <string name="theme_picker_default_swatch_description">डिफ़ॉल्ट रंग का प्रयोग करें</string>
+    <string name="theme_picker_custom_swatch_description">एक कस्टम रंग चुनें</string>
+    <string name="theme_picker_custom_color_title">कस्टम रंग</string>
+    <string name="action_done">हो गया</string>
+    <string name="action_select">चुनना</string>
+
+    <string name="settings_default_app_title">डिफ़ॉल्ट SMS ऐप</string>
+    <string name="settings_default_app_summary">#संदेश को अपने डिफ़ॉल्ट SMS ऐप के रूप में सेट करें</string>
+    <string name="settings_language_title">भाषा</string>
+    <string name="settings_notifications_title">सूचनाएं</string>
+    <string name="settings_notifications_summary">नए संदेशों के लिए सूचना दिखाएं</string>
+    <string name="settings_delivery_reports_title">डिलीवरी रिपोर्ट</string>
+    <string name="settings_delivery_reports_summary">संदेश डिलीवर होने पर सूचित करें</string>
+    <string name="settings_quick_reply_title">त्वरित उत्तर</string>
+    <string name="settings_quick_reply_summary">सूचना पट्टी से संदेशों का उत्तर दें</string>
+
+    <string name="settings_swipe_actions_title">स्वाइप क्रियाएं</string>
+    <string name="settings_swipe_actions_summary">%1$s · %2$s</string>
+    <string name="settings_swipe_right_header">दाएं स्वाइप करें</string>
+    <string name="settings_swipe_left_header">बाईं ओर स्वाइप करें</string>
+
+    <!-- Dual-SIM send preference (dual-SIM devices only, entirely hidden otherwise) -->
+    <string name="settings_sim_for_sending_title">संदेश भेजने के लिए सिम</string>
+    <string name="settings_sim_slot_summary">सिम%1$d-%2$s</string>
+    <string name="settings_sim_ask_every_time">हर बार पूछो</string>
+    <string name="settings_sim_permission_needed">अनुमति की आवश्यकता है</string>
+
+    <string name="settings_auto_backup_title">ऑटो बैकअप</string>
+    <string name="settings_auto_backup_summary">संदेशों का स्वचालित बैकअप लें</string>
+    <string name="settings_backup_now_title">अभी बैकअप लें</string>
+    <string name="settings_last_backup_never">अंतिम बैकअप: कभी नहीं</string>
+    <string name="settings_last_backup_at">अंतिम बैकअप: %1$s</string>
+    <string name="settings_restore_title">पुनर्स्थापित करें</string>
+    <string name="settings_restore_summary">पिछले बैकअप से पुनर्स्थापित करें</string>
+    <string name="settings_wifi_only_title">केवल वाई-फ़ाई</string>
+
+    <string name="settings_backup_exporting">संदेशों का बैकअप लिया जा रहा है...</string>
+    <string name="settings_backup_importing">संदेशों को पुनर्स्थापित किया जा रहा है…</string>
+    <string name="settings_backup_export_success">समर्थित%1$dसंदेश</string>
+    <string name="settings_backup_import_success">पुनर्स्थापित%1$dसंदेश</string>
+    <string name="settings_backup_not_default_app">बैकअप पुनर्स्थापित करने से पहले #Messages को अपने डिफ़ॉल्ट एसएमएस ऐप के रूप में सेट करें</string>
+    <string name="settings_backup_destination_unavailable">वह फ़ाइल नहीं खुल सकी</string>
+    <string name="settings_backup_error">बैकअप विफल:%1$s</string>
+
+    <string name="settings_app_version_title">ऐप संस्करण</string>
+    <string name="settings_rate_app_title">ऐप को रेट करें</string>
+    <string name="settings_privacy_policy_title">गोपनीयता नीति</string>
+    <string name="settings_licenses_title">ओपन सोर्स लाइसेंस</string>
+    <string name="settings_help_feedback_title">सहायता और प्रतिक्रिया</string>
+
+    <!-- Contacts list (call-end screen's "View Contacts") -->
+    <string name="screen_contacts">संपर्क</string>
+    <string name="contacts_list_empty">कोई संपर्क नहीं मिला</string>
+
+    <!-- Call-end screen -->
+    <string name="call_end_unknown_caller">अज्ञात</string>
+    <string name="call_end_duration_label">अवधि • %1$s</string>
+    <string name="call_end_call_back">वापस कॉल करें</string>
+    <string name="call_end_whatsapp">व्हाट्सएप</string>
+    <string name="call_end_whatsapp_business">व्हाट्सएप बिजनेस</string>
+    <string name="call_end_telegram">टेलीग्राम</string>
+    <string name="call_end_tab_list">सूची</string>
+    <string name="call_end_tab_archive">संग्रह</string>
+    <string name="call_end_tab_more">अधिक</string>
+    <string name="call_end_list_empty">कोई हालिया बातचीत नहीं</string>
+    <string name="call_end_archive_empty">कोई संग्रहीत बातचीत नहीं</string>
+    <string name="call_end_archive_empty_description">बातचीत को संग्रहित करें और उन्हें किसी भी समय देखें</string>
+    <string name="call_end_archive_button">संग्रह</string>
+    <string name="call_end_menu_contacts">संपर्क देखें</string>
+    <string name="call_end_menu_messages">संदेश</string>
+    <string name="call_end_menu_schedule">संदेश शेड्यूल करें</string>
+    <string name="call_end_menu_backup">बैकअप और पुनर्स्थापना</string>
+    <string name="call_end_ad_label">विज्ञापन</string>
+
+    <!-- ComingSoonScreen stub -->
+    <string name="coming_soon_title">%1$sजल्द ही आ रहा है</string>
+    <string name="coming_soon_body">हम अभी भी इस सुविधा पर काम कर रहे हैं। भविष्य के अपडेट में दोबारा जाँचें।</string>
+</resources>

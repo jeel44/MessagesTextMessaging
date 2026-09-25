@@ -1,15 +1,19 @@
 package text.message.sms.messaging
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivityResultRegistryOwner
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -17,6 +21,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -28,8 +34,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import text.message.sms.messaging.data.local.datastore.ThemeMode
-import text.message.sms.messaging.data.local.datastore.ThemePreference
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
 import text.message.sms.messaging.data.local.provider.ProviderChangeObserver
 import text.message.sms.messaging.di.ApplicationScope
@@ -39,22 +45,33 @@ import text.message.sms.messaging.ui.navigation.MessagingDestination
 import text.message.sms.messaging.ui.navigation.MessagingNavHost
 import text.message.sms.messaging.ui.theme.AppTheme
 import text.message.sms.messaging.util.ColdStartTracer
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.res.AssetManager
+import android.content.res.Resources
+import java.util.Locale
 import javax.inject.Inject
+
+private class LocalizedContext(
+    activity: Context,
+    configuration: Configuration,
+) : ContextWrapper(activity) {
+
+    private val localizedContext: Context by lazy {
+        activity.createConfigurationContext(configuration)
+    }
+
+    override fun getResources(): Resources {
+        return localizedContext.resources
+    }
+
+    override fun getAssets(): AssetManager {
+        return localizedContext.assets
+    }
+}
 
 /**
  * The app's only activity; every screen is a Compose destination inside [MessagingNavHost].
- *
- * Also the catch-all for the default-SMS-app role changing while this app was not driving the
- * change itself -- e.g. the user backgrounds the app, flips the default SMS app in system
- * Settings, then returns. [onResume] re-checks [DefaultSmsAppGuard.isDefault] against the value
- * last observed and, only on a false-to-true transition, starts a catch-up sync and registers
- * [ProviderChangeObserver] (a no-op if [MessagingApplication.onCreate] already registered it at
- * launch -- the observer guards its own double-registration). In-app grants (onboarding's
- * [text.message.sms.messaging.ui.screens.onboarding.SetDefaultSmsScreen], Home's own empty-state
- * prompt) also trigger their own immediate sync and registration, so this is a safety net for the
- * outside-the-app path, not the only path -- both are safe to run together since
- * [text.message.sms.messaging.data.repository.TelephonySyncRepository.syncAll] is idempotent and
- * [ProviderChangeObserver.register] is a no-op once already registered.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -72,67 +89,36 @@ class MainActivity : ComponentActivity() {
     lateinit var themePreferences: ThemePreferences
 
     @Inject
+    lateinit var onboardingPreferences: OnboardingPreferences
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
     private var wasDefaultSmsApp = false
 
-    /** Non-null exactly when an [IncomingMessageNotifier][text.message.sms.messaging.domain
-     * .repository.IncomingMessageNotifier] notification (or any other [EXTRA_THREAD_ID]-carrying intent) was
-     * just tapped -- read once by the `LaunchedEffect` inside [setContent] below, which navigates
-     * to that thread and resets this back to null. A plain Activity field (not `SavedStateHandle`
-     * or a ViewModel) since it is only ever a same-process, single-use handoff into the Compose
-     * tree, exactly like [text.message.sms.messaging.util.ChatOpenHint]. */
     private var pendingThreadId by mutableStateOf<Long?>(null)
-
-    /** True exactly when [text.message.sms.messaging.ui.screens.callend.CallEndActivity]
-     * handed off a "View Contacts" tap -- the same same-process, single-use handoff as
-     * [pendingThreadId] above, read once by [setContent]'s own `LaunchedEffect` below, which
-     * navigates to [MessagingDestination.ContactsList] and resets this to false. */
     private var pendingOpenContacts by mutableStateOf(false)
-
-    /** Same shape as [pendingOpenContacts], for a "coming soon" item tapped on
-     * [text.message.sms.messaging.ui.screens.callend.CallEndActivity]'s call-end screen --
-     * navigates to [MessagingDestination.ComingSoon] once non-null. */
     private var pendingComingSoonFeature by mutableStateOf<String?>(null)
-
-    /** True until navigation has moved off [MessagingDestination.Splash] -- see the
-     * `setKeepOnScreenCondition` call below. Starts true so the system splash installed by
-     * [installSplashScreen] (see `Theme.App.Starting` in themes.xml) stays up across the whole
-     * gap between process start and [text.message.sms.messaging.ui.screens.onboarding.SplashScreen]
-     * resolving the onboarding flag and navigating away, instead of a blank frame or a second,
-     * separately-timed Compose splash ever being visible. */
     private var keepSystemSplashOnScreen by mutableStateOf(true)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         ColdStartTracer.mark("MainActivity.onCreate:start")
-        // Must run before super.onCreate() -- this is what lets the OS keep showing the themed
-        // splash (icon + background from Theme.App.Starting) instead of a blank window while the
-        // rest of onCreate/setContent below runs.
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         ColdStartTracer.mark("MainActivity.onCreate:afterSuper")
         splashScreen.setKeepOnScreenCondition { keepSystemSplashOnScreen }
-        // Seeded here, before the onCreate-following onResume ever runs, so that first onResume
-        // never mistakes an already-granted role for a fresh grant and fires a redundant sync.
         wasDefaultSmsApp = defaultSmsAppGuard.isDefault
         pendingThreadId = intent.threadIdExtra()
         pendingOpenContacts = intent.getBooleanExtra(EXTRA_OPEN_CONTACTS, false)
         pendingComingSoonFeature = intent.getStringExtra(EXTRA_COMING_SOON_FEATURE)
 
         enableEdgeToEdge()
-        // MessagingApplication.onCreate has already migrated/persisted an explicit theme mode by
-        // this point, so this is a fast read of already-resident DataStore state -- done
-        // synchronously so the very first composed frame (including SplashScreen, both wrapped in
-        // AppTheme below) already reflects it, instead of momentarily showing
-        // collectAsStateWithLifecycle's own initialValue default before the flow's first real
-        // emission lands (a visible light/dark flash on the app's first frame otherwise).
         ColdStartTracer.mark("MainActivity.onCreate:beforeThemeRunBlocking")
         val initialThemePreference = runBlocking { themePreferences.themePreference.first() }
+        val initialLanguageTag = runBlocking { onboardingPreferences.languageTag.first() }
         ColdStartTracer.mark("MainActivity.onCreate:afterThemeRunBlocking")
-        // First (and only, for this investigation) OnPreDrawListener on the root view: fires just
-        // before the window's first real draw pass, the same signal `adb shell am start -W`'s
-        // TotalTime is itself based on -- see ColdStartTracer's doc comment.
+
         window.decorView.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
             override fun onPreDraw(): Boolean {
                 window.decorView.viewTreeObserver.removeOnPreDrawListener(this)
@@ -144,12 +130,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             remember {
                 ColdStartTracer.mark("MainActivity:firstComposition(setContent root)")
+                true
             }
-            // Live over ThemePreferences.themePreference, not a one-shot read -- a change made in
-            // Settings' theme picker recomposes this the moment DataStore commits it, so the
-            // whole app recolors immediately rather than only on the next cold start.
             val themePreference by themePreferences.themePreference
                 .collectAsStateWithLifecycle(initialValue = initialThemePreference)
+
+            val languageTag by onboardingPreferences.languageTag
+                .collectAsStateWithLifecycle(initialValue = initialLanguageTag)
 
             val darkTheme = when (themePreference.mode) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
@@ -157,78 +144,76 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.DARK -> true
             }
 
-            AppTheme(darkTheme = darkTheme, accentColor = themePreference.accentColor) {
-                // enableEdgeToEdge()'s own default style is fixed at onCreate and never reacts to
-                // an in-app theme override (ThemeMode.LIGHT/DARK against a differing system mode),
-                // so the status/navigation bar icon color is set explicitly here instead, recomputed
-                // whenever darkTheme itself changes -- dark icons over the light background, light
-                // icons once the app is actually in dark theme.
-                SideEffect {
-                    val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-                    insetsController.isAppearanceLightStatusBars = !darkTheme
-                    insetsController.isAppearanceLightNavigationBars = !darkTheme
+            val currentContext = LocalContext.current
+            val currentConfig = LocalConfiguration.current
+
+            val localizedContextAndConfig = remember(languageTag, currentContext, currentConfig) {
+                val tag = languageTag
+                val locale = if (tag.isNullOrBlank() || tag == "system") {
+                    Locale.getDefault()
+                } else {
+                    Locale.forLanguageTag(tag)
                 }
-                Surface(
-                    // testTagsAsResourceId turns every Modifier.testTag below into a real
-                    // resource-id UiAutomator can query -- the baseline profile generator (see
-                    // the :baselineprofile module) drives this app as a black box and has no
-                    // other reliable, localization-proof way to find a specific element.
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .semantics { testTagsAsResourceId = true },
-                    color = MaterialTheme.colorScheme.background,
-                ) {
-                    // Created here (rather than left to MessagingNavHost's own default) so the
-                    // deep-link effect below can drive it directly, on top of whatever the graph
-                    // is already showing.
-                    val navController = rememberNavController()
+                val config = Configuration(currentConfig).apply {
+                    setLocale(locale)
+                    setLayoutDirection(locale)
+                }
+                val localizedContext = LocalizedContext(currentContext, config)
+                localizedContext to config
+            }
 
-                    // Dismisses the system splash (see keepSystemSplashOnScreen/installSplashScreen
-                    // above) the moment the graph moves off Splash -- whichever of
-                    // onOnboardingComplete/onOnboardingIncomplete it took. Runs once per
-                    // composition, not once per back-stack change: by the time this has fired the
-                    // splash is gone for good, and Splash is never navigated back to.
-                    LaunchedEffect(navController) {
-                        navController.currentBackStackEntryFlow
-                            .first { it.destination.route != MessagingDestination.Splash.route }
-                        keepSystemSplashOnScreen = false
+            CompositionLocalProvider(
+                LocalContext provides localizedContextAndConfig.first,
+                LocalConfiguration provides localizedContextAndConfig.second,
+                LocalActivityResultRegistryOwner provides this@MainActivity,
+                LocalOnBackPressedDispatcherOwner provides this@MainActivity,
+            ) {
+                AppTheme(darkTheme = darkTheme, accentColor = themePreference.accentColor) {
+                    SideEffect {
+                        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+                        insetsController.isAppearanceLightStatusBars = !darkTheme
+                        insetsController.isAppearanceLightNavigationBars = !darkTheme
                     }
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .semantics { testTagsAsResourceId = true },
+                        color = MaterialTheme.colorScheme.background,
+                    ) {
+                        val navController = rememberNavController()
 
-                    // Waits for the graph to actually reach ConversationList before pushing Chat
-                    // on top -- at a cold start the graph begins at Splash and only gets there
-                    // asynchronously (it awaits onboarding's own DataStore read), and navigating
-                    // to Chat any earlier would race Splash's own popUpTo navigation. In practice
-                    // this never actually waits long: every entry point that can set
-                    // pendingThreadId (a notification tap) only exists once a message has already
-                    // been received, which itself requires onboarding to be long complete.
-                    LaunchedEffect(pendingThreadId) {
-                        val threadId = pendingThreadId ?: return@LaunchedEffect
-                        navController.currentBackStackEntryFlow
-                            .first { it.destination.route == MessagingDestination.ConversationList.route }
-                        navController.navigate(MessagingDestination.Chat.routeFor(threadId))
-                        pendingThreadId = null
+                        LaunchedEffect(navController) {
+                            navController.currentBackStackEntryFlow
+                                .first { it.destination.route != MessagingDestination.Splash.route }
+                            keepSystemSplashOnScreen = false
+                        }
+
+                        LaunchedEffect(pendingThreadId) {
+                            val threadId = pendingThreadId ?: return@LaunchedEffect
+                            navController.currentBackStackEntryFlow
+                                .first { it.destination.route == MessagingDestination.ConversationList.route }
+                            navController.navigate(MessagingDestination.Chat.routeFor(threadId))
+                            pendingThreadId = null
+                        }
+
+                        LaunchedEffect(pendingOpenContacts) {
+                            if (!pendingOpenContacts) return@LaunchedEffect
+                            navController.currentBackStackEntryFlow
+                                .first { it.destination.route == MessagingDestination.ConversationList.route }
+                            navController.navigate(MessagingDestination.ContactsList.route)
+                            pendingOpenContacts = false
+                        }
+
+                        LaunchedEffect(pendingComingSoonFeature) {
+                            val featureTitle = pendingComingSoonFeature ?: return@LaunchedEffect
+                            navController.currentBackStackEntryFlow
+                                .first { it.destination.route == MessagingDestination.ConversationList.route }
+                            navController.navigate(MessagingDestination.ComingSoon.routeFor(featureTitle))
+                            pendingComingSoonFeature = null
+                        }
+
+                        MessagingNavHost(navController = navController)
                     }
-
-                    // Same shape as the pendingThreadId effect above -- a "View Contacts" tap
-                    // handed off from CallEndActivity (see its own doc comment).
-                    LaunchedEffect(pendingOpenContacts) {
-                        if (!pendingOpenContacts) return@LaunchedEffect
-                        navController.currentBackStackEntryFlow
-                            .first { it.destination.route == MessagingDestination.ConversationList.route }
-                        navController.navigate(MessagingDestination.ContactsList.route)
-                        pendingOpenContacts = false
-                    }
-
-                    // Same shape again, for a "coming soon" item handed off from CallEndActivity.
-                    LaunchedEffect(pendingComingSoonFeature) {
-                        val featureTitle = pendingComingSoonFeature ?: return@LaunchedEffect
-                        navController.currentBackStackEntryFlow
-                            .first { it.destination.route == MessagingDestination.ConversationList.route }
-                        navController.navigate(MessagingDestination.ComingSoon.routeFor(featureTitle))
-                        pendingComingSoonFeature = null
-                    }
-
-                    MessagingNavHost(navController = navController)
                 }
             }
         }
@@ -257,17 +242,8 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        /** Carries the thread an [IncomingMessageNotifier][text.message.sms.messaging.domain
-         * .repository.IncomingMessageNotifier] notification was tapped for -- read by [threadIdExtra] in
-         * both [onCreate] (cold start) and [onNewIntent] (already running). */
         const val EXTRA_THREAD_ID: String = "extra_thread_id"
-
-        /** Set by [text.message.sms.messaging.ui.screens.callend.CallEndActivity] when it hands
-         * off a "View Contacts" tap -- see [pendingOpenContacts]. */
         const val EXTRA_OPEN_CONTACTS: String = "extra_open_contacts"
-
-        /** Set by [text.message.sms.messaging.ui.screens.callend.CallEndActivity] when it hands
-         * off a "coming soon" item tap -- see [pendingComingSoonFeature]. */
         const val EXTRA_COMING_SOON_FEATURE: String = "extra_coming_soon_feature"
     }
 }

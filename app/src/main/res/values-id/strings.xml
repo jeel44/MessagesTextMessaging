@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">#Pesan</string>
+
+    <!-- Onboarding -->
+    <string name="splash_tagline">Sederhana. Cepat. Aman.</string>
+
+    <!-- Welcome -->
+    <string name="welcome_eyebrow">Selamat Datang di</string>
+    <string name="welcome_tagline">Cepat. Mudah. Tepercaya.</string>
+    <string name="welcome_subtitle">Tetap terhubung dengan pesan lancar tepat setelah panggilan Anda berakhir.</string>
+    <string name="welcome_privacy_prefix">Dengan Melanjutkan, Anda menyetujui kami</string>
+    <string name="welcome_privacy_suffix">.</string>
+    <string name="welcome_headline">Selamat Datang di #Pesan</string>
+    <string name="welcome_feature_sms_title">SMS Cepat &amp; Andal</string>
+    <string name="welcome_feature_sms_desc">Kirim dan terima pesan dengan cepat dengan pengalaman mengirim pesan teks yang lancar.</string>
+    <string name="welcome_feature_notifications_title">Notifikasi Cerdas</string>
+    <string name="welcome_feature_notifications_desc">Tetap perbarui dengan pesan penting dan pemberitahuan khusus.</string>
+    <string name="welcome_feature_privacy_title">Pribadi &amp; Aman</string>
+    <string name="welcome_feature_privacy_desc">Percakapan Anda tetap terlindungi dan hanya dapat dilihat oleh Anda.</string>
+    <string name="welcome_feature_search_title">Cari &amp; Atur</string>
+    <string name="welcome_feature_search_desc">Temukan pesan lebih cepat dan jaga kotak masuk Anda tetap rapi dan sederhana.</string>
+    <string name="welcome_consent_prefix">Bantu kami meningkatkan kualitas dengan wawasan anonim. Data Anda tetap pribadi dan aman. Saya setuju dengan</string>
+    <string name="welcome_consent_terms">Syarat &amp; Ketentuan</string>
+    <string name="welcome_consent_and">Dan</string>
+    <string name="welcome_consent_privacy">Kebijakan Privasi</string>
+    <string name="welcome_consent_suffix">.</string>
+    <string name="welcome_continue">Lanjutkan</string>
+    <string name="welcome_permission_denied_message">Izin SMS diperlukan agar #Pesan dapat mengirim dan menerima teks. Ketuk Lanjutkan untuk mencoba lagi.</string>
+    <string name="welcome_permission_settings_message">Izin SMS diperlukan agar #Messages dapat berfungsi. Aktifkan di Pengaturan untuk melanjutkan.</string>
+    <string name="welcome_open_settings">Buka Pengaturan</string>
+
+    <!-- Set default SMS -->
+    <string name="set_default_sms_placeholder_label">Animasi Lottie di sini</string>
+    <string name="set_default_sms_body">Tetapkan #Pesan sebagai aplikasi SMS default Anda untuk mulai mengirim dan menerima teks.</string>
+    <string name="set_default_sms_button">Tetapkan sebagai Default</string>
+    <string name="set_default_sms_hint">#Pesan harus menjadi aplikasi SMS default Anda untuk mengirim dan menerima SMS. Ketuk tombol kapan pun Anda siap.</string>
+
+    <string name="overlay_permission_title">Aktifkan peringatan panggilan</string>
+    <string name="overlay_permission_body">Lihat siapa yang menelepon &amp; membalas secara instan, bahkan saat layar Anda terkunci.</string>
+    <string name="overlay_permission_button">Aktifkan &amp; lanjutkan</string>
+    <string name="overlay_permission_reassurance">Anda dapat menonaktifkannya kapan saja di Setelan.</string>
+    <string name="overlay_permission_mock_row_allow">Izinkan tampilan di atas aplikasi lain &amp; muncul di atas</string>
+    <string name="overlay_permission_mock_row_app">Pesan</string>
+
+    <string name="battery_optimization_title">Jaga agar peringatan panggilan tetap dapat diandalkan</string>
+    <string name="battery_optimization_body">Tanpa ini, Android dapat menjeda #Pesan di latar belakang dan melewatkan saat panggilan berakhir.</string>
+    <string name="battery_optimization_button">Izinkan &amp; lanjutkan</string>
+    <string name="battery_optimization_reassurance">Anda dapat menonaktifkannya kapan saja di Setelan.</string>
+
+    <!-- Language -->
+    <string name="language_title">Pilih Bahasa Aplikasi</string>
+    <string name="language_continue">Lanjutkan</string>
+
+    <!-- Screen titles -->
+    <string name="screen_conversations">#Pesan</string>
+    <string name="screen_new_message">Pesan Baru</string>
+    <string name="screen_search">Cari</string>
+    <string name="screen_settings">Pengaturan</string>
+    <string name="screen_archived">Arsip</string>
+
+    <!-- Home (conversation list) -->
+    <string name="home_filter_all">Semua</string>
+    <string name="home_filter_personal">Pribadi</string>
+    <string name="home_filter_transactions">Transaksi</string>
+    <string name="home_filter_otp">OTP</string>
+    <string name="home_empty_title">Belum ada pesan</string>
+    <string name="home_empty_message">Mulai percakapan dan itu akan muncul di sini.</string>
+    <string name="home_not_default_title">Tetapkan #Messages sebagai aplikasi SMS default Anda</string>
+    <string name="home_not_default_message">#Pesan harus menjadi aplikasi SMS default Anda untuk menyinkronkan dan menampilkan percakapan Anda di sini.</string>
+    <string name="home_sync_failed_message">Beberapa pesan tidak dapat dimuat</string>
+    <string name="home_sync_retry">Mencoba kembali</string>
+    <string name="home_archived_row_title">Diarsipkan</string>
+    <string name="home_archived_snackbar">Diarsipkan</string>
+    <string name="home_search_placeholder">Cari Pesan</string>
+    <string name="home_new_chat_label">Obrolan Baru</string>
+    <string name="home_otp_copy_label">Salin OTP</string>
+    <string name="home_otp_copied_toast">Kode disalin</string>
+    <string name="home_otp_copy_content_description">Salin kode verifikasi</string>
+    <string name="home_deleted_snackbar">Dihapus</string>
+
+    <!-- Home multi-select -->
+    <string name="home_selection_close">Keluar dari seleksi</string>
+    <string name="home_selection_count_format">%1$d/%2$d</string>
+    <string name="home_selection_archive">Arsip</string>
+    <string name="home_selection_delete">Menghapus</string>
+    <string name="home_selection_more">Opsi lainnya</string>
+    <string name="home_selection_select_all">Pilih semua</string>
+    <string name="home_selection_mark_read">Tandai sebagai telah dibaca</string>
+    <string name="home_selection_mark_unread">Tandai sebagai belum dibaca</string>
+    <string name="home_selection_pin">Pin</string>
+    <string name="home_selection_unpin">Membuka peniti</string>
+    <string name="home_pinned_content_description">Disematkan</string>
+    <string name="home_selection_block">Memblokir</string>
+    <string name="home_selection_delete_confirm_message">Ini akan menghapus semua pesan di dalamnya. Hal ini tidak dapat dibatalkan.</string>
+    <string name="home_selection_block_confirm_message">Anda tidak akan menerima pesan atau panggilan dari pengirim ini. Anda dapat membatalkan pemblokirannya nanti dari setiap percakapan.</string>
+
+    <!-- Archived -->
+    <string name="archived_unarchive">Batalkan pengarsipan</string>
+    <string name="archived_empty_title">Tidak ada percakapan yang diarsipkan</string>
+    <string name="archived_empty_message">Percakapan yang Anda arsipkan akan muncul di sini.</string>
+
+    <!-- Actions -->
+    <string name="action_search">Mencari</string>
+    <string name="action_new_message">Pesan baru</string>
+    <string name="action_settings">Pengaturan</string>
+    <string name="action_menu">Menu</string>
+    <string name="action_back">Kembali</string>
+    <string name="action_close">Menutup</string>
+    <string name="action_cancel">Membatalkan</string>
+    <string name="action_undo">Membuka</string>
+
+    <!-- Swipe actions (conversation list + Settings picker) -->
+    <string name="swipe_action_none">Tidak ada</string>
+    <string name="swipe_action_archive">Arsip</string>
+    <string name="swipe_action_delete">Menghapus</string>
+    <string name="swipe_action_toggle_read">Tandai sudah dibaca/belum dibaca</string>
+    <string name="swipe_action_call">Panggilan</string>
+
+    <!-- Chat -->
+    <string name="chat_call">Panggilan</string>
+    <string name="chat_more_options">Opsi lainnya</string>
+    <string name="chat_composer_hint">Tulis pesan...</string>
+    <string name="chat_send">Mengirim</string>
+    <string name="chat_add_attachment">Tambahkan lampiran</string>
+    <string name="chat_schedule_button_description">Jadwalkan pesan</string>
+    <string name="chat_schedule_tooltip">Ketuk untuk menjadwalkan pesan Anda</string>
+    <string name="chat_remove_attachment">Hapus lampiran</string>
+    <string name="chat_status_sending">Mengirim…</string>
+    <string name="chat_status_sent">Terkirim</string>
+    <string name="chat_status_delivered">Terkirim</string>
+    <string name="chat_status_failed">Gagal</string>
+    <string name="chat_status_failed_retry">Gagal. Ketuk untuk mencoba lagi</string>
+    <string name="chat_conversation_info">Informasi percakapan</string>
+    <string name="chat_topbar_pin">Sematkan percakapan</string>
+    <string name="chat_topbar_unpin">Lepas sematan percakapan</string>
+    <string name="chat_topbar_block">Nomor blok</string>
+    <string name="chat_topbar_unblock">Buka blokir nomor</string>
+    <string name="chat_topbar_archive">Arsip</string>
+    <string name="chat_topbar_unarchive">Batalkan pengarsipan</string>
+    <string name="chat_topbar_block_confirm_title">Blokir percakapan ini?</string>
+    <string name="chat_topbar_block_confirm_message">Anda tidak akan menerima pesan atau panggilan dari nomor ini. Anda dapat membuka blokirnya nanti dari sini.</string>
+    <string name="chat_attachment_sheet_title">Tambahkan ke pesan Anda</string>
+    <string name="chat_attachment_gallery">Galeri</string>
+    <string name="chat_attachment_camera">Kamera</string>
+    <string name="chat_attachment_files">File</string>
+    <string name="chat_attachment_location">Lokasi</string>
+    <string name="chat_attachment_contact">Kontak</string>
+    <string name="chat_attachment_schedule">Jadwal</string>
+    <string name="chat_attachment_coming_soon">Segera hadir</string>
+    <string name="chat_media_viewer_title">Foto</string>
+    <string name="chat_security_notice">SMS ini 100% Aman. #Pesan tidak pernah mengumpulkan data tanpa persetujuan sebelumnya. Semuanya diproses dan disimpan di ponsel Anda.</string>
+    <string name="chat_cant_reply_short_code">Tidak dapat membalas kode pendek ini</string>
+    <string name="chat_learn_more">Pelajari Lebih Lanjut</string>
+    <string name="chat_learn_more_dialog_message">Anda tidak dapat membalas pesan dari pengirim bisnis dan kode pendek.</string>
+    <string name="chat_learn_more_ok">OKE</string>
+    <string name="chat_otp_copy_label">Salin "%1$s"</string>
+    <string name="chat_otp_copy_content_description">Salin kode verifikasi</string>
+
+    <!-- Chat multi-select -->
+    <string name="chat_selection_close">Keluar dari seleksi</string>
+    <string name="chat_selection_select_all">Pilih semua</string>
+    <string name="chat_selection_copy">Menyalin</string>
+    <string name="chat_selection_forward">Maju</string>
+    <string name="chat_selection_share">Membagikan</string>
+    <string name="chat_selection_delete">Menghapus</string>
+    <string name="chat_selection_details">Detail pesan</string>
+    <string name="chat_selection_more">Opsi lainnya</string>
+    <string name="chat_selection_copied_toast">Disalin</string>
+    <string name="chat_selection_forward_attachments_unsupported">Lampiran belum dapat diteruskan</string>
+    <string name="chat_selection_share_title">Bagikan pesan</string>
+    <string name="chat_selection_selected_indicator">Terpilih</string>
+    <string name="chat_selection_delete_confirm_message">Hal ini tidak dapat dibatalkan.</string>
+
+    <!-- Message details -->
+    <string name="message_details_title">Detail pesan</string>
+    <string name="message_details_type">Jenis</string>
+    <string name="message_details_type_sms">Pesan teks</string>
+    <string name="message_details_type_mms">Pesan multimedia</string>
+    <string name="message_details_from">Dari</string>
+    <string name="message_details_to">Ke</string>
+    <string name="message_details_time_sent">Terkirim</string>
+    <string name="message_details_time_received">Diterima</string>
+    <string name="message_details_size">Ukuran</string>
+    <string name="message_details_size_characters">karakter%1$d</string>
+    <string name="message_details_status">Status</string>
+    <string name="message_details_status_received">Diterima</string>
+    <string name="message_details_sim">SIM</string>
+    <string name="message_details_sim_value">SIM%1$d</string>
+    <string name="message_details_ok">OKE</string>
+
+    <!-- Dual-SIM send picker -->
+    <string name="chat_sim_picker_title">Kirim dengan</string>
+    <string name="chat_sim_picker_row_title">SIM%1$d-%2$s</string>
+    <string name="chat_sim_picker_remember">Ingatlah untuk percakapan ini</string>
+    <string name="chat_sim_fallback_notice">SIM pilihan Anda tidak tersedia, jadi SIM ini dikirim dengan SIM%1$d</string>
+    <string name="chat_sim_indicator_description">Mengirim dengan SIM%1$d. Ketuk untuk mengubah.</string>
+    <string name="chat_sim_indicator_description_unknown">Pilih SIM mana yang mengirim pesan ini</string>
+
+    <!-- Conversation info -->
+    <string name="conversation_info_title">Informasi percakapan</string>
+    <string name="conversation_info_group_subtitle">orang%1$d</string>
+    <string name="conversation_info_notifications_title">Pemberitahuan</string>
+    <string name="conversation_info_notifications_muted_summary">Meredam</string>
+    <string name="conversation_info_notifications_on_summary">Pada</string>
+    <string name="conversation_info_participants_header">peserta%1$d</string>
+    <string name="conversation_info_view_contact_not_available">Tidak ada aplikasi kontak yang ditemukan</string>
+    <string name="conversation_info_media_header">Media bersama</string>
+    <string name="conversation_info_media_empty">Belum ada foto atau video</string>
+    <string name="conversation_info_video_content_description">Video</string>
+    <string name="conversation_info_pin">Sematkan percakapan</string>
+    <string name="conversation_info_unpin">Lepas sematan percakapan</string>
+    <string name="conversation_info_archive">Arsip</string>
+    <string name="conversation_info_unarchive">Batalkan pengarsipan</string>
+    <string name="conversation_info_block">Nomor blok</string>
+    <string name="conversation_info_unblock">Buka blokir nomor</string>
+    <string name="conversation_info_delete">Hapus percakapan</string>
+    <string name="conversation_info_block_confirm_title">Blokir percakapan ini?</string>
+    <string name="conversation_info_block_confirm_message">Anda tidak akan menerima pesan atau panggilan dari nomor ini. Anda dapat membuka blokirnya nanti dari sini.</string>
+    <string name="conversation_info_delete_confirm_title">Hapus percakapan ini?</string>
+    <string name="conversation_info_delete_confirm_message">Tindakan ini akan menghapus setiap pesan dalam percakapan ini. Hal ini tidak dapat dibatalkan.</string>
+
+    <!-- New message -->
+    <string name="new_message_to_label">Ke</string>
+    <string name="new_message_to_hint">Nama atau nomor telepon</string>
+    <string name="new_message_send_to">Kirim ke "%1$s"</string>
+    <string name="new_message_contacts_permission_message">Izinkan akses kontak di Pengaturan untuk memilih penerima berdasarkan nama.</string>
+    <string name="new_message_no_contacts">Tidak ada kontak yang ditemukan</string>
+
+    <!-- Search -->
+    <string name="search_hint">Cari percakapan</string>
+    <string name="search_clear">Hapus pencarian</string>
+    <string name="search_filter_all">Semua</string>
+    <string name="search_filter_people">Rakyat</string>
+    <string name="search_filter_messages">Pesan</string>
+    <string name="search_recent_header">Pencarian terkini</string>
+    <string name="search_section_people">Rakyat</string>
+    <string name="search_section_messages">Pesan</string>
+    <string name="search_no_results">Hasil pencarian "%1$s" tidak dapat ditemukan</string>
+    <string name="search_empty_state">Percakapan Anda akan muncul di sini</string>
+
+    <!-- Notification channels -->
+    <string name="channel_incoming_messages">Pesan masuk</string>
+    <string name="channel_send_failures">Kirim kegagalan</string>
+    <string name="channel_call_monitor">Pemantauan panggilan</string>
+
+    <!-- CallEndTriggerService notifications -->
+    <string name="call_monitor_notification_title">Mendengarkan panggilan berakhir</string>
+
+    <!-- Incoming-message notification -->
+    <string name="notification_mms_photo_placeholder">Foto</string>
+    <string name="notification_mms_placeholder">MMS</string>
+    <string name="notification_action_mark_read">Tandai sebagai telah dibaca</string>
+    <string name="notification_action_reply">Membalas</string>
+    <string name="notification_self_name">Anda</string>
+    <string name="notification_unknown_sender">Tidak dikenal</string>
+
+    <!-- Settings -->
+    <string name="settings_section_appearance">Tampilan</string>
+    <string name="settings_section_general">Umum</string>
+    <string name="settings_section_backup_sync">Pencadangan &amp; Sinkronisasi</string>
+    <string name="settings_section_about">Tentang</string>
+
+    <string name="settings_theme_title">Tema</string>
+    <string name="settings_theme_summary">Tema%1$s·%2$s</string>
+    <string name="settings_text_size_title">Ukuran teks</string>
+    <string name="settings_text_size_value">Sedang</string>
+
+    <!-- Theme picker -->
+    <string name="theme_mode_system">Sistem</string>
+    <string name="theme_mode_light">Lampu</string>
+    <string name="theme_mode_dark">Gelap</string>
+    <string name="theme_picker_mode_header">Modus tema</string>
+    <string name="theme_picker_color_header">Warna aksen</string>
+    <string name="theme_picker_color_default">Bawaan</string>
+    <string name="theme_picker_color_custom">Kebiasaan</string>
+    <string name="theme_picker_default_swatch_description">Gunakan warna default</string>
+    <string name="theme_picker_custom_swatch_description">Pilih warna khusus</string>
+    <string name="theme_picker_custom_color_title">Warna khusus</string>
+    <string name="action_done">Selesai</string>
+    <string name="action_select">Memilih</string>
+
+    <string name="settings_default_app_title">Aplikasi SMS bawaan</string>
+    <string name="settings_default_app_summary">Tetapkan #Messages sebagai aplikasi SMS default Anda</string>
+    <string name="settings_language_title">Bahasa</string>
+    <string name="settings_notifications_title">Pemberitahuan</string>
+    <string name="settings_notifications_summary">Tampilkan pemberitahuan untuk pesan baru</string>
+    <string name="settings_delivery_reports_title">Laporan pengiriman</string>
+    <string name="settings_delivery_reports_summary">Dapatkan pemberitahuan saat pesan terkirim</string>
+    <string name="settings_quick_reply_title">Balasan cepat</string>
+    <string name="settings_quick_reply_summary">Membalas pesan dari bayangan notifikasi</string>
+
+    <string name="settings_swipe_actions_title">Tindakan geser</string>
+    <string name="settings_swipe_actions_summary">%1$s·%2$s</string>
+    <string name="settings_swipe_right_header">Geser ke kanan</string>
+    <string name="settings_swipe_left_header">Geser ke kiri</string>
+
+    <!-- Dual-SIM send preference (dual-SIM devices only, entirely hidden otherwise) -->
+    <string name="settings_sim_for_sending_title">SIM untuk mengirim pesan</string>
+    <string name="settings_sim_slot_summary">SIM%1$d-%2$s</string>
+    <string name="settings_sim_ask_every_time">Tanyakan setiap saat</string>
+    <string name="settings_sim_permission_needed">Diperlukan izin</string>
+
+    <string name="settings_auto_backup_title">Pencadangan otomatis</string>
+    <string name="settings_auto_backup_summary">Cadangkan pesan secara otomatis</string>
+    <string name="settings_backup_now_title">Cadangkan sekarang</string>
+    <string name="settings_last_backup_never">Cadangan terakhir: Tidak pernah</string>
+    <string name="settings_last_backup_at">Cadangan terakhir:%1$s</string>
+    <string name="settings_restore_title">Memulihkan</string>
+    <string name="settings_restore_summary">Pulihkan dari cadangan sebelumnya</string>
+    <string name="settings_wifi_only_title">Hanya Wi-Fi</string>
+
+    <string name="settings_backup_exporting">Mencadangkan pesan…</string>
+    <string name="settings_backup_importing">Memulihkan pesan…</string>
+    <string name="settings_backup_export_success">Pesan%1$dyang dicadangkan</string>
+    <string name="settings_backup_import_success">Pesan%1$dyang dipulihkan</string>
+    <string name="settings_backup_not_default_app">Tetapkan #Messages sebagai aplikasi SMS default Anda sebelum memulihkan cadangan</string>
+    <string name="settings_backup_destination_unavailable">Tidak dapat membuka file itu</string>
+    <string name="settings_backup_error">Pencadangan gagal:%1$s</string>
+
+    <string name="settings_app_version_title">Versi aplikasi</string>
+    <string name="settings_rate_app_title">Nilai aplikasinya</string>
+    <string name="settings_privacy_policy_title">Kebijakan privasi</string>
+    <string name="settings_licenses_title">Lisensi sumber terbuka</string>
+    <string name="settings_help_feedback_title">Bantuan &amp; umpan balik</string>
+
+    <!-- Contacts list (call-end screen's "View Contacts") -->
+    <string name="screen_contacts">Kontak</string>
+    <string name="contacts_list_empty">Tidak ada kontak yang ditemukan</string>
+
+    <!-- Call-end screen -->
+    <string name="call_end_unknown_caller">Tidak Dikenal</string>
+    <string name="call_end_duration_label">Durasi • %1$s</string>
+    <string name="call_end_call_back">Panggil Balik</string>
+    <string name="call_end_whatsapp">Ada apa</string>
+    <string name="call_end_whatsapp_business">Bisnis WhatsApp</string>
+    <string name="call_end_telegram">Telegram</string>
+    <string name="call_end_tab_list">Daftar</string>
+    <string name="call_end_tab_archive">Arsip</string>
+    <string name="call_end_tab_more">Lainnya</string>
+    <string name="call_end_list_empty">Tidak ada percakapan terkini</string>
+    <string name="call_end_archive_empty">Tidak ada percakapan yang diarsipkan</string>
+    <string name="call_end_archive_empty_description">Arsipkan percakapan dan akses kapan saja</string>
+    <string name="call_end_archive_button">Arsip</string>
+    <string name="call_end_menu_contacts">Lihat Kontak</string>
+    <string name="call_end_menu_messages">Pesan</string>
+    <string name="call_end_menu_schedule">Jadwalkan pesan</string>
+    <string name="call_end_menu_backup">Cadangkan &amp; Pulihkan</string>
+    <string name="call_end_ad_label">Iklan</string>
+
+    <!-- ComingSoonScreen stub -->
+    <string name="coming_soon_title">%1$sakan segera hadir</string>
+    <string name="coming_soon_body">Kami masih mengerjakan fitur ini. Periksa kembali di pembaruan mendatang.</string>
+</resources>

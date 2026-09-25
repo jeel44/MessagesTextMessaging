@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">#Mesaje</string>
+
+    <!-- Onboarding -->
+    <string name="splash_tagline">Simplu. Rapid. Sigur.</string>
+
+    <!-- Welcome -->
+    <string name="welcome_eyebrow">Bun venit la</string>
+    <string name="welcome_tagline">Rapid. Ușor. De încredere.</string>
+    <string name="welcome_subtitle">Rămâneți conectat cu mesaje fluide imediat după încheierea apelului.</string>
+    <string name="welcome_privacy_prefix">Continuând, sunteți de acord cu </string>
+    <string name="welcome_privacy_suffix">.</string>
+    <string name="welcome_headline">Bun venit la #Mesaje</string>
+    <string name="welcome_feature_sms_title">SMS Rapid &amp; De încredere</string>
+    <string name="welcome_feature_sms_desc">Trimiteți și primiți mesaje rapid cu o experiență fluidă.</string>
+    <string name="welcome_feature_notifications_title">Notificări Inteligente</string>
+    <string name="welcome_feature_notifications_desc">Rămâneți la curent cu mesaje importante și notificări personalizate.</string>
+    <string name="welcome_feature_privacy_title">Privat &amp; Sigur</string>
+    <string name="welcome_feature_privacy_desc">Conversațiile dvs. rămân protejate și vizibile doar pentru dvs.</string>
+    <string name="welcome_feature_search_title">Căutare &amp; Organizare</string>
+    <string name="welcome_feature_search_desc">Găsiți mesaje mai rapid și păstrați căsuța de primire curată.</string>
+    <string name="welcome_consent_prefix">Ajutați-ne să îmbunătățim aplicația. Sunt de acord cu </string>
+    <string name="welcome_consent_terms">Termenii și Condițiile</string>
+    <string name="welcome_consent_and"> și </string>
+    <string name="welcome_consent_privacy">Politica de Confidențialitate</string>
+    <string name="welcome_consent_suffix">.</string>
+    <string name="welcome_continue">Continuă</string>
+    <string name="welcome_permission_denied_message">Permisiunile SMS sunt necesare pentru a trimite și primi mesaje.</string>
+    <string name="welcome_permission_settings_message">Permisiunile sunt necesare. Activați-le din Setări pentru a continua.</string>
+    <string name="welcome_open_settings">Deschide Setări</string>
+
+    <!-- Language -->
+    <string name="language_title">Selectați limba aplicației</string>
+    <string name="language_continue">Continuă</string>
+
+    <!-- Screen titles -->
+    <string name="screen_conversations">#Mesaje</string>
+    <string name="screen_new_message">Mesaj nou</string>
+    <string name="screen_search">Căutare</string>
+    <string name="screen_settings">Setări</string>
+    <string name="screen_archived">Arhivate</string>
+
+    <!-- Home -->
+    <string name="home_filter_all">Toate</string>
+    <string name="home_filter_personal">Personal</string>
+    <string name="home_filter_transactions">Tranzacții</string>
+    <string name="home_filter_otp">OTP</string>
+    <string name="home_empty_title">Niciun mesaj încă</string>
+    <string name="home_search_placeholder">Căutare mesaje</string>
+
+    <!-- Actions -->
+    <string name="action_search">Căutare</string>
+    <string name="action_new_message">Mesaj nou</string>
+    <string name="action_settings">Setări</string>
+    <string name="action_menu">Meniu</string>
+    <string name="action_back">Înapoi</string>
+    <string name="action_close">Închide</string>
+    <string name="action_cancel">Anulează</string>
+    <string name="action_undo">Anulează acțiunea</string>
+
+    <!-- Swipe actions -->
+    <string name="swipe_action_none">Niciunul</string>
+    <string name="swipe_action_archive">Arhivează</string>
+    <string name="swipe_action_delete">Șterge</string>
+    <string name="swipe_action_toggle_read">Marchează citit/necitit</string>
+    <string name="swipe_action_call">Apelează</string>
+
+    <!-- Settings -->
+    <string name="settings_section_appearance">Aspect</string>
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_backup_sync">Backup și Sincronizare</string>
+    <string name="settings_section_about">Despre</string>
+
+    <string name="settings_theme_title">Temă</string>
+    <string name="settings_theme_summary">Temă %1$s · %2$s</string>
+    <string name="settings_text_size_title">Dimensiune text</string>
+    <string name="settings_text_size_value">Medie</string>
+
+    <string name="theme_mode_system">Sistem</string>
+    <string name="theme_mode_light">Luminos</string>
+    <string name="theme_mode_dark">Întunecat</string>
+    <string name="theme_picker_mode_header">Mod temă</string>
+    <string name="theme_picker_color_header">Culoare accent</string>
+
+    <string name="settings_default_app_title">Aplicație SMS implicită</string>
+    <string name="settings_default_app_summary">Setați #Mesaje ca aplicație SMS implicită</string>
+    <string name="settings_language_title">Limbă</string>
+    <string name="settings_notifications_title">Notificări</string>
+    <string name="settings_notifications_summary">Afișați notificări pentru mesaje noi</string>
+    <string name="settings_delivery_reports_title">Rapoarte de livrare</string>
+    <string name="settings_delivery_reports_summary">Primiți notificare când un mesaj este livrat</string>
+    <string name="settings_quick_reply_title">Răspuns rapid</string>
+    <string name="settings_quick_reply_summary">Răspundeți din bara de notificări</string>
+
+    <string name="settings_swipe_actions_title">Acțiuni glisare</string>
+    <string name="settings_swipe_actions_summary">%1$s · %2$s</string>
+
+    <string name="settings_auto_backup_title">Backup automat</string>
+    <string name="settings_auto_backup_summary">Faceți backup automat mesajelor</string>
+    <string name="settings_backup_now_title">Faceți backup acum</string>
+    <string name="settings_last_backup_never">Ultimul backup: Niciodată</string>
+    <string name="settings_last_backup_at">Ultimul backup: %1$s</string>
+    <string name="settings_restore_title">Restaurare</string>
+    <string name="settings_restore_summary">Restaurați dintr-un backup anterior</string>
+    <string name="settings_wifi_only_title">Doar Wi-Fi</string>
+
+    <string name="settings_app_version_title">Versiune aplicație</string>
+    <string name="settings_rate_app_title">Evaluați aplicația</string>
+    <string name="settings_privacy_policy_title">Politica de confidențialitate</string>
+    <string name="settings_licenses_title">Licențe open source</string>
+    <string name="settings_help_feedback_title">Ajutor și feedback</string>
+
+    <!-- Call end -->
+    <string name="call_end_unknown_caller">Necunoscut</string>
+    <string name="call_end_duration_label">Durată • %1$s</string>
+    <string name="call_end_call_back">Sună înapoi</string>
+    <string name="call_end_whatsapp">WhatsApp</string>
+    <string name="call_end_whatsapp_business">WhatsApp Business</string>
+    <string name="call_end_telegram">Telegram</string>
+    <string name="call_end_tab_list">Listă</string>
+    <string name="call_end_tab_archive">Arhivă</string>
+    <string name="call_end_tab_more">Mai mult</string>
+    <string name="call_end_list_empty">Nicio conversație recentă</string>
+    <string name="call_end_archive_empty">Nicio conversație arhivată</string>
+    <string name="call_end_archive_empty_description">Arhivați conversațiile pentru a le accesa oricând</string>
+    <string name="call_end_archive_button">Arhivă</string>
+    <string name="call_end_menu_contacts">Afișați contactele</string>
+    <string name="call_end_menu_messages">Mesaje</string>
+    <string name="call_end_menu_schedule">Programează mesaj</string>
+    <string name="call_end_menu_backup">Backup și restaurare</string>
+</resources>
