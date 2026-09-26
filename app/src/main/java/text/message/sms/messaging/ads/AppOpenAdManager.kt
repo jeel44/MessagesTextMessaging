@@ -127,7 +127,9 @@ class AppOpenAdManager @Inject constructor(
     /** Splash's cold-start wait: true once an unexpired ad is ready, false as soon as consent
      * rules ads out or the load fails. Never times out on its own -- the caller bounds it. */
     suspend fun awaitAdForLaunch(): Boolean {
-        if (adConsentManager.state.first { it != AdConsentState.Pending } != AdConsentState.Allowed) {
+        val consent = adConsentManager.state.first { it != AdConsentState.Pending }
+        if (consent != AdConsentState.Allowed) {
+            debugLog("launch wait: consent=$consent, no ad")
             return false
         }
         maybeLoad()
@@ -141,6 +143,9 @@ class AppOpenAdManager @Inject constructor(
     fun showIfReady(activity: Activity, onFinished: () -> Unit): Boolean {
         if (isShowingAd) return false
         val ready = loadState.value as? LoadState.Ready
+        if (ready != null) {
+            debugLog("show attempt: ad age=${formatMillis(ready.ageMillis())} (expires at ${formatMillis(AD_EXPIRY_MILLIS)})")
+        }
         if (ready == null || ready.isExpired()) {
             debugLog(if (ready == null) "not ready (${loadState.value}), skipping" else "expired, discarding")
             if (ready != null) loadState.value = LoadState.Idle
@@ -178,18 +183,32 @@ class AppOpenAdManager @Inject constructor(
     override fun onStart(owner: LifecycleOwner) {
         val backgroundedAt = backgroundedAtMillis
         val selfInitiated = selfInitiatedTrip || suppressNextForeground
+        val selfInitiatedReason = when {
+            selfInitiatedTrip -> "self-initiated navigation"
+            suppressNextForeground -> "deep-link return"
+            else -> null
+        }
         backgroundedAtMillis = null
         selfInitiatedTrip = false
         suppressNextForeground = false
 
+        val backgroundedFor = backgroundedAt?.let { SystemClock.elapsedRealtime() - it }
         val eligible = when {
-            backgroundedAt == null -> true
+            backgroundedFor == null -> true
             selfInitiated -> false
-            else -> SystemClock.elapsedRealtime() - backgroundedAt >= MIN_BACKGROUND_MILLIS
+            else -> backgroundedFor >= MIN_BACKGROUND_MILLIS
+        }
+        val reason = when {
+            backgroundedFor == null -> "first foreground of process"
+            selfInitiatedReason != null -> selfInitiatedReason
+            eligible -> "background ${formatMillis(backgroundedFor)} >= ${formatMillis(MIN_BACKGROUND_MILLIS)}"
+            else -> "background ${formatMillis(backgroundedFor)} < ${formatMillis(MIN_BACKGROUND_MILLIS)}"
         }
         debugLog(
             "foreground: firstForeground=${backgroundedAt == null} selfInitiated=$selfInitiated " +
-                "eligible=$eligible freshMainActivity=$freshMainActivityThisTrip",
+                "backgroundedFor=${backgroundedFor?.let(::formatMillis) ?: "n/a"} " +
+                "eligible=$eligible ($reason) freshMainActivity=$freshMainActivityThisTrip " +
+                "consent=${adConsentManager.state.value} ad=${loadStateSummary()}",
         )
 
         if (freshMainActivityThisTrip) {
@@ -232,10 +251,21 @@ class AppOpenAdManager @Inject constructor(
     }
 
     private fun maybeLoad() {
-        if (!mainActivityCreated || adConsentManager.state.value != AdConsentState.Allowed) return
+        if (!mainActivityCreated) {
+            debugLog("load skipped: no MainActivity in this process yet")
+            return
+        }
+        val consent = adConsentManager.state.value
+        if (consent != AdConsentState.Allowed) {
+            debugLog("load skipped: consent=$consent (needs Allowed)")
+            return
+        }
         when (val state = loadState.value) {
             LoadState.Loading -> return
-            is LoadState.Ready -> if (!state.isExpired()) return
+            is LoadState.Ready -> {
+                if (!state.isExpired()) return
+                debugLog("cached ad expired (age=${formatMillis(state.ageMillis())}), reloading")
+            }
             LoadState.Idle, LoadState.Failed -> Unit
         }
         loadState.value = LoadState.Loading
@@ -258,8 +288,20 @@ class AppOpenAdManager @Inject constructor(
         )
     }
 
-    private fun LoadState.Ready.isExpired(): Boolean =
-        SystemClock.elapsedRealtime() - loadedAtMillis >= AD_EXPIRY_MILLIS
+    private fun LoadState.Ready.ageMillis(): Long = SystemClock.elapsedRealtime() - loadedAtMillis
+
+    private fun LoadState.Ready.isExpired(): Boolean = ageMillis() >= AD_EXPIRY_MILLIS
+
+    private fun loadStateSummary(): String = when (val state = loadState.value) {
+        is LoadState.Ready -> "Ready(age=${formatMillis(state.ageMillis())}, expired=${state.isExpired()})"
+        else -> state.toString()
+    }
+
+    private fun formatMillis(millis: Long): String = when {
+        millis < 60_000L -> "%.1fs".format(millis / 1000.0)
+        millis < 3_600_000L -> "%dm%02ds".format(millis / 60_000L, millis % 60_000L / 1000L)
+        else -> "%dh%02dm".format(millis / 3_600_000L, millis % 3_600_000L / 60_000L)
+    }
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         if (activity is AdActivity) liveAdActivities++

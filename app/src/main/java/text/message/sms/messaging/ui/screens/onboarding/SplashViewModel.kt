@@ -2,6 +2,7 @@ package text.message.sms.messaging.ui.screens.onboarding
 
 import android.app.Activity
 import android.os.SystemClock
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.ads.AppOpenAdManager
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import javax.inject.Inject
@@ -65,14 +67,31 @@ internal class SplashViewModel @Inject constructor(
             val onboardingComplete = onboardingPreferences.isOnboardingComplete.first()
             // Always consumed, so a stale eligibility can never leak into a later Splash.
             val adEligible = appOpenAdManager.consumeLaunchEligibility()
-            if (!onboardingComplete || isDeepLinkLaunch || !adEligible) {
+            val skipReason = when {
+                !onboardingComplete -> "onboarding incomplete"
+                isDeepLinkLaunch -> "deep-link launch"
+                !adEligible -> "not eligible at foreground (see AppOpenAdManager foreground line)"
+                else -> null
+            }
+            if (skipReason != null) {
+                debugLog("launch ad skipped: $skipReason")
                 _step.value = SplashStep.Done(onboardingComplete)
                 return@launch
             }
+            debugLog("launch ad eligible: holding up to ${MAX_HOLD_MILLIS}ms for the ad")
             _step.value = SplashStep.Holding
             val holdStart = SystemClock.elapsedRealtime()
-            val adReady = withTimeoutOrNull(MAX_HOLD_MILLIS) { appOpenAdManager.awaitAdForLaunch() } == true
-            val remaining = MIN_HOLD_MILLIS - (SystemClock.elapsedRealtime() - holdStart)
+            val waitResult = withTimeoutOrNull(MAX_HOLD_MILLIS) { appOpenAdManager.awaitAdForLaunch() }
+            val waited = SystemClock.elapsedRealtime() - holdStart
+            debugLog(
+                when (waitResult) {
+                    null -> "launch ad timed out after ${waited}ms (limit ${MAX_HOLD_MILLIS}ms), going to inbox"
+                    true -> "launch ad ready after ${waited}ms, showing"
+                    false -> "launch ad unavailable after ${waited}ms (consent not Allowed or load failed/expired)"
+                },
+            )
+            val adReady = waitResult == true
+            val remaining = MIN_HOLD_MILLIS - waited
             if (remaining > 0) delay(remaining)
             _step.value = if (adReady) SplashStep.ShowAd else SplashStep.Done(onboardingComplete = true)
         }
@@ -88,7 +107,12 @@ internal class SplashViewModel @Inject constructor(
         if (!shown) done()
     }
 
+    private fun debugLog(message: String) {
+        if (BuildConfig.DEBUG) Log.d(TAG, message)
+    }
+
     private companion object {
+        const val TAG = "SplashViewModel"
         const val MIN_HOLD_MILLIS = 1_000L
         const val MAX_HOLD_MILLIS = 3_500L
     }
