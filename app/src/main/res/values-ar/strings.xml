@@ -149,7 +149,6 @@
     <string name="chat_attachment_schedule">جدول</string>
     <string name="chat_attachment_coming_soon">قريباً</string>
     <string name="chat_media_viewer_title">صورة</string>
-    <string name="chat_security_notice">هذه الرسالة النصية القصيرة آمنة بنسبة 100%. #الرسائل لا تجمع البيانات أبدًا دون موافقة مسبقة. تتم معالجة كل شيء وتخزينه على هاتفك.</string>
     <string name="chat_cant_reply_short_code">لا يمكن الرد على هذا الرمز القصير</string>
     <string name="chat_learn_more">يتعلم أكثر</string>
     <string name="chat_learn_more_dialog_message">لا يمكنك الرد على الرسائل الواردة من مرسلي الأعمال والرموز القصيرة.</string>

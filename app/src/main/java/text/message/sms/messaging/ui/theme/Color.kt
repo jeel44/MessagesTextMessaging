@@ -162,12 +162,6 @@ internal val ChatReceivedBubble = Color(0xFFEFEDEE)
  * user's picked accent or dynamic color. */
 internal val ChatLinkColor = Color(0xFF3A6FD8)
 
-/** Fill for the non-personal chat's "this SMS is secure" notice card -- light theme only. */
-internal val ChatSecurityCardBackground = Color(0xFFE4EAF6)
-
-/** Body text color inside the non-personal chat's security notice card -- light theme only. */
-internal val ChatSecurityCardText = Color(0xFF3C4043)
-
 /** "Can't reply to this short code" label color in non-personal chat mode -- light theme only. */
 internal val ChatCantReplyGray = Color(0xFF5F6368)
 

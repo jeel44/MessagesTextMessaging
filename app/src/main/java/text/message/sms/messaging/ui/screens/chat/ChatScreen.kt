@@ -63,7 +63,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material.icons.outlined.EmojiEmotions
@@ -168,8 +167,6 @@ import text.message.sms.messaging.ui.theme.ChatDateSeparatorGray
 import text.message.sms.messaging.ui.theme.ChatHintGray
 import text.message.sms.messaging.ui.theme.ChatNeutralFill
 import text.message.sms.messaging.ui.theme.ChatOtpCopyBorderGray
-import text.message.sms.messaging.ui.theme.ChatSecurityCardBackground
-import text.message.sms.messaging.ui.theme.ChatSecurityCardText
 import text.message.sms.messaging.ui.theme.ChatSendButtonDisabled
 import text.message.sms.messaging.ui.theme.ChatSendButtonEnabled
 import text.message.sms.messaging.ui.theme.ChatTopBarDivider
@@ -430,7 +427,7 @@ fun ChatScreen(
         },
         bottomBar = {
             // No branch at all for ChatMode.UNKNOWN -- neither the composer nor the non-personal
-            // security card renders until the real mode is known, so there's nothing to visibly
+            // bottom bar renders until the real mode is known, so there's nothing to visibly
             // swap out once it resolves (see ChatMode's doc comment).
             when (chatMode) {
                 ChatMode.PERSONAL -> ChatComposer(
@@ -1560,11 +1557,11 @@ private fun ScheduleTooltipBubble(onDismiss: () -> Unit, modifier: Modifier = Mo
 
 /**
  * Bottom area for a non-personal thread (business/short-code/OTP/transactional sender) -- replaces
- * [ChatComposer] entirely, since these threads can't be replied to. The security notice card, the
- * "can't reply" row, then the compact native ad slot ([nativeAdState]: shimmer while it loads --
- * including while ad consent is still pending -- the card once it has, nothing if it failed or
- * consent doesn't allow ads). [showOtpCopy] on each [ChatMessageRow] (not this bar) handles the
- * OTP quick-copy affordance.
+ * [ChatComposer] entirely, since these threads can't be replied to. The "can't reply" row, then
+ * the compact native ad slot ([nativeAdState]: shimmer while it loads -- including while ad
+ * consent is still pending -- the card once it has, nothing if it failed or consent doesn't allow
+ * ads). [showOtpCopy] on each [ChatMessageRow] (not this bar) handles the OTP quick-copy
+ * affordance.
  */
 @Composable
 private fun NonPersonalBottomBar(
@@ -1584,33 +1581,6 @@ private fun NonPersonalBottomBar(
                 .fillMaxWidth()
                 .navigationBarsPadding(),
         ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = if (isLight) ChatSecurityCardBackground else MaterialTheme.colorScheme.surfaceContainerHigh,
-                shadowElevation = 2.dp,
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Security,
-                        contentDescription = null,
-                        tint = if (isLight) ChatAvatarAccentBlue else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(32.dp),
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = stringResource(R.string.chat_security_notice),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp, lineHeight = 16.sp),
-                        color = if (isLight) ChatSecurityCardText else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

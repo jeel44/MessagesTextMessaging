@@ -149,7 +149,6 @@
     <string name="chat_attachment_schedule">Calendrier</string>
     <string name="chat_attachment_coming_soon">À venir</string>
     <string name="chat_media_viewer_title">Photo</string>
-    <string name="chat_security_notice">Ce SMS est 100% sécurisé. #Messages ne collecte jamais de données sans consentement préalable. Tout est traité et stocké sur votre téléphone.</string>
     <string name="chat_cant_reply_short_code">Je ne peux pas répondre à ce short code</string>
     <string name="chat_learn_more">Apprendre encore plus</string>
     <string name="chat_learn_more_dialog_message">Vous ne pouvez pas répondre aux messages des expéditeurs professionnels et aux codes courts.</string>

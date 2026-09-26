@@ -149,7 +149,6 @@
     <string name="chat_attachment_schedule">Cronograma</string>
     <string name="chat_attachment_coming_soon">Muy pronto</string>
     <string name="chat_media_viewer_title">Foto</string>
-    <string name="chat_security_notice">Este SMS es 100% Seguro. #Mensajes nunca recopila datos sin el consentimiento previo. Todo se procesa y almacena en su teléfono.</string>
     <string name="chat_cant_reply_short_code">No puedo responder a este código corto</string>
     <string name="chat_learn_more">Más información</string>
     <string name="chat_learn_more_dialog_message">No puede responder mensajes de remitentes comerciales ni códigos cortos.</string>

@@ -149,7 +149,6 @@
     <string name="chat_attachment_schedule">일정</string>
     <string name="chat_attachment_coming_soon">곧 출시 예정</string>
     <string name="chat_media_viewer_title">사진</string>
-    <string name="chat_security_notice">이 SMS는 100% 안전합니다. #메시지는 사전 동의 없이 데이터를 수집하지 않습니다. 모든 것이 처리되어 휴대폰에 저장됩니다.</string>
     <string name="chat_cant_reply_short_code">이 단축번호에 답장할 수 없습니다.</string>
     <string name="chat_learn_more">자세히 알아보기</string>
     <string name="chat_learn_more_dialog_message">비즈니스 발신자 및 단축 코드가 보낸 메시지에는 답장할 수 없습니다.</string>

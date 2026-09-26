@@ -150,7 +150,6 @@
     <string name="chat_attachment_schedule">Programma</string>
     <string name="chat_attachment_coming_soon">Prossimamente</string>
     <string name="chat_media_viewer_title">Foto</string>
-    <string name="chat_security_notice">Questo SMS è sicuro al 100%. #I messaggi non raccolgono mai dati senza previo consenso. Tutto viene elaborato e archiviato sul tuo telefono.</string>
     <string name="chat_cant_reply_short_code">Impossibile rispondere a questo codice breve</string>
     <string name="chat_learn_more">Saperne di più</string>
     <string name="chat_learn_more_dialog_message">Non puoi rispondere ai messaggi provenienti da mittenti aziendali e codici funzione.</string>

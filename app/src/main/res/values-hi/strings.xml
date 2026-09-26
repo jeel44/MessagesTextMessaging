@@ -149,7 +149,6 @@
     <string name="chat_attachment_schedule">अनुसूची</string>
     <string name="chat_attachment_coming_soon">जल्द आ रहा है</string>
     <string name="chat_media_viewer_title">तस्वीर</string>
-    <string name="chat_security_notice">यह एसएमएस 100% सुरक्षित है। #मैसेज कभी भी पूर्व सहमति के बिना डेटा एकत्र नहीं करता। हर चीज़ आपके फ़ोन पर संसाधित और संग्रहीत होती है।</string>
     <string name="chat_cant_reply_short_code">इस संक्षिप्त कोड का उत्तर नहीं दिया जा सकता</string>
     <string name="chat_learn_more">और अधिक जानें</string>
     <string name="chat_learn_more_dialog_message">आप व्यावसायिक प्रेषकों और संक्षिप्त कोड के संदेशों का उत्तर नहीं दे सकते।</string>

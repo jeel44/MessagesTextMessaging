@@ -59,7 +59,7 @@ import javax.inject.Inject
 /** [ChatScreen]'s personal/non-personal render mode -- see [ChatViewModel.chatMode]. Never
  * defaults to [PERSONAL]: [UNKNOWN] is the only state before the real answer (from a Home/Archived
  * tap's [ChatOpenHint], or otherwise [ChatViewModel]'s own [Conversation] load) is known, and
- * [ChatScreen] renders no call icon and no bottom area (neither composer nor security card) while
+ * [ChatScreen] renders no call icon and no bottom area (neither composer nor non-personal bar) while
  * it's [UNKNOWN], so the mode can only ever be set once, correctly, never flip after the fact. */
 internal enum class ChatMode { UNKNOWN, PERSONAL, NON_PERSONAL }
 

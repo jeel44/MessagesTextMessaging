@@ -46,11 +46,12 @@ fun Conversation.isTransaction(): Boolean =
 /**
  * Whether [text.message.sms.messaging.ui.screens.chat.ChatScreen] should render this thread as a
  * personal chat (full composer, call button, blue sent bubbles) rather than a read-only
- * non-personal thread (business/short-code/OTP/transactional sender -- security notice instead of
- * a composer). Broader than [isPersonal]: an *unsaved* contact's plain phone number still counts as
- * personal here, since most 1:1 texting happens with people who were never saved as a contact --
- * Home's chip only needs "definitely a person" (saved contact) to build a useful filter, but Chat
- * needs the opposite call, "definitely NOT a person", before it can safely hide the composer.
+ * non-personal thread (business/short-code/OTP/transactional sender -- a "can't reply" bar
+ * instead of a composer). Broader than [isPersonal]: an *unsaved* contact's plain phone number
+ * still counts as personal here, since most 1:1 texting happens with people who were never saved
+ * as a contact -- Home's chip only needs "definitely a person" (saved contact) to build a useful
+ * filter, but Chat needs the opposite call, "definitely NOT a person", before it can safely hide
+ * the composer.
  */
 fun Conversation.isPersonalChat(): Boolean {
     if (isGroup) return true

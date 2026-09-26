@@ -149,7 +149,6 @@
     <string name="chat_attachment_schedule">Zeitplan</string>
     <string name="chat_attachment_coming_soon">Kommt bald</string>
     <string name="chat_media_viewer_title">Foto</string>
-    <string name="chat_security_notice">Diese SMS ist 100 % sicher. #Messages sammelt niemals Daten ohne vorherige Zustimmung. Alles wird auf Ihrem Telefon verarbeitet und gespeichert.</string>
     <string name="chat_cant_reply_short_code">Auf diesen Kurzcode kann nicht geantwortet werden</string>
     <string name="chat_learn_more">Erfahren Sie mehr</string>
     <string name="chat_learn_more_dialog_message">Sie können nicht auf Nachrichten von geschäftlichen Absendern und Kurzcodes antworten.</string>

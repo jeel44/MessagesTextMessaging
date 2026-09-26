@@ -150,7 +150,6 @@
     <string name="chat_attachment_schedule">Jadwal</string>
     <string name="chat_attachment_coming_soon">Segera hadir</string>
     <string name="chat_media_viewer_title">Foto</string>
-    <string name="chat_security_notice">SMS ini 100% Aman. #Pesan tidak pernah mengumpulkan data tanpa persetujuan sebelumnya. Semuanya diproses dan disimpan di ponsel Anda.</string>
     <string name="chat_cant_reply_short_code">Tidak dapat membalas kode pendek ini</string>
     <string name="chat_learn_more">Pelajari Lebih Lanjut</string>
     <string name="chat_learn_more_dialog_message">Anda tidak dapat membalas pesan dari pengirim bisnis dan kode pendek.</string>
