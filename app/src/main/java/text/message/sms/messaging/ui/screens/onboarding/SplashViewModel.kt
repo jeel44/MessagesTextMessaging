@@ -55,14 +55,15 @@ internal sealed interface SplashStep {
  *   1. **Consent** -- up to [CONSENT_TIMEOUT_MILLIS] for UMP to settle. Time the consent form is
  *      on screen isn't counted (see [HoldClock]): it's modal, and leaving Splash wouldn't close it.
  *      A timeout skips this launch's ads; consent carries on, and any form lands over Welcome.
- *   2. **Native** -- up to [NATIVE_TIMEOUT_MILLIS] for it to load or fail. A timeout collapses the
- *      slot for good (a late ad never pops in).
- *   3. **App Open** -- only once a launch on this install has already got past Splash
- *      ([OnboardingPreferences.hasCompletedFirstLaunch]), per Google's guidance not to show one on
- *      a user's very first open. Up to [APP_OPEN_WAIT_MILLIS] more for it; its load started when
- *      consent allowed it, so this is usually short. Ready: [SplashStep.ShowAd] over the native
- *      ad, then [SplashStep.Done] once dismissed. Not ready: [SplashStep.Done] -- a late ad is kept
- *      for a later warm resume, never shown over the next screen.
+ *   2. **Native** -- up to [NATIVE_TIMEOUT_MILLIS] for it to load or fail, or
+ *      [FIRST_LAUNCH_NATIVE_TIMEOUT_MILLIS] on a first launch (cold ads SDK and WebView). A timeout
+ *      collapses the slot for good (a late ad never pops in).
+ *   3. **App Open** -- first launch included. Up to [APP_OPEN_WAIT_MILLIS] more for it, or
+ *      [FIRST_LAUNCH_APP_OPEN_WAIT_MILLIS] on a first launch; its load started when consent
+ *      allowed it, so this is usually short. Ready: [SplashStep.ShowAd] over the native ad, then
+ *      [SplashStep.Done] once dismissed. Not ready: [SplashStep.Done] -- a late ad is only kept
+ *      for a later launch in the same process, never shown over the next screen (App Open never
+ *      shows outside Splash).
  *
  *   All three draw on one [MAX_TOTAL_HOLD_MILLIS] budget, [FIRST_LAUNCH_MAX_TOTAL_HOLD_MILLIS] on
  *   a first launch (see [phaseTimeout]), and the hold lasts at least [MIN_HOLD_MILLIS] so the
@@ -146,12 +147,19 @@ internal class SplashViewModel @Inject constructor(
             }
             debugLog("consent $consent after ${clock.elapsed()}ms (form time excluded: ${clock.excludedMillis}ms)")
 
-            val nativeResult = withTimeoutOrNull(phaseTimeout(clock, NATIVE_TIMEOUT_MILLIS)) { awaitNativeAd() }
+            val nativePhaseStart = clock.elapsed()
+            // A first launch starts the ads SDK and WebView cold, so its load runs slowest.
+            val nativeLimit = if (firstLaunch) FIRST_LAUNCH_NATIVE_TIMEOUT_MILLIS else NATIVE_TIMEOUT_MILLIS
+            val nativeTimeout = phaseTimeout(clock, nativeLimit)
+            val nativeResult = withTimeoutOrNull(nativeTimeout) { awaitNativeAd() }
             if (nativeResult == null) {
                 nativeTimedOut.value = true
                 nativeAdLoader.markUnavailable()
             }
-            debugLog("native ${nativeOutcome(nativeResult)} at ${clock.elapsed()}ms (phase limit ${NATIVE_TIMEOUT_MILLIS}ms)")
+            debugLog(
+                "native ${nativeOutcome(nativeResult)} after ${clock.elapsed() - nativePhaseStart}ms " +
+                    "(limit ${nativeTimeout}ms) -- total hold ${clock.elapsed()}ms",
+            )
 
             val showAppOpen = awaitAppOpen(clock)
 
@@ -172,8 +180,10 @@ internal class SplashViewModel @Inject constructor(
     }
 
     /** Moves to [next] -- on a first launch, only after recording that this install has now had
-     * one, so the next launch sees it even if this process dies mid-ad or mid-onboarding. */
+     * one, so the next launch sees it even if this process dies mid-ad or mid-onboarding. Also
+     * closes this launch's App Open loading: whatever [next] is, Splash won't ask for another. */
     private suspend fun finish(next: SplashStep) {
+        appOpenAdManager.endLaunch()
         if (firstLaunch) onboardingPreferences.setFirstLaunchCompleted()
         _step.value = next
     }
