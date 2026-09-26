@@ -1,9 +1,11 @@
 package text.message.sms.messaging.ui.screens.chat
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -15,11 +17,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import text.message.sms.messaging.ads.AdConsentManager
+import text.message.sms.messaging.ads.AdConsentState
+import text.message.sms.messaging.ads.AdUnitIds
+import text.message.sms.messaging.ads.NativeAdLoader
+import text.message.sms.messaging.ads.NativeAdState
 import text.message.sms.messaging.data.local.datastore.SimPreferences
 import text.message.sms.messaging.data.local.datastore.SimSendPreference
 import text.message.sms.messaging.data.local.telephony.SimRepository
@@ -133,6 +141,8 @@ class ChatViewModel @Inject constructor(
     private val markArchived: MarkArchived,
     private val markUnarchived: MarkUnarchived,
     simPreferences: SimPreferences,
+    private val adConsentManager: AdConsentManager,
+    @param:ApplicationContext context: Context,
 ) : ViewModel() {
 
     val threadId: Long = checkNotNull(savedStateHandle[MessagingDestination.ARG_THREAD_ID])
@@ -215,6 +225,16 @@ class ChatViewModel @Inject constructor(
     private val _pendingAttachmentUri = MutableStateFlow<String?>(null)
     val pendingAttachmentUri: StateFlow<String?> = _pendingAttachmentUri.asStateFlow()
 
+    /** The compact native ad under a non-personal thread's Learn More row
+     * ([AdUnitIds.CHAT_NATIVE]). Requested at most once per visit -- no timer, no refresh, no
+     * retry after a failed first load (see [NativeAdLoader]) -- and only once [ChatScreen] sees
+     * [chatMode] settle on [ChatMode.NON_PERSONAL] and calls [startNativeAd], so a personal
+     * thread never requests one. Opening another thread is a new ViewModel, and so a new ad. */
+    private val nativeAdLoader = NativeAdLoader(context, AdUnitIds.CHAT_NATIVE)
+    internal val nativeAdState: StateFlow<NativeAdState> = nativeAdLoader.state
+
+    private var nativeAdStarted = false
+
     private val _events = MutableSharedFlow<ChatEvent>(extraBufferCapacity = 1)
     internal val events: SharedFlow<ChatEvent> = _events
 
@@ -270,6 +290,26 @@ class ChatViewModel @Inject constructor(
         // INITIAL_MESSAGE_PAGE_SIZE below so nothing beyond the first frame's needs is imported
         // just to open the thread.
         viewModelScope.launch { syncThreadPriority(threadId, INITIAL_MESSAGE_PAGE_SIZE) }
+    }
+
+    /** Called by [ChatScreen] once [chatMode] is [ChatMode.NON_PERSONAL] -- triggered from the
+     * screen rather than by collecting [chatMode] here, so a personal thread never holds a
+     * subscription that would keep [conversation]'s and [messages]' Room queries running past
+     * their `WhileSubscribed` stop while the screen is in the background. Idempotent. Waits for
+     * consent to resolve, then loads the native ad, or settles it on unavailable. */
+    internal fun startNativeAd() {
+        if (nativeAdStarted) return
+        nativeAdStarted = true
+        viewModelScope.launch {
+            when (adConsentManager.state.first { it != AdConsentState.Pending }) {
+                AdConsentState.Allowed -> nativeAdLoader.start()
+                else -> nativeAdLoader.markUnavailable()
+            }
+        }
+    }
+
+    override fun onCleared() {
+        nativeAdLoader.destroy()
     }
 
     /** Called from [ChatScreen]'s `LifecycleResumeEffect`, i.e. Activity-level resume, not this

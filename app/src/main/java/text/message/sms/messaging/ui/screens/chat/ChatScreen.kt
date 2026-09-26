@@ -143,6 +143,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import text.message.sms.messaging.R
+import text.message.sms.messaging.ads.NativeAdState
 import text.message.sms.messaging.domain.model.Attachment
 import text.message.sms.messaging.domain.model.Conversation
 import text.message.sms.messaging.domain.model.DeliveryState
@@ -153,6 +154,10 @@ import text.message.sms.messaging.ui.components.AppBackButton
 import text.message.sms.messaging.ui.components.MessageBubble
 import text.message.sms.messaging.ui.components.SelectionMenuItem
 import text.message.sms.messaging.ui.components.SelectionOverflowMenu
+import text.message.sms.messaging.ui.components.ads.AdShimmerPlaceholder
+import text.message.sms.messaging.ui.components.ads.CompactNativeAdCard
+import text.message.sms.messaging.ui.components.ads.CompactNativeAdCardHeight
+import text.message.sms.messaging.ui.components.ads.CompactNativeAdCardShape
 import text.message.sms.messaging.ui.components.sharpIconPainter
 import text.message.sms.messaging.ui.screens.conversationlist.screenSurfaceColor
 import text.message.sms.messaging.ui.theme.ChatAvatarAccentBlue
@@ -240,6 +245,7 @@ fun ChatScreen(
     val messages by viewModel.messages.collectAsStateWithLifecycle()
     val conversation by viewModel.conversation.collectAsStateWithLifecycle()
     val chatMode by viewModel.chatMode.collectAsStateWithLifecycle()
+    val nativeAdState by viewModel.nativeAdState.collectAsStateWithLifecycle()
 
     // Gates ChatMessageList below -- see ChatViewModel.chatMessagesState's doc comment. Becomes
     // Loaded (once, ever, for this screen instance) the moment the first real Room page for this
@@ -293,6 +299,12 @@ fun ChatScreen(
     // settled on [ChatMode.PERSONAL]; both the call icon and the whole bottom area stay hidden for
     // the narrow [ChatMode.UNKNOWN] window in between (see this screen's `bottomBar` below).
     val isPersonal = chatMode == ChatMode.PERSONAL
+
+    // Only a non-personal thread ever requests the bottom bar's native ad -- see
+    // ChatViewModel.startNativeAd for why this is triggered from here.
+    LaunchedEffect(chatMode) {
+        if (chatMode == ChatMode.NON_PERSONAL) viewModel.startNativeAd()
+    }
 
     // The most recent *received* message with an OTP, if any -- reuses [OtpDetector], the same
     // extractor behind Home's inbox quick-copy chip, so the two can never disagree about which
@@ -433,7 +445,10 @@ fun ChatScreen(
                     simIndicatorSlot = simIndicatorSlot,
                     onSimIndicatorClick = viewModel::onSimBadgeClick,
                 )
-                ChatMode.NON_PERSONAL -> NonPersonalBottomBar(onLearnMoreClick = { showLearnMoreDialog = true })
+                ChatMode.NON_PERSONAL -> NonPersonalBottomBar(
+                    nativeAdState = nativeAdState,
+                    onLearnMoreClick = { showLearnMoreDialog = true },
+                )
                 ChatMode.UNKNOWN -> Unit
             }
         },
@@ -1545,12 +1560,18 @@ private fun ScheduleTooltipBubble(onDismiss: () -> Unit, modifier: Modifier = Mo
 
 /**
  * Bottom area for a non-personal thread (business/short-code/OTP/transactional sender) -- replaces
- * [ChatComposer] entirely, since these threads can't be replied to. Just the security notice card
- * and the "can't reply" row, matching the reference design; [showOtpCopy] on each
- * [ChatMessageRow] (not this bar) handles the OTP quick-copy affordance.
+ * [ChatComposer] entirely, since these threads can't be replied to. The security notice card, the
+ * "can't reply" row, then the compact native ad slot ([nativeAdState]: shimmer while it loads --
+ * including while ad consent is still pending -- the card once it has, nothing if it failed or
+ * consent doesn't allow ads). [showOtpCopy] on each [ChatMessageRow] (not this bar) handles the
+ * OTP quick-copy affordance.
  */
 @Composable
-private fun NonPersonalBottomBar(onLearnMoreClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun NonPersonalBottomBar(
+    nativeAdState: NativeAdState,
+    onLearnMoreClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val isLight = isLightChatTheme()
 
     Surface(
@@ -1610,6 +1631,20 @@ private fun NonPersonalBottomBar(onLearnMoreClick: () -> Unit, modifier: Modifie
                         color = if (isLight) Color.Black else MaterialTheme.colorScheme.onSurface,
                     )
                 }
+            }
+
+            val adModifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+            when (nativeAdState) {
+                NativeAdState.Loading -> AdShimmerPlaceholder(
+                    height = CompactNativeAdCardHeight,
+                    shape = CompactNativeAdCardShape,
+                    modifier = adModifier,
+                )
+                is NativeAdState.Loaded -> CompactNativeAdCard(
+                    nativeAd = nativeAdState.nativeAd,
+                    modifier = adModifier,
+                )
+                NativeAdState.Failed -> Unit
             }
         }
     }

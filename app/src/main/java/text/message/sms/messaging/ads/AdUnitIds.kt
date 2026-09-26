@@ -43,6 +43,11 @@ internal object AdUnitIds {
      * unit as [CALL_END_NATIVE], but its own constant so it gets its own real unit later. */
     const val SPLASH_NATIVE = "ca-app-pub-3940256099942544/2247696110"
 
+    /** Chat screen's compact native ad, under a non-personal thread's Learn More row (see
+     * [text.message.sms.messaging.ui.screens.chat.ChatViewModel]). Same native test unit as
+     * [CALL_END_NATIVE], but its own constant so it gets its own real unit later. */
+    const val CHAT_NATIVE = "ca-app-pub-3940256099942544/2247696110"
+
     /** Interstitial shown on the Language screen's Apply (onboarding and Settings). */
     const val LANGUAGE_INTERSTITIAL = "ca-app-pub-3940256099942544/1033173712"
 
