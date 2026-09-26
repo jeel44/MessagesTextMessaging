@@ -27,6 +27,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.data.local.datastore.SwipeActionPreferences
 import text.message.sms.messaging.data.local.db.MessagingDatabase
 import text.message.sms.messaging.data.local.db.entity.ConversationEntity
@@ -174,6 +175,8 @@ class ConversationListViewModelTest {
             markUnpinnedUseCase = MarkUnpinned(conversationRepository),
             markBlockedUseCase = MarkBlocked(conversationRepository, blockedNumberRepository),
             markUnblockedUseCase = MarkUnblocked(conversationRepository, blockedNumberRepository),
+            // Home's banner never gets a slot attached here (no screen), so it never requests.
+            adConsentManager = AdConsentManager(context),
         )
         // Routed through a real ViewModelStore (rather than just using builtViewModel directly)
         // purely so tearDown can call the ordinary, public ViewModelStore.clear() -- ViewModel's

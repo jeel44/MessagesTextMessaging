@@ -193,6 +193,7 @@ fun ConversationListScreen(
     val selectedThreadIdsState = viewModel.selectedThreadIds.collectAsStateWithLifecycle()
     val selectedThreadIds = selectedThreadIdsState.value
     val selectedConversations by viewModel.selectedConversations.collectAsStateWithLifecycle()
+    val adConsentState by viewModel.adConsentState.collectAsStateWithLifecycle()
     val isSelectionMode = selectedThreadIds.isNotEmpty()
 
     val context = LocalContext.current
@@ -352,6 +353,8 @@ fun ConversationListScreen(
                 }
             }
         },
+        // The FAB and snackbars sit above it, and innerPadding keeps the list clear of it.
+        bottomBar = { HomeBannerAd(manager = viewModel.homeBanner, consent = adConsentState) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         Column(

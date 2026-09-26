@@ -25,6 +25,11 @@ internal object AdUnitIds {
      * unit as [WELCOME_BANNER], but its own constant so each gets its own real unit later. */
     const val SET_DEFAULT_SMS_BANNER = "ca-app-pub-3940256099942544/9214589741"
 
+    /** Home (conversation list) screen's bottom anchored adaptive banner (see
+     * [HomeBannerAdManager]) -- same adaptive-banner test unit as [WELCOME_BANNER], but its own
+     * constant so it gets its own real unit later. */
+    const val HOME_BANNER = "ca-app-pub-3940256099942544/9214589741"
+
     /** Interstitial shown once the default-SMS role and core permissions are granted, before
      * advancing to Language (see [InterstitialAdLoader]). Google's interstitial test unit. */
     const val SET_DEFAULT_SMS_INTERSTITIAL = "ca-app-pub-3940256099942544/1033173712"

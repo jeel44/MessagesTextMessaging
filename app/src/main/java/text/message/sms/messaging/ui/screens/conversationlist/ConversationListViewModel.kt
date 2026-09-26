@@ -24,6 +24,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.BuildConfig
+import text.message.sms.messaging.ads.AdConsentManager
+import text.message.sms.messaging.ads.AdConsentState
+import text.message.sms.messaging.ads.HomeBannerAdManager
 import text.message.sms.messaging.data.local.datastore.SwipeActionPreference
 import text.message.sms.messaging.data.local.datastore.SwipeActionPreferences
 import text.message.sms.messaging.data.local.provider.ProviderChangeObserver
@@ -156,7 +159,15 @@ class ConversationListViewModel @Inject constructor(
     private val markUnpinnedUseCase: MarkUnpinned,
     private val markBlockedUseCase: MarkBlocked,
     private val markUnblockedUseCase: MarkUnblocked,
+    adConsentManager: AdConsentManager,
 ) : ViewModel() {
+
+    /** Home's bottom banner and its refresh policy -- see [HomeBannerAdManager]. On this
+     * ViewModel's scope, so its 30s timer runs from Home's first load for as long as Home exists. */
+    internal val homeBanner = HomeBannerAdManager(viewModelScope, adConsentManager)
+
+    /** For [homeBanner]'s slot: shimmer while [AdConsentState.Pending], nothing unless Allowed. */
+    internal val adConsentState: StateFlow<AdConsentState> = adConsentManager.state
 
     // Perf-pass breadcrumb (Logcat tag "NavPerf"), not read by any UI decision -- logs once, the
     // very first time observeInbox's pipeline actually emits, so "Home's first data load" can be
@@ -492,5 +503,9 @@ class ConversationListViewModel @Inject constructor(
             }
             clearSelection()
         }
+    }
+
+    override fun onCleared() {
+        homeBanner.destroy()
     }
 }
