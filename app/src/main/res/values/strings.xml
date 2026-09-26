@@ -3,6 +3,7 @@
 
     <!-- Onboarding -->
     <string name="splash_tagline">Simple. Fast. Secure.</string>
+    <string name="splash_ads_disclosure">This screen may contain ads</string>
 
     <!-- Welcome -->
     <string name="welcome_eyebrow">Welcome To</string>

@@ -3,6 +3,7 @@
 
     <!-- Onboarding -->
     <string name="splash_tagline">सरल. तेज़. सुरक्षित।</string>
+    <string name="splash_ads_disclosure">इस स्क्रीन पर विज्ञापन हो सकते हैं</string>
 
     <!-- Welcome -->
     <string name="welcome_eyebrow">स्वागत है</string>

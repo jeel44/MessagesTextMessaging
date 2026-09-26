@@ -4,6 +4,7 @@
 
     <!-- Onboarding -->
     <string name="splash_tagline">Sederhana. Cepat. Aman.</string>
+    <string name="splash_ads_disclosure">Layar ini mungkin berisi iklan</string>
 
     <!-- Welcome -->
     <string name="welcome_eyebrow">Selamat Datang di</string>

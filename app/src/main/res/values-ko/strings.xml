@@ -3,6 +3,7 @@
 
     <!-- Onboarding -->
     <string name="splash_tagline">간편함. 신속함. 안전함.</string>
+    <string name="splash_ads_disclosure">이 화면에는 광고가 포함될 수 있습니다</string>
 
     <!-- Welcome -->
     <string name="welcome_eyebrow">오신 것을 환영합니다</string>

@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,11 +19,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -42,6 +46,8 @@ internal val NativeAdCardShape = RoundedCornerShape(16.dp)
 internal val NativeAdCardReservedHeight = 332.dp
 
 private const val CTA_SHINE_PERIOD_MILLIS = 3000
+
+private val NativeAdCtaShape = RoundedCornerShape(12.dp)
 
 /**
  * Renders a loaded [NativeAd] via [R.layout.native_ad_layout] -- a real Android View hierarchy
@@ -112,7 +118,15 @@ internal fun NativeAdCard(nativeAd: NativeAd, modifier: Modifier = Modifier) {
 
             val ctaView = view.findViewById<ComposeView>(R.id.native_ad_cta)
             ctaView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            ctaView.setContent { NativeAdCtaButton(text = ctaLabel) }
+            ctaView.setContent {
+                NativeAdCtaButton(
+                    text = ctaLabel,
+                    height = 44.dp,
+                    fontSize = 15.sp,
+                    shape = NativeAdCtaShape,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
             view.iconView = icon
             view.headlineView = headline
@@ -124,29 +138,37 @@ internal fun NativeAdCard(nativeAd: NativeAd, modifier: Modifier = Modifier) {
     )
 }
 
-private val NativeAdCtaShape = RoundedCornerShape(12.dp)
-
-/** The native ad's call-to-action -- the only piece of [NativeAdCard] that gets [shineEffect];
- * icon, headline, body and media stay static. Deliberately not `.clickable`:
+/** A native ad's call-to-action, shared by [NativeAdCard] (full width, 44dp) and
+ * [CompactNativeAdCard] (a small pill) -- the only piece of either card that gets [shineEffect];
+ * every other asset stays static. Width comes from [modifier]; [horizontalPadding] keeps a
+ * wrap-content button from hugging its label. Deliberately not `.clickable`:
  * [NativeAdView.setCallToActionView] installs its own click handling directly on the [ComposeView]
- * this is hosted in (see [NativeAdCard]), and an inner Compose click target would intercept the
- * touch before that outer View-level listener ever saw it. */
+ * this is hosted in, and an inner Compose click target would intercept the touch before that
+ * outer View-level listener ever saw it. */
 @Composable
-private fun NativeAdCtaButton(text: String, modifier: Modifier = Modifier) {
+internal fun NativeAdCtaButton(
+    text: String,
+    height: Dp,
+    fontSize: TextUnit,
+    shape: Shape,
+    modifier: Modifier = Modifier,
+    horizontalPadding: Dp = 0.dp,
+) {
     Box(
         modifier = modifier
-            .fillMaxWidth()
-            .height(44.dp)
-            .clip(NativeAdCtaShape)
+            .height(height)
+            .clip(shape)
             .background(ConversationFabBlue)
-            .shineEffect(periodMillis = CTA_SHINE_PERIOD_MILLIS),
+            .shineEffect(periodMillis = CTA_SHINE_PERIOD_MILLIS)
+            .padding(horizontal = horizontalPadding),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
             color = Color.White,
-            fontSize = 15.sp,
+            fontSize = fontSize,
             fontWeight = FontWeight.Medium,
+            maxLines = 1,
         )
     }
 }

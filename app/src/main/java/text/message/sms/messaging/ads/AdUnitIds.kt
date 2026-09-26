@@ -33,6 +33,11 @@ internal object AdUnitIds {
      * test unit as [CALL_END_NATIVE], but its own constant so each gets its own real unit later. */
     const val LANGUAGE_NATIVE = "ca-app-pub-3940256099942544/2247696110"
 
+    /** Splash screen's compact native ad, shown only on launches that also hold for the App Open
+     * ad (see [text.message.sms.messaging.ui.screens.onboarding.SplashViewModel]). Same native test
+     * unit as [CALL_END_NATIVE], but its own constant so it gets its own real unit later. */
+    const val SPLASH_NATIVE = "ca-app-pub-3940256099942544/2247696110"
+
     /** Interstitial shown on the Language screen's Apply (onboarding and Settings). */
     const val LANGUAGE_INTERSTITIAL = "ca-app-pub-3940256099942544/1033173712"
 

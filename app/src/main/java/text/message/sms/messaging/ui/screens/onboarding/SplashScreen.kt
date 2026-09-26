@@ -1,25 +1,16 @@
 package text.message.sms.messaging.ui.screens.onboarding
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Sms
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,17 +20,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.rememberLottieComposition
 import text.message.sms.messaging.R
+import text.message.sms.messaging.ads.NativeAdState
+import text.message.sms.messaging.ui.components.ads.AdShimmerPlaceholder
+import text.message.sms.messaging.ui.components.ads.CompactNativeAdCard
+import text.message.sms.messaging.ui.components.ads.CompactNativeAdCardHeight
+import text.message.sms.messaging.ui.components.ads.CompactNativeAdCardShape
 
 /**
  * The app's first destination. MainActivity's `installSplashScreen()` keeps the system splash
@@ -50,9 +44,13 @@ import text.message.sms.messaging.R
  *
  * The exception is a returning user's launch eligible for an App Open ad (see
  * [text.message.sms.messaging.ads.AppOpenAdManager]): the system splash is released so this
- * screen's own branding is visible for a moment, the ad (if it loads in time) is shown over it,
- * and the hand-off happens once it's dismissed. New users and [isDeepLinkLaunch] launches
- * (notification tap, call-end hand-off) always skip that entirely.
+ * screen's own branding is visible, an ads disclosure and a compact native ad appear at the
+ * bottom, and once that resolves the App Open ad (if it loads in time) is shown over it all; the
+ * hand-off happens once it's dismissed. New users and [isDeepLinkLaunch] launches (notification
+ * tap, call-end hand-off) always skip that entirely.
+ *
+ * The branding icon is `ic_splash_logo`, the same drawable `Theme.App.Starting` gives the system
+ * splash, so the two match on hand-off.
  *
  * The full-bleed background is [MaterialTheme.colorScheme.primary] rather than
  * `primaryContainer`: `primary`/`onPrimary` is the pairing Material 3 guarantees legible contrast
@@ -68,6 +66,8 @@ internal fun SplashScreen(
     viewModel: SplashViewModel = hiltViewModel(),
 ) {
     val step by viewModel.step.collectAsStateWithLifecycle()
+    val adSectionVisible by viewModel.adSectionVisible.collectAsStateWithLifecycle()
+    val nativeAdState by viewModel.nativeAdState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
 
@@ -93,87 +93,76 @@ internal fun SplashScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .systemBarsPadding()
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
-            SplashMark(modifier = Modifier.size(SPLASH_MARK_SIZE))
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.ic_splash_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(SPLASH_MARK_SIZE),
+                )
 
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.padding(top = 24.dp),
-            )
+                Text(
+                    text = stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(top = 24.dp),
+                )
 
-            Text(
-                text = stringResource(R.string.splash_tagline),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
+                Text(
+                    text = stringResource(R.string.splash_tagline),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+
+            if (adSectionVisible) {
+                SplashAdSection(nativeAdState = nativeAdState)
+            }
+        }
+    }
+}
+
+/** The disclosure line, then the compact native slot: shimmer while it loads, the card once it
+ * has, nothing if it failed or timed out. The disclosure stays either way -- an App Open ad may
+ * still follow. */
+@Composable
+private fun SplashAdSection(nativeAdState: NativeAdState, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(R.string.splash_ads_disclosure),
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center,
+        )
+        when (nativeAdState) {
+            NativeAdState.Loading -> AdShimmerPlaceholder(
+                height = CompactNativeAdCardHeight,
+                shape = CompactNativeAdCardShape,
                 modifier = Modifier.padding(top = 8.dp),
             )
-        }
-    }
-}
-
-/**
- * The Lottie slot, sized consistently so dropping in the real `splash_animation.json` later
- * needs no layout changes. [composition] is `null` both while it is still loading and if it
- * failed to parse (which is expected right now -- the checked-in file is a placeholder, not a
- * real export, see `res/raw/splash_animation.json`) -- either way [SplashFallbackMark] covers it
- * rather than leaving a blank space.
- */
-@Composable
-private fun SplashMark(modifier: Modifier = Modifier) {
-    val compositionResult = rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.splash_animation))
-    val composition = compositionResult.value
-
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        if (composition != null) {
-            LottieAnimation(
-                composition = composition,
-                iterations = 1,
-                modifier = Modifier.fillMaxSize(),
+            is NativeAdState.Loaded -> CompactNativeAdCard(
+                nativeAd = nativeAdState.nativeAd,
+                modifier = Modifier.padding(top = 8.dp),
             )
-        } else {
-            SplashFallbackMark(modifier = Modifier.fillMaxSize())
+            NativeAdState.Failed -> Unit
         }
     }
 }
 
-/** A simple Compose-drawn mark: no illustration asset, just the theme's own colors and a stock
- * icon, so it never looks like an unfinished/missing-image placeholder. */
-@Composable
-private fun SplashFallbackMark(modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "splash-fallback-pulse")
-    val scale by transition.animateFloat(
-        initialValue = 0.94f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "splash-fallback-scale",
-    )
-
-    Box(
-        modifier = modifier
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.16f)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Sms,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier
-                .size(SPLASH_MARK_SIZE / 2)
-                .scale(scale),
-        )
-    }
-}
-
-private val SPLASH_MARK_SIZE = 180.dp
+private val SPLASH_MARK_SIZE = 128.dp
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
