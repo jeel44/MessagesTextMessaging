@@ -64,8 +64,9 @@ internal sealed interface SplashStep {
  *      ad, then [SplashStep.Done] once dismissed. Not ready: [SplashStep.Done] -- a late ad is kept
  *      for a later warm resume, never shown over the next screen.
  *
- *   All three draw on one [MAX_TOTAL_HOLD_MILLIS] budget (see [phaseTimeout]), and the hold lasts
- *   at least [MIN_HOLD_MILLIS] so the branding is seen before any full-screen ad.
+ *   All three draw on one [MAX_TOTAL_HOLD_MILLIS] budget, [FIRST_LAUNCH_MAX_TOTAL_HOLD_MILLIS] on
+ *   a first launch (see [phaseTimeout]), and the hold lasts at least [MIN_HOLD_MILLIS] so the
+ *   branding is seen before any full-screen ad.
  *
  * Lives on the Splash back-stack entry, so a rotation mid-hold or mid-ad never re-decides, reloads
  * the native ad, or shows a second App Open ad.
@@ -102,6 +103,11 @@ internal class SplashViewModel @Inject constructor(
     private var onboardingComplete = false
     private var firstLaunch = false
 
+    /** The hold's total cap -- longer on a first launch, where the ads SDK and WebView start cold
+     * and the native wait alone can otherwise use up the whole budget before App Open's turn. */
+    private val maxTotalHoldMillis: Long
+        get() = if (firstLaunch) FIRST_LAUNCH_MAX_TOTAL_HOLD_MILLIS else MAX_TOTAL_HOLD_MILLIS
+
     /** Idempotent -- only the first call's [isDeepLinkLaunch] counts. */
     fun start(isDeepLinkLaunch: Boolean) {
         if (started) return
@@ -124,7 +130,7 @@ internal class SplashViewModel @Inject constructor(
             }
             debugLog(
                 "launch ads eligible: onboardingComplete=$onboardingComplete firstLaunch=$firstLaunch, " +
-                    "holding up to ${MAX_TOTAL_HOLD_MILLIS}ms (consent form time excluded)",
+                    "holding up to ${maxTotalHoldMillis}ms (consent form time excluded)",
             )
             val clock = HoldClock()
             _adSectionVisible.value = true
@@ -207,7 +213,9 @@ internal class SplashViewModel @Inject constructor(
     /** Whether an App Open ad is ready to show within its phase's share of the budget. */
     private suspend fun awaitAppOpen(clock: HoldClock): Boolean {
         val phaseStart = clock.elapsed()
-        val timeout = phaseTimeout(clock, APP_OPEN_WAIT_MILLIS)
+        // A first launch's load starts on a cold ads SDK, so it runs slowest.
+        val limit = if (firstLaunch) FIRST_LAUNCH_APP_OPEN_WAIT_MILLIS else APP_OPEN_WAIT_MILLIS
+        val timeout = phaseTimeout(clock, limit)
         val result = withTimeoutOrNull(timeout) { appOpenAdManager.awaitAdForLaunch() }
         val waited = clock.elapsed() - phaseStart
         debugLog(
@@ -221,9 +229,9 @@ internal class SplashViewModel @Inject constructor(
     }
 
     /** The one place the hold's total cap is enforced: a phase gets [phaseLimitMillis], or
-     * whatever is left of [MAX_TOTAL_HOLD_MILLIS] on [clock] if that's less. */
+     * whatever is left of [maxTotalHoldMillis] on [clock] if that's less. */
     private fun phaseTimeout(clock: HoldClock, phaseLimitMillis: Long): Long =
-        minOf(phaseLimitMillis, MAX_TOTAL_HOLD_MILLIS - clock.elapsed()).coerceAtLeast(0L)
+        minOf(phaseLimitMillis, maxTotalHoldMillis - clock.elapsed()).coerceAtLeast(0L)
 
     private fun nativeOutcome(result: NativeAdState?): String = when (result) {
         null -> "timed out"
@@ -260,6 +268,12 @@ internal class SplashViewModel @Inject constructor(
         const val NATIVE_TIMEOUT_MILLIS = 2_500L
         const val FIRST_LAUNCH_NATIVE_TIMEOUT_MILLIS = 4_000L
         const val APP_OPEN_WAIT_MILLIS = 2_500L
+        const val FIRST_LAUNCH_APP_OPEN_WAIT_MILLIS = 3_000L
         const val MAX_TOTAL_HOLD_MILLIS = 6_000L
+
+        /** Worst case the first-launch limits allow: consent resolves at [CONSENT_TIMEOUT_MILLIS],
+         * then the native wait runs its full [FIRST_LAUNCH_NATIVE_TIMEOUT_MILLIS] (7s) -- plus a
+         * margin, so App Open's phase still gets a slice to pick up an ad that's ready by then. */
+        const val FIRST_LAUNCH_MAX_TOTAL_HOLD_MILLIS = 7_500L
     }
 }
