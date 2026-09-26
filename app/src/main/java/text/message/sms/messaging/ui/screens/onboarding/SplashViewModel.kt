@@ -34,7 +34,7 @@ internal sealed interface SplashStep {
     data object Deciding : SplashStep
 
     /** This screen's own branding and compact native ad are up while consent, then the native
-     * ad, then (from the second launch on) the App Open ad resolve. */
+     * ad, then the App Open ad resolve. */
     data object Holding : SplashStep
 
     /** An App Open ad is ready and the minimum branding time has passed -- show it. */
@@ -147,12 +147,7 @@ internal class SplashViewModel @Inject constructor(
             }
             debugLog("native ${nativeOutcome(nativeResult)} at ${clock.elapsed()}ms (phase limit ${NATIVE_TIMEOUT_MILLIS}ms)")
 
-            val showAppOpen = if (firstLaunch) {
-                debugLog("App Open withheld: first launch on this install")
-                false
-            } else {
-                awaitAppOpen(clock)
-            }
+            val showAppOpen = awaitAppOpen(clock)
 
             val remaining = MIN_HOLD_MILLIS - clock.elapsed()
             if (remaining > 0) delay(remaining)
@@ -263,6 +258,7 @@ internal class SplashViewModel @Inject constructor(
         const val MIN_HOLD_MILLIS = 1_000L
         const val CONSENT_TIMEOUT_MILLIS = 3_000L
         const val NATIVE_TIMEOUT_MILLIS = 2_500L
+        const val FIRST_LAUNCH_NATIVE_TIMEOUT_MILLIS = 4_000L
         const val APP_OPEN_WAIT_MILLIS = 2_500L
         const val MAX_TOTAL_HOLD_MILLIS = 6_000L
     }

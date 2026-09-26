@@ -41,7 +41,7 @@ internal object AdUnitIds {
     /** Interstitial shown on the Language screen's Apply (onboarding and Settings). */
     const val LANGUAGE_INTERSTITIAL = "ca-app-pub-3940256099942544/1033173712"
 
-    /** App-wide App Open ad -- cold start over Splash, and warm resumes (see [AppOpenAdManager]).
+    /** App Open ad -- shown only over Splash, as the last step of a launch (see [AppOpenAdManager]).
      * Google's App Open test unit. */
     const val APP_OPEN = "ca-app-pub-3940256099942544/9257395921"
 }
