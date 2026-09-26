@@ -127,9 +127,10 @@ class MainActivity : ComponentActivity() {
         pendingComingSoonFeature = intent.getStringExtra(EXTRA_COMING_SOON_FEATURE)
         isDeepLinkLaunch = intent.hasDeepLinkExtra()
 
-        // Every launch, as UMP recommends. Deliberately not held behind the splash: the check is a
-        // network round trip, so on a first launch the form (if required) appears over Welcome a
-        // moment after it renders -- Welcome's banner slot keeps shimmering until this settles.
+        // Every launch, as UMP recommends. Not held behind the system splash: the check is a
+        // network round trip, and the form (if required) is a dialog over whatever is on screen --
+        // normally Splash's own branding, which waits for consent before its ads (see
+        // SplashViewModel), or Welcome if that wait timed out.
         adConsentManager.gatherConsent(this)
 
         enableEdgeToEdge()

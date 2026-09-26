@@ -17,7 +17,8 @@ private val Context.onboardingDataStore: DataStore<Preferences> by preferencesDa
 
 /**
  * Onboarding progress: whether the flow has been completed (so Splash can skip straight to the
- * inbox on future launches) and the language the user picked (so a future in-app language switch
+ * inbox on future launches), whether any launch has got past Splash yet ([hasCompletedFirstLaunch]),
+ * and the language the user picked (so a future in-app language switch
  * in Settings has something to read, alongside what [androidx.appcompat.app.AppCompatDelegate]
  * already persists for itself).
  */
@@ -29,16 +30,27 @@ class OnboardingPreferences @Inject constructor(
     private object Keys {
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val LANGUAGE_TAG = stringPreferencesKey("language_tag")
+        val FIRST_LAUNCH_COMPLETED = booleanPreferencesKey("first_launch_completed")
     }
 
     val isOnboardingComplete: Flow<Boolean> =
         context.onboardingDataStore.data.map { it[Keys.ONBOARDING_COMPLETE] == true }
+
+    /** Whether a launch on this install has already got past Splash -- Splash withholds the App
+     * Open ad until this is true (see SplashViewModel). Wiped with the rest of this store on
+     * reinstall (allowBackup=false), so a reinstall is a first launch again. */
+    val hasCompletedFirstLaunch: Flow<Boolean> =
+        context.onboardingDataStore.data.map { it[Keys.FIRST_LAUNCH_COMPLETED] == true }
 
     val languageTag: Flow<String?> =
         context.onboardingDataStore.data.map { it[Keys.LANGUAGE_TAG] }
 
     suspend fun setOnboardingComplete() {
         context.onboardingDataStore.edit { it[Keys.ONBOARDING_COMPLETE] = true }
+    }
+
+    suspend fun setFirstLaunchCompleted() {
+        context.onboardingDataStore.edit { it[Keys.FIRST_LAUNCH_COMPLETED] = true }
     }
 
     /** [languageTag] is a BCP-47 tag, or `null` for "System Default". */

@@ -38,16 +38,16 @@ import text.message.sms.messaging.ui.components.ads.CompactNativeAdCardShape
 /**
  * The app's first destination. MainActivity's `installSplashScreen()` keeps the system splash
  * (brand icon, see `Theme.App.Starting` in themes.xml) over this screen until [onBrandingVisible]
- * fires or Splash is left, so for most launches this UI is never actually seen: [SplashViewModel]
- * reads the onboarding flag and hands off to [onOnboardingComplete] or [onOnboardingIncomplete]
- * with no artificial delay.
+ * fires or Splash is left. [SplashViewModel] reads the onboarding flag and, for [isDeepLinkLaunch]
+ * launches (notification tap, call-end hand-off) and launches not eligible for launch ads (see
+ * [text.message.sms.messaging.ads.AppOpenAdManager]), hands off to [onOnboardingComplete] or
+ * [onOnboardingIncomplete] with no artificial delay -- this UI is never actually seen.
  *
- * The exception is a returning user's launch eligible for an App Open ad (see
- * [text.message.sms.messaging.ads.AppOpenAdManager]): the system splash is released so this
- * screen's own branding is visible, an ads disclosure and a compact native ad appear at the
- * bottom, and once that resolves the App Open ad (if it loads in time) is shown over it all; the
- * hand-off happens once it's dismissed. New users and [isDeepLinkLaunch] launches (notification
- * tap, call-end hand-off) always skip that entirely.
+ * Every other launch, new users included, releases the system splash so this screen's own
+ * branding is visible, with an ads disclosure and a compact native ad at the bottom. The consent
+ * form, if UMP needs one, appears over it; then the native ad resolves, then -- from the second
+ * launch on -- the App Open ad (if it loads in time) is shown over it all, and the hand-off
+ * happens once it's dismissed.
  *
  * The branding icon is `ic_splash_logo`, the same drawable `Theme.App.Starting` gives the system
  * splash, so the two match on hand-off.

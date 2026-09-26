@@ -62,6 +62,14 @@ class AdConsentManager @Inject constructor(
     )
     val state: StateFlow<AdConsentState> = _state.asStateFlow()
 
+    private val _consentFormShowing = MutableStateFlow(false)
+
+    /** True while [gatherConsent]'s consent form is up (UMP said consent is REQUIRED), until
+     * [state] settles. Lets Splash tell a slow network (worth a timeout) apart from a user
+     * reading the form (not worth one). Separate from [state] on purpose: every ad slot waits on
+     * `state.first { it != Pending }`, and an extra state value would read as "resolved" there. */
+    val consentFormShowing: StateFlow<Boolean> = _consentFormShowing.asStateFlow()
+
     private val _privacyOptionsRequired = MutableStateFlow(isPrivacyOptionsRequired())
 
     /** Whether Settings must offer the "Privacy options" entry point ([showPrivacyOptionsForm]) --
@@ -83,6 +91,9 @@ class AdConsentManager @Inject constructor(
             requestParameters(),
             {
                 debugLog("consent info updated: status=${consentInformation.consentStatus}")
+                if (consentInformation.consentStatus == ConsentInformation.ConsentStatus.REQUIRED) {
+                    _consentFormShowing.value = true
+                }
                 UserMessagingPlatform.loadAndShowConsentFormIfRequired(activity) { formError ->
                     if (formError != null) logError("consent form", formError)
                     settle()
@@ -123,6 +134,7 @@ class AdConsentManager @Inject constructor(
         // Initialize before publishing Allowed, so no slot can start a request ahead of it.
         if (canRequestAds) initializeMobileAds()
         _state.value = if (canRequestAds) AdConsentState.Allowed else AdConsentState.Unavailable
+        _consentFormShowing.value = false
         debugLog(
             "settled: state=${_state.value} privacyOptionsRequired=${_privacyOptionsRequired.value}",
         )
