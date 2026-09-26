@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.ads.AdConsentState
 import text.message.sms.messaging.ads.AdUnitIds
+import text.message.sms.messaging.ads.FullScreenAdGate
 import text.message.sms.messaging.ads.InterstitialAdLoader
 import text.message.sms.messaging.domain.usecase.SyncContacts
 import text.message.sms.messaging.domain.usecase.SyncMessages
@@ -51,9 +52,11 @@ class SetDefaultSmsViewModel @Inject constructor(
     private val syncContacts: SyncContacts,
     @param:ApplicationContext private val context: Context,
     private val adConsentManager: AdConsentManager,
+    fullScreenAdGate: FullScreenAdGate,
 ) : ViewModel() {
 
-    private val interstitialLoader = InterstitialAdLoader(context, AdUnitIds.SET_DEFAULT_SMS_INTERSTITIAL)
+    private val interstitialLoader =
+        InterstitialAdLoader(context, AdUnitIds.SET_DEFAULT_SMS_INTERSTITIAL, fullScreenAdGate)
     private var interstitialPreloadStarted = false
     private var advanced = false
 

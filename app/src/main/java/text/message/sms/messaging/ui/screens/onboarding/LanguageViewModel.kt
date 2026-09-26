@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.ads.AdConsentState
 import text.message.sms.messaging.ads.AdUnitIds
+import text.message.sms.messaging.ads.FullScreenAdGate
 import text.message.sms.messaging.ads.InterstitialAdLoader
 import text.message.sms.messaging.ads.NativeAdLoader
 import text.message.sms.messaging.ads.NativeAdState
@@ -49,12 +50,14 @@ class LanguageViewModel @Inject constructor(
     private val adConsentManager: AdConsentManager,
     private val savedStateHandle: SavedStateHandle,
     @param:ApplicationContext context: Context,
+    fullScreenAdGate: FullScreenAdGate,
 ) : ViewModel() {
 
     private val nativeAdLoader = NativeAdLoader(context, AdUnitIds.LANGUAGE_NATIVE)
     internal val nativeAdState: StateFlow<NativeAdState> = nativeAdLoader.state
 
-    private val interstitialLoader = InterstitialAdLoader(context, AdUnitIds.LANGUAGE_INTERSTITIAL)
+    private val interstitialLoader =
+        InterstitialAdLoader(context, AdUnitIds.LANGUAGE_INTERSTITIAL, fullScreenAdGate)
 
     private var adsStarted = false
     private var applyPressed = false
@@ -132,6 +135,8 @@ class LanguageViewModel @Inject constructor(
         val language = selectedLanguage.value ?: return
         if (applyPressed) return
         applyPressed = true
+        // The show below waits on DataStore writes -- hold off a warm-resume App Open until then.
+        interstitialLoader.commitToShow()
         viewModelScope.launch {
             onboardingPreferences.setLanguageTag(language.languageTag)
             if (isOnboarding) onboardingPreferences.setOnboardingComplete()
