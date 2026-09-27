@@ -82,6 +82,9 @@ class AppOpenAdManager @Inject constructor(
     private var isShowingAd = false
     private var onboardingComplete = false
 
+    /** Only for the warm-resume skip log -- tells "mid-Intro" apart from earlier onboarding. */
+    private var introPending = false
+
     private var topActivity: Activity? = null
     private var mainActivityCreated = false
 
@@ -115,6 +118,9 @@ class AppOpenAdManager @Inject constructor(
                 onboardingComplete = it
                 if (it) maybeLoad()
             }
+        }
+        if (BuildConfig.DEBUG) {
+            scope.launch { onboardingPreferences.isIntroPending.collect { introPending = it } }
         }
         scope.launch {
             adConsentManager.state.collect { if (it == AdConsentState.Allowed) maybeLoad() }
@@ -270,6 +276,7 @@ class AppOpenAdManager @Inject constructor(
     private fun showOnWarmResume() {
         val activity = topActivity
         val skipReason = when {
+            !onboardingComplete && introPending -> "onboarding incomplete (on Intro, completes at its last Next)"
             !onboardingComplete -> "onboarding incomplete"
             fullScreenAdGate.isFullScreenAdBusy() -> "a full-screen ad is showing or about to show"
             activity !is MainActivity -> "top activity is ${activity?.javaClass?.simpleName}"

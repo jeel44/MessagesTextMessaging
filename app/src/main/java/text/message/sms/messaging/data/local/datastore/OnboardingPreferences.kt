@@ -17,7 +17,8 @@ private val Context.onboardingDataStore: DataStore<Preferences> by preferencesDa
 
 /**
  * Onboarding progress: whether the flow has been completed (so Splash can skip straight to the
- * inbox on future launches), whether any launch has got past Splash yet ([hasCompletedFirstLaunch]),
+ * inbox on future launches), whether Language has been applied but the Intro slides not yet
+ * finished ([isIntroPending] -- so Splash resumes at Intro, not Welcome), whether any launch has got past Splash yet ([hasCompletedFirstLaunch]),
  * and the language the user picked (so a future in-app language switch
  * in Settings has something to read, alongside what [androidx.appcompat.app.AppCompatDelegate]
  * already persists for itself).
@@ -31,6 +32,7 @@ class OnboardingPreferences @Inject constructor(
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val LANGUAGE_TAG = stringPreferencesKey("language_tag")
         val FIRST_LAUNCH_COMPLETED = booleanPreferencesKey("first_launch_completed")
+        val INTRO_PENDING = booleanPreferencesKey("intro_pending")
     }
 
     val isOnboardingComplete: Flow<Boolean> =
@@ -42,11 +44,25 @@ class OnboardingPreferences @Inject constructor(
     val hasCompletedFirstLaunch: Flow<Boolean> =
         context.onboardingDataStore.data.map { it[Keys.FIRST_LAUNCH_COMPLETED] == true }
 
+    /** Set by onboarding's Language Apply, cleared by [completeIntro] -- true only while the user
+     * is somewhere in the Intro slides, so a process death there resumes at Intro. */
+    val isIntroPending: Flow<Boolean> =
+        context.onboardingDataStore.data.map { it[Keys.INTRO_PENDING] == true }
+
     val languageTag: Flow<String?> =
         context.onboardingDataStore.data.map { it[Keys.LANGUAGE_TAG] }
 
-    suspend fun setOnboardingComplete() {
-        context.onboardingDataStore.edit { it[Keys.ONBOARDING_COMPLETE] = true }
+    suspend fun setIntroPending() {
+        context.onboardingDataStore.edit { it[Keys.INTRO_PENDING] = true }
+    }
+
+    /** Intro's finish: marks onboarding complete and clears [isIntroPending] in one edit, so no
+     * launch can ever see both flags set, or neither. */
+    suspend fun completeIntro() {
+        context.onboardingDataStore.edit {
+            it[Keys.ONBOARDING_COMPLETE] = true
+            it.remove(Keys.INTRO_PENDING)
+        }
     }
 
     suspend fun setFirstLaunchCompleted() {

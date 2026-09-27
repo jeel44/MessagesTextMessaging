@@ -40,8 +40,9 @@ import text.message.sms.messaging.ui.components.ads.CompactNativeAdCardShape
  * (brand icon, see `Theme.App.Starting` in themes.xml) over this screen until [onBrandingVisible]
  * fires or Splash is left. [SplashViewModel] reads the onboarding flag and, for [isDeepLinkLaunch]
  * launches (notification tap, call-end hand-off) and launches not eligible for launch ads (see
- * [text.message.sms.messaging.ads.AppOpenAdManager]), hands off to [onOnboardingComplete] or
- * [onOnboardingIncomplete] with no artificial delay -- this UI is never actually seen.
+ * [text.message.sms.messaging.ads.AppOpenAdManager]), hands off to [onOnboardingComplete],
+ * [onIntroPending] or [onOnboardingIncomplete] with no artificial delay -- this UI is never
+ * actually seen.
  *
  * Every other launch, new users included, releases the system splash so this screen's own
  * branding is visible, with an ads disclosure and a compact native ad at the bottom. The consent
@@ -62,6 +63,7 @@ internal fun SplashScreen(
     isDeepLinkLaunch: Boolean,
     onBrandingVisible: () -> Unit,
     onOnboardingComplete: () -> Unit,
+    onIntroPending: () -> Unit,
     onOnboardingIncomplete: () -> Unit,
     viewModel: SplashViewModel = hiltViewModel(),
 ) {
@@ -81,8 +83,11 @@ internal fun SplashScreen(
                 onBrandingVisible()
                 viewModel.showAd(activity)
             }
-            is SplashStep.Done ->
-                if (current.onboardingComplete) onOnboardingComplete() else onOnboardingIncomplete()
+            is SplashStep.Done -> when (current.exit) {
+                SplashExit.Home -> onOnboardingComplete()
+                SplashExit.Intro -> onIntroPending()
+                SplashExit.Welcome -> onOnboardingIncomplete()
+            }
         }
     }
 

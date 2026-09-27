@@ -40,13 +40,27 @@ internal sealed interface SplashStep {
     /** An App Open ad is ready and the minimum branding time has passed -- show it. */
     data object ShowAd : SplashStep
 
-    /** Leave Splash: to the inbox if [onboardingComplete], otherwise to Welcome. */
-    data class Done(val onboardingComplete: Boolean) : SplashStep
+    /** Leave Splash, to [exit]. */
+    data class Done(val exit: SplashExit) : SplashStep
+}
+
+/** Where [SplashStep.Done] leaves to. */
+internal enum class SplashExit {
+    /** Onboarding is complete -- the inbox. */
+    Home,
+
+    /** Language was applied but the Intro slides weren't finished (process death mid-Intro) --
+     * resume there, not at Welcome. */
+    Intro,
+
+    /** Onboarding hasn't reached Language's Apply yet -- start over at Welcome. */
+    Welcome,
 }
 
 /**
- * Backs [SplashScreen]: decides where the app goes (inbox or Welcome), and which ads the launch
- * shows on the way (see [AppOpenAdManager] for the app-wide App Open rules).
+ * Backs [SplashScreen]: decides where the app goes (inbox, Intro, or Welcome -- see [SplashExit]),
+ * and which ads the launch shows on the way (see [AppOpenAdManager] for the app-wide App Open
+ * rules).
  *
  * - Deep-link launches (notification tap, call-end hand-off) and launches [AppOpenAdManager]
  *   didn't find eligible go straight to [SplashStep.Done], exactly as before -- no hold, no ads.
@@ -101,7 +115,7 @@ internal class SplashViewModel @Inject constructor(
 
     private var started = false
     private var adShowAttempted = false
-    private var onboardingComplete = false
+    private var exit = SplashExit.Welcome
     private var firstLaunch = false
 
     /** The hold's total cap -- longer on a first launch, where the ads SDK and WebView start cold
@@ -114,7 +128,12 @@ internal class SplashViewModel @Inject constructor(
         if (started) return
         started = true
         viewModelScope.launch {
-            onboardingComplete = onboardingPreferences.isOnboardingComplete.first()
+            val onboardingComplete = onboardingPreferences.isOnboardingComplete.first()
+            exit = when {
+                onboardingComplete -> SplashExit.Home
+                onboardingPreferences.isIntroPending.first() -> SplashExit.Intro
+                else -> SplashExit.Welcome
+            }
             // Completed onboarding implies an earlier launch, even from before this flag existed.
             firstLaunch = !onboardingComplete && !onboardingPreferences.hasCompletedFirstLaunch.first()
             // Always consumed, so a stale eligibility can never leak into a later Splash.
@@ -126,11 +145,11 @@ internal class SplashViewModel @Inject constructor(
             }
             if (skipReason != null) {
                 debugLog("launch ads skipped: $skipReason")
-                finish(SplashStep.Done(onboardingComplete))
+                finish(SplashStep.Done(exit))
                 return@launch
             }
             debugLog(
-                "launch ads eligible: onboardingComplete=$onboardingComplete firstLaunch=$firstLaunch, " +
+                "launch ads eligible: exit=$exit firstLaunch=$firstLaunch, " +
                     "holding up to ${maxTotalHoldMillis}ms (consent form time excluded)",
             )
             val clock = HoldClock()
@@ -142,7 +161,7 @@ internal class SplashViewModel @Inject constructor(
                 nativeTimedOut.value = true
                 nativeAdLoader.markUnavailable()
                 debugLog("consent timed out after ${clock.elapsed()}ms (limit ${CONSENT_TIMEOUT_MILLIS}ms), skipping ads")
-                finish(SplashStep.Done(onboardingComplete))
+                finish(SplashStep.Done(exit))
                 return@launch
             }
             debugLog("consent $consent after ${clock.elapsed()}ms (form time excluded: ${clock.excludedMillis}ms)")
@@ -165,7 +184,7 @@ internal class SplashViewModel @Inject constructor(
 
             val remaining = MIN_HOLD_MILLIS - clock.elapsed()
             if (remaining > 0) delay(remaining)
-            finish(if (showAppOpen) SplashStep.ShowAd else SplashStep.Done(onboardingComplete))
+            finish(if (showAppOpen) SplashStep.ShowAd else SplashStep.Done(exit))
         }
     }
 
@@ -174,7 +193,7 @@ internal class SplashViewModel @Inject constructor(
     fun showAd(activity: Activity?) {
         if (adShowAttempted) return
         adShowAttempted = true
-        val done = { _step.value = SplashStep.Done(onboardingComplete) }
+        val done = { _step.value = SplashStep.Done(exit) }
         val shown = activity != null && appOpenAdManager.showIfReady(activity, onFinished = done)
         if (!shown) done()
     }

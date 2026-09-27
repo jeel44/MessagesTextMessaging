@@ -39,9 +39,10 @@ import javax.inject.Inject
  * until [onApplyClicked]. Every visit starts with nothing highlighted -- from Settings too, where
  * the active language is deliberately neither pre-selected nor marked.
  *
- * Both entry points get the same ads (see [startAds]): a native ad ([AdUnitIds.LANGUAGE_NATIVE])
+ * Both entry points get the same native ad (see [startAds]): [AdUnitIds.LANGUAGE_NATIVE],
  * requested at most twice per visit -- the initial load, plus one refresh on the first language
- * tap -- and an interstitial ([AdUnitIds.LANGUAGE_INTERSTITIAL]) shown on every Apply.
+ * tap. Only Settings' Apply shows an interstitial ([AdUnitIds.LANGUAGE_INTERSTITIAL]); onboarding's
+ * Apply goes straight on to Intro, whose own last Next shows one instead (see IntroViewModel).
  */
 @HiltViewModel
 class LanguageViewModel @Inject constructor(
@@ -81,16 +82,17 @@ class LanguageViewModel @Inject constructor(
         refreshNativeAdOnFirstSelection()
     }
 
-    /** Idempotent. Waits for consent to resolve, then loads the native ad and preloads the Apply
-     * interstitial, or settles both on unavailable. */
-    internal fun startAds() {
+    /** Idempotent. Waits for consent to resolve, then loads the native ad and -- from Settings
+     * only ([isOnboarding] false) -- preloads the Apply interstitial, or settles both on
+     * unavailable. Onboarding never requests the interstitial: its Apply doesn't show one. */
+    internal fun startAds(isOnboarding: Boolean) {
         if (adsStarted) return
         adsStarted = true
         viewModelScope.launch {
             when (adConsentManager.state.first { it != AdConsentState.Pending }) {
                 AdConsentState.Allowed -> {
                     nativeAdLoader.start()
-                    interstitialLoader.start()
+                    if (isOnboarding) interstitialLoader.markUnavailable() else interstitialLoader.start()
                 }
                 else -> {
                     nativeAdLoader.markUnavailable()
@@ -115,12 +117,12 @@ class LanguageViewModel @Inject constructor(
 
     /**
      * Apply, in this order:
-     * 1. Persist the tag to [OnboardingPreferences] (and, from onboarding, mark onboarding
-     *    complete, so it sticks even if the process dies while the ad is up). MainActivity
-     *    localizes its Compose tree off that tag, so the app's own UI switches language right
-     *    away, with no configuration change.
-     * 2. Show the preloaded interstitial, if ready.
-     * 3. Once it's dismissed (or fails to show, or wasn't ready), call
+     * 1. Persist the tag to [OnboardingPreferences] (and, from onboarding, mark Intro pending, so
+     *    a process death from here on resumes at Intro -- onboarding itself is only marked
+     *    complete at Intro's finish). MainActivity localizes its Compose tree off that tag, so the
+     *    app's own UI switches language right away, with no configuration change.
+     * 2. From Settings only: show the preloaded interstitial, if ready.
+     * 3. Once it's dismissed (or fails to show, or wasn't ready, or this is onboarding), call
      *    [AppCompatDelegate.setApplicationLocales], then [onDone].
      *
      * [AppCompatDelegate.setApplicationLocales] is held until the ad is gone on purpose: on API
@@ -139,7 +141,7 @@ class LanguageViewModel @Inject constructor(
         interstitialLoader.commitToShow()
         viewModelScope.launch {
             onboardingPreferences.setLanguageTag(language.languageTag)
-            if (isOnboarding) onboardingPreferences.setOnboardingComplete()
+            if (isOnboarding) onboardingPreferences.setIntroPending()
             val finish = {
                 AppCompatDelegate.setApplicationLocales(
                     language.languageTag
@@ -148,7 +150,8 @@ class LanguageViewModel @Inject constructor(
                 )
                 onDone()
             }
-            val shown = activity != null && interstitialLoader.showIfReady(activity, onFinished = finish)
+            val shown = !isOnboarding && activity != null &&
+                interstitialLoader.showIfReady(activity, onFinished = finish)
             if (!shown) finish()
         }
     }

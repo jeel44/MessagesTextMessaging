@@ -22,6 +22,10 @@ sealed class MessagingDestination(val route: String) {
 
     data object Language : MessagingDestination("language")
 
+    /** Onboarding's last step, after [Language] -- see
+     * [text.message.sms.messaging.ui.screens.onboarding.IntroScreen]. */
+    data object Intro : MessagingDestination("intro")
+
     data object ConversationList : MessagingDestination("conversations")
 
     /** [ARG_PREFILL_TEXT] carries a Forward's prefilled body text (see [Chat]'s own

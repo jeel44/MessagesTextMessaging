@@ -60,14 +60,15 @@ import text.message.sms.messaging.ui.theme.Pill
  * The language picker, reused for two different entry points -- [onBack] picks which:
  *
  * - Onboarding's third step (`onBack` null): no top bar, just this screen's own small title.
- *   Apply also marks onboarding complete. [LanguageViewModel] silently syncs the message cache in
+ *   Apply marks Intro pending and moves on to it, with no interstitial. [LanguageViewModel] silently syncs the message cache in
  *   the background while this is up (see its `init` block); Apply never waits on that sync --
  *   Home's own Flow-backed repository query picks up any rows that land after navigation.
  * - Settings' "Language" row (`onBack` set): a top bar with a back arrow and its own "Language"
  *   title -- this screen's own title is skipped here so the two don't stack.
  *
  * Both share the rest: rows start unselected and a tap only highlights one; the bottom "Apply"
- * bar (disabled until a row is picked) applies it, shows an interstitial, then calls [onApplied]
+ * bar (disabled until a row is picked) applies it, shows an interstitial (Settings only), then
+ * calls [onApplied]
  * (see [LanguageViewModel.onApplyClicked]). A native ad sits below Apply, not above, so its own
  * CTA is never stacked right against the button.
  */
@@ -86,7 +87,7 @@ fun LanguageScreen(
     val activity = remember(context) { context.findActivity() }
     val isOnboarding = onBack == null
 
-    LaunchedEffect(Unit) { viewModel.startAds() }
+    LaunchedEffect(Unit) { viewModel.startAds(isOnboarding) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),

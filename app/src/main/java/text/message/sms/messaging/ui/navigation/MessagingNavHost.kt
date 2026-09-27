@@ -27,6 +27,7 @@ import text.message.sms.messaging.ui.screens.contactslist.ContactsListScreen
 import text.message.sms.messaging.ui.screens.conversationinfo.ConversationInfoScreen
 import text.message.sms.messaging.ui.screens.conversationlist.ConversationListScreen
 import text.message.sms.messaging.ui.screens.newmessage.NewMessageScreen
+import text.message.sms.messaging.ui.screens.onboarding.IntroScreen
 import text.message.sms.messaging.ui.screens.onboarding.LanguageScreen
 import text.message.sms.messaging.ui.screens.onboarding.SetDefaultSmsScreen
 import text.message.sms.messaging.ui.screens.onboarding.SplashScreen
@@ -90,6 +91,11 @@ fun MessagingNavHost(
                         popUpTo(MessagingDestination.Splash.route) { inclusive = true }
                     }
                 },
+                onIntroPending = {
+                    navController.navigate(MessagingDestination.Intro.route) {
+                        popUpTo(MessagingDestination.Splash.route) { inclusive = true }
+                    }
+                },
                 onOnboardingIncomplete = {
                     navController.navigate(MessagingDestination.Welcome.route) {
                         popUpTo(MessagingDestination.Splash.route) { inclusive = true }
@@ -131,9 +137,19 @@ fun MessagingNavHost(
         composable(MessagingDestination.Language.route) {
             LanguageScreen(
                 onApplied = {
+                    navController.navigate(MessagingDestination.Intro.route) {
+                        popUpTo(MessagingDestination.Language.route) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(MessagingDestination.Intro.route) {
+            IntroScreen(
+                onFinished = {
                     // Pop to the graph root, not Splash: Splash (and every earlier onboarding
                     // screen) was already popped by its own hop, and popUpTo a route that isn't on
-                    // the back stack is a silent no-op -- which left Language under the list.
+                    // the back stack is a silent no-op -- which left the last step under the list.
                     navController.navigate(MessagingDestination.ConversationList.route) {
                         popUpTo(navController.graph.id) { inclusive = true }
                     }

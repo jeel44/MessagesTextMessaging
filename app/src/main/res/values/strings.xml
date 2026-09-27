@@ -52,6 +52,16 @@
     <string name="language_title">Select App Language</string>
     <string name="language_apply">Apply</string>
 
+    <!-- Intro (onboarding, after Language) -->
+    <string name="intro_schedule_title">Schedule messages</string>
+    <string name="intro_schedule_subtitle">Pick a time and it sends for you, right on schedule</string>
+    <string name="intro_swipe_title">Swipe to act</string>
+    <string name="intro_swipe_subtitle">Swipe left to delete, right to archive</string>
+    <string name="intro_theme_title">Light or dark</string>
+    <string name="intro_theme_subtitle">Switch anytime, or match your system</string>
+    <string name="intro_next">Next</string>
+    <string name="intro_get_started">Get started</string>
+
     <!-- Screen titles -->
     <string name="screen_conversations">#Messages</string>
     <string name="screen_new_message">New message</string>

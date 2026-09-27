@@ -53,6 +53,16 @@
     <string name="language_title">Seleziona la lingua dell\'app</string>
     <string name="language_apply">Applica</string>
 
+    <!-- Intro (onboarding, after Language): English placeholders, not yet translated -->
+    <string name="intro_schedule_title">Schedule messages</string>
+    <string name="intro_schedule_subtitle">Pick a time and it sends for you, right on schedule</string>
+    <string name="intro_swipe_title">Swipe to act</string>
+    <string name="intro_swipe_subtitle">Swipe left to delete, right to archive</string>
+    <string name="intro_theme_title">Light or dark</string>
+    <string name="intro_theme_subtitle">Switch anytime, or match your system</string>
+    <string name="intro_next">Next</string>
+    <string name="intro_get_started">Get started</string>
+
     <!-- Screen titles -->
     <string name="screen_conversations">#Messaggi</string>
     <string name="screen_new_message">Nuovo messaggio</string>

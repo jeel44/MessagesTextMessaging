@@ -48,8 +48,18 @@ internal object AdUnitIds {
      * [CALL_END_NATIVE], but its own constant so it gets its own real unit later. */
     const val CHAT_NATIVE = "ca-app-pub-3940256099942544/2247696110"
 
-    /** Interstitial shown on the Language screen's Apply (onboarding and Settings). */
+    /** Interstitial shown on the Language screen's Apply -- Settings only; onboarding's Apply
+     * moves on to Intro without one (see [INTRO_INTERSTITIAL]). */
     const val LANGUAGE_INTERSTITIAL = "ca-app-pub-3940256099942544/1033173712"
+
+    /** Intro (onboarding, after Language) screen's native ad, shared by its 2nd and 3rd slides (see
+     * [text.message.sms.messaging.ui.screens.onboarding.IntroViewModel]). Same native test unit as
+     * [CALL_END_NATIVE], but its own constant so it gets its own real unit later. */
+    const val INTRO_NATIVE = "ca-app-pub-3940256099942544/2247696110"
+
+    /** Interstitial shown on Intro's last "Get started", before onboarding completes. Same
+     * interstitial test unit as [LANGUAGE_INTERSTITIAL], but its own constant. */
+    const val INTRO_INTERSTITIAL = "ca-app-pub-3940256099942544/1033173712"
 
     /** App Open ad -- shown only over Splash, as the last step of a launch (see [AppOpenAdManager]).
      * Google's App Open test unit. */
