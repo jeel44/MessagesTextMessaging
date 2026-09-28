@@ -80,6 +80,53 @@ class IntroScreenRenderTest {
         assertEquals(listOf(0, 1, 0), settled)
     }
 
+    /** Full-screen native not loaded (the ViewModel answers false): slide 1's Next goes straight
+     * to slide 2, and only slide 1's Next ever asks. */
+    @Test
+    fun firstSlideNext_adNotLoaded_goesStraightToSlide2() {
+        var asked = 0
+        composeRule.setContent {
+            AppTheme(darkTheme = false) {
+                IntroScreenContent(
+                    nativeAdState = NativeAdState.Loading,
+                    onPageSettled = {},
+                    onGetStarted = {},
+                    onFirstSlideNext = { asked++; false },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Next").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Swipe to act").assertExists()
+
+        composeRule.onNodeWithText("Next").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Light or dark").assertExists()
+        assertEquals(1, asked)
+    }
+
+    /** The full-screen native took over: the pager stays on slide 1 under it (IntroScreen moves
+     * it on once the ad is closed). */
+    @Test
+    fun firstSlideNext_adTakesOver_staysOnSlide1() {
+        composeRule.setContent {
+            AppTheme(darkTheme = false) {
+                IntroScreenContent(
+                    nativeAdState = NativeAdState.Loading,
+                    onPageSettled = {},
+                    onGetStarted = {},
+                    onFirstSlideNext = { true },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Next").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Schedule messages").assertExists()
+        composeRule.onNodeWithText("Swipe to act").assertDoesNotExist()
+    }
+
     @Test
     fun getStartedOnLastSlide_callsFinish() {
         var finished = 0

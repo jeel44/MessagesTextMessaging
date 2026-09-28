@@ -59,9 +59,11 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.R
+import text.message.sms.messaging.config.IntroAdConfig
 import text.message.sms.messaging.ui.components.ShineButton
 import text.message.sms.messaging.ads.NativeAdState
 import text.message.sms.messaging.ui.components.ads.AdShimmerPlaceholder
+import text.message.sms.messaging.ui.components.ads.FullScreenNativeAdCard
 import text.message.sms.messaging.ui.components.ads.MediumNativeAdCard
 import text.message.sms.messaging.ui.components.ads.MediumNativeAdCardReservedHeight
 import text.message.sms.messaging.ui.components.ads.NativeAdCardShape
@@ -88,7 +90,9 @@ internal val IntroPageCount = IntroSlides.size
  * Onboarding's second step, between Language's Apply and Welcome: three Lottie slides in a
  * [HorizontalPager], a dots indicator, a Next button ("Get started" on the last slide, which
  * leaves Intro via [IntroViewModel.onFinishClicked] -- interstitial first, if ready -- then calls
- * [onFinished]), and a native ad slot below it all (see [IntroViewModel] for the ad rules).
+ * [onFinished]), and a native ad slot below it all (see [IntroViewModel] for the ad rules). Slide
+ * 1's Next may first bring up a full-screen native as an overlay on this screen (not a separate
+ * route or Activity); closing it lands on slide 2.
  *
  * System back steps to the previous slide; on the first slide it's left alone, so it behaves like
  * every other onboarding screen's back (the Activity finishes).
@@ -103,16 +107,39 @@ internal fun IntroScreen(
     viewModel: IntroViewModel = hiltViewModel(),
 ) {
     val nativeAdState by viewModel.nativeAdState.collectAsStateWithLifecycle()
+    val fullScreenNativeAd by viewModel.fullScreenNativeAd.collectAsStateWithLifecycle()
+    val fullScreenAdvancePending by viewModel.fullScreenAdvancePending.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
+    val pagerState = rememberPagerState(pageCount = { IntroPageCount })
 
     LaunchedEffect(Unit) { viewModel.startAds() }
 
-    IntroScreenContent(
-        nativeAdState = nativeAdState,
-        onPageSettled = viewModel::onPageSettled,
-        onGetStarted = { viewModel.onFinishClicked(activity, onDone = onFinished) },
-    )
+    // The full-screen native is done: land on slide 2 (instantly, under the ad), then drop it.
+    LaunchedEffect(fullScreenAdvancePending) {
+        if (!fullScreenAdvancePending) return@LaunchedEffect
+        pagerState.scrollToPage(1)
+        viewModel.onFullScreenNativeAdvanced()
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        IntroScreenContent(
+            nativeAdState = nativeAdState,
+            onPageSettled = viewModel::onPageSettled,
+            onGetStarted = { viewModel.onFinishClicked(activity, onDone = onFinished) },
+            onFirstSlideNext = viewModel::onFirstSlideNext,
+            pagerState = pagerState,
+        )
+        fullScreenNativeAd?.let { ad ->
+            FullScreenNativeAdCard(
+                nativeAd = ad,
+                closeDelayMillis = IntroAdConfig.CLOSE_BUTTON_DELAY_MILLIS,
+                onClose = viewModel::onFullScreenNativeClosed,
+                onDisplayed = viewModel::onFullScreenNativeDisplayed,
+                onCloseRevealed = viewModel::onFullScreenNativeCloseRevealed,
+            )
+        }
+    }
 }
 
 /** The system bars on every side, plus the display cutout at the top: on a phone whose notch
@@ -122,13 +149,16 @@ private val IntroInsets: WindowInsets
 
 internal const val IntroAnimationTag = "intro_animation"
 
-/** [IntroScreen]'s UI with no ViewModel or ad requests of its own -- what render tests use. */
+/** [IntroScreen]'s UI with no ViewModel or ad requests of its own -- what render tests use.
+ * [onFirstSlideNext] is slide 1's Next: true means the full-screen native took over and the pager
+ * stays put (the caller moves it on later), false means go to slide 2 now. */
 @Composable
 internal fun IntroScreenContent(
     nativeAdState: NativeAdState,
     onPageSettled: (Int) -> Unit,
     onGetStarted: () -> Unit,
     modifier: Modifier = Modifier,
+    onFirstSlideNext: () -> Boolean = { false },
     pagerState: PagerState = rememberPagerState(pageCount = { IntroPageCount }),
 ) {
     val scope = rememberCoroutineScope()
@@ -172,10 +202,10 @@ internal fun IntroScreenContent(
         ShineButton(
             text = stringResource(if (isLastPage) R.string.intro_get_started else R.string.intro_next),
             onClick = {
-                if (isLastPage) {
-                    onGetStarted()
-                } else {
-                    scope.launch { pagerState.animateScrollToPage(currentPage + 1) }
+                when {
+                    isLastPage -> onGetStarted()
+                    currentPage == 0 && onFirstSlideNext() -> Unit
+                    else -> scope.launch { pagerState.animateScrollToPage(currentPage + 1) }
                 }
             },
             modifier = Modifier.padding(horizontal = 17.dp, vertical = 4.dp),

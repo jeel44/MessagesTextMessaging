@@ -44,6 +44,7 @@
     <string name="intro_theme_subtitle">Switch anytime, or match your system</string>
     <string name="intro_next">Next</string>
     <string name="intro_get_started">Get started</string>
+    <string name="ad_close">Închide reclama</string>
 
     <!-- Screen titles -->
     <string name="screen_conversations">#Mesaje</string>

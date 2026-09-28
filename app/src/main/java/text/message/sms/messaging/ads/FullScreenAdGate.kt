@@ -21,6 +21,9 @@ import javax.inject.Singleton
  *   shown after all, or the loader is destroyed. Covers a placement's async gap between its
  *   trigger and the show call (Language's Apply), including one that ends up calling show while
  *   the app is in the background.
+ * - an in-app full-screen ad is on screen -- one drawn inside MainActivity rather than in an
+ *   [AdActivity] (Intro's full-screen native), marked by its owner via [inAppAdShowing] /
+ *   [inAppAdSettled].
  *
  * Registered by [AppOpenAdManager.register]. All state is touched on the main thread only.
  */
@@ -30,6 +33,7 @@ class FullScreenAdGate @Inject constructor() : Application.ActivityLifecycleCall
     private var registered = false
     private var pendingInterstitials = 0
     private var liveAdActivities = 0
+    private var inAppAdsShowing = 0
 
     fun register(application: Application) {
         if (registered) return
@@ -37,7 +41,19 @@ class FullScreenAdGate @Inject constructor() : Application.ActivityLifecycleCall
         application.registerActivityLifecycleCallbacks(this)
     }
 
-    fun isFullScreenAdBusy(): Boolean = pendingInterstitials > 0 || liveAdActivities > 0
+    fun isFullScreenAdBusy(): Boolean = pendingInterstitials > 0 || liveAdActivities > 0 || inAppAdsShowing > 0
+
+    /** An in-app full-screen ad is now on screen -- its owner pairs every call with exactly one
+     * [inAppAdSettled]. */
+    internal fun inAppAdShowing() {
+        inAppAdsShowing++
+        debugLog("in-app full-screen ad showing ($inAppAdsShowing showing)")
+    }
+
+    internal fun inAppAdSettled() {
+        inAppAdsShowing = (inAppAdsShowing - 1).coerceAtLeast(0)
+        debugLog("in-app full-screen ad settled ($inAppAdsShowing showing)")
+    }
 
     /** Called by [InterstitialAdLoader] only -- each loader pairs every call with exactly one
      * [interstitialSettled]. */

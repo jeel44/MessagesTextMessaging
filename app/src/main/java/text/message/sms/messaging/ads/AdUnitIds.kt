@@ -57,6 +57,11 @@ internal object AdUnitIds {
      * [CALL_END_NATIVE], but its own constant so it gets its own real unit later. */
     const val INTRO_NATIVE = "ca-app-pub-3940256099942544/2247696110"
 
+    /** Intro's full-screen native ad, shown on slide 1's Next (see
+     * [text.message.sms.messaging.ui.screens.onboarding.IntroViewModel]). Google's native *video*
+     * test unit, so the full-screen media slot is exercised with video as well as images. */
+    const val INTRO_NATIVE_FULLSCREEN = "ca-app-pub-3940256099942544/1044960115"
+
     /** Interstitial shown on Intro's last "Get started", before onboarding completes. Same
      * interstitial test unit as [LANGUAGE_INTERSTITIAL], but its own constant. */
     const val INTRO_INTERSTITIAL = "ca-app-pub-3940256099942544/1033173712"
