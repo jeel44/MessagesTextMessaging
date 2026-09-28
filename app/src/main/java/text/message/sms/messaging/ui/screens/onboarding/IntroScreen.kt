@@ -14,13 +14,19 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -39,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -108,6 +115,13 @@ internal fun IntroScreen(
     )
 }
 
+/** The system bars on every side, plus the display cutout at the top: on a phone whose notch
+ * reaches below its status bar, the status bar inset alone would leave the animation under it. */
+private val IntroInsets: WindowInsets
+    @Composable get() = WindowInsets.systemBars.union(WindowInsets.displayCutout.only(WindowInsetsSides.Top))
+
+internal const val IntroAnimationTag = "intro_animation"
+
 /** [IntroScreen]'s UI with no ViewModel or ad requests of its own -- what render tests use. */
 @Composable
 internal fun IntroScreenContent(
@@ -133,7 +147,7 @@ internal fun IntroScreenContent(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .systemBarsPadding(),
+            .windowInsetsPadding(IntroInsets),
     ) {
         HorizontalPager(
             state = pagerState,
@@ -177,12 +191,17 @@ internal fun IntroScreenContent(
     }
 }
 
-/** Space above the animation, between it and the title, and the least height the title +
- * subtitle block is ever left (one-line title + three-line subtitle is ~103dp at default font
- * scale). */
-private val AnimationTopGap = 16.dp
+/** Space above the animation (below the status bar and any notch), between it and the title,
+ * and the least height the title + subtitle block is ever left (one-line title + three-line
+ * subtitle is ~103dp at default font scale). */
+private val AnimationTopGap = 32.dp
 private val AnimationTextGap = 20.dp
 private val TextBlockMinHeight = 120.dp
+
+/** Inside the animation slot, above the drawing: intro_swipe's art runs to within ~4dp of the top
+ * of its own canvas, so without this it reads as flush against [AnimationTopGap]. Applied on every
+ * slide, inside the slot, so the slot's height -- and each title's position -- doesn't change. */
+private val AnimationCanvasTopPadding = 12.dp
 
 /** The animation's share of the page height when nothing else limits it. */
 private const val ANIMATION_HEIGHT_FRACTION = 0.5f
@@ -219,9 +238,11 @@ private fun IntroPage(slide: IntroSlide, modifier: Modifier = Modifier) {
                 iterations = LottieConstants.IterateForever,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
+                    .testTag(IntroAnimationTag)
                     .padding(horizontal = 16.dp)
                     .fillMaxWidth()
-                    .height(animationHeight),
+                    .height(animationHeight)
+                    .padding(top = AnimationCanvasTopPadding),
             )
             Spacer(modifier = Modifier.height(AnimationTextGap))
             IntroText(slide = slide, modifier = Modifier.padding(horizontal = 24.dp))
