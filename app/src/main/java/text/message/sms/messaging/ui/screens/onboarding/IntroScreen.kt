@@ -10,6 +10,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,7 +26,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +37,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -51,12 +52,12 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.R
+import text.message.sms.messaging.ui.components.ShineButton
 import text.message.sms.messaging.ads.NativeAdState
 import text.message.sms.messaging.ui.components.ads.AdShimmerPlaceholder
 import text.message.sms.messaging.ui.components.ads.MediumNativeAdCard
 import text.message.sms.messaging.ui.components.ads.MediumNativeAdCardReservedHeight
 import text.message.sms.messaging.ui.components.ads.NativeAdCardShape
-import text.message.sms.messaging.ui.theme.Pill
 
 /** One Intro slide: its Lottie animation, title and subtitle. */
 private data class IntroSlide(
@@ -151,7 +152,11 @@ internal fun IntroScreenContent(
                 .padding(vertical = 12.dp),
         )
 
-        Button(
+        // Welcome's CTA (halo + shine sweep), so the two screens match. ShineButton reserves its own
+        // halo space inside its bounds, so 17dp + its 7dp halo keeps the pill's face at the old 24dp
+        // inset.
+        ShineButton(
+            text = stringResource(if (isLastPage) R.string.intro_get_started else R.string.intro_next),
             onClick = {
                 if (isLastPage) {
                     onGetStarted()
@@ -159,14 +164,8 @@ internal fun IntroScreenContent(
                     scope.launch { pagerState.animateScrollToPage(currentPage + 1) }
                 }
             },
-            shape = Pill,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp)
-                .height(52.dp),
-        ) {
-            Text(stringResource(if (isLastPage) R.string.intro_get_started else R.string.intro_next))
-        }
+            modifier = Modifier.padding(horizontal = 17.dp, vertical = 4.dp),
+        )
 
         // Below Next, not above, like Language's slot -- the ad's own CTA is never stacked right
         // against the button.
@@ -178,51 +177,79 @@ internal fun IntroScreenContent(
     }
 }
 
+/** Space above the animation, between it and the title, and the least height the title +
+ * subtitle block is ever left (one-line title + three-line subtitle is ~103dp at default font
+ * scale). */
+private val AnimationTopGap = 16.dp
+private val AnimationTextGap = 20.dp
+private val TextBlockMinHeight = 120.dp
+
+/** The animation's share of the page height when nothing else limits it. */
+private const val ANIMATION_HEIGHT_FRACTION = 0.5f
+
+/** The tallest slide's height/width (intro_swipe, 70/95): the slot never gets taller than that
+ * slide can actually fill at full width, so there's no dead band between animation and title. */
+private const val TALLEST_ANIMATION_ASPECT = 70f / 95f
+
 /**
- * The animation takes a fixed share of the page and the text block the rest, top-aligned, so the
- * animation area and the title sit at the same height on every slide however long each
- * slide's text is.
+ * The animation is the hero: half the page height, capped so it never grows taller than the
+ * tallest animation can fill at full width, and shrunk on short screens so the text block always
+ * keeps [TextBlockMinHeight]. Every input is the page's own constraints -- identical on all three
+ * pages -- so the slot and the title sit at the same height on every slide however long each
+ * slide's text is. [LottieAnimation] draws with ContentScale.Fit (its default, set explicitly
+ * here), so each file's own aspect ratio is kept, centered in the slot.
  */
 @Composable
 private fun IntroPage(slide: IntroSlide, modifier: Modifier = Modifier) {
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(slide.animation))
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        LottieAnimation(
-            composition = composition,
-            iterations = LottieConstants.IterateForever,
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(0.68f)
-                .padding(top = 24.dp),
-        )
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val animationWidth = maxWidth - 32.dp
+        val animationHeight = minOf(
+            maxHeight * ANIMATION_HEIGHT_FRACTION,
+            animationWidth * TALLEST_ANIMATION_ASPECT,
+            maxHeight - AnimationTopGap - AnimationTextGap - TextBlockMinHeight,
+        ).coerceAtLeast(0.dp)
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(0.32f)
-                .padding(top = 24.dp),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                text = stringResource(slide.title),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center,
+            Spacer(modifier = Modifier.height(AnimationTopGap))
+            LottieAnimation(
+                composition = composition,
+                iterations = LottieConstants.IterateForever,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxWidth()
+                    .height(animationHeight),
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(slide.subtitle),
-                fontSize = 15.sp,
-                lineHeight = 21.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
+            Spacer(modifier = Modifier.height(AnimationTextGap))
+            IntroText(slide = slide, modifier = Modifier.padding(horizontal = 24.dp))
         }
+    }
+}
+
+@Composable
+private fun IntroText(slide: IntroSlide, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(slide.title),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(slide.subtitle),
+            fontSize = 15.sp,
+            lineHeight = 21.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
