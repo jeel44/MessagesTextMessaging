@@ -339,7 +339,6 @@
     <string name="settings_privacy_policy_title">Kebijakan privasi</string>
     <string name="settings_ad_privacy_options_title">Opsi privasi</string>
     <string name="settings_ad_privacy_options_summary">Kelola pilihan persetujuan iklan Anda</string>
-    <string name="settings_licenses_title">Lisensi sumber terbuka</string>
     <string name="settings_help_feedback_title">Bantuan &amp; umpan balik</string>
 
     <!-- Contacts list (call-end screen's "View Contacts") -->

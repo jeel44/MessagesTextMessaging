@@ -338,7 +338,6 @@
     <string name="settings_privacy_policy_title">गोपनीयता नीति</string>
     <string name="settings_ad_privacy_options_title">गोपनीयता विकल्प</string>
     <string name="settings_ad_privacy_options_summary">विज्ञापन सहमति के विकल्प प्रबंधित करें</string>
-    <string name="settings_licenses_title">ओपन सोर्स लाइसेंस</string>
     <string name="settings_help_feedback_title">सहायता और प्रतिक्रिया</string>
 
     <!-- Contacts list (call-end screen's "View Contacts") -->

@@ -29,7 +29,6 @@ import androidx.annotation.DrawableRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Backup
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.PrivacyTip
@@ -318,10 +317,6 @@ fun SettingsScreen(
                 } else {
                     null
                 },
-                SettingsRow(
-                    icon = SettingsIcon.Vector(Icons.Filled.Description),
-                    title = stringResource(R.string.settings_licenses_title),
-                ),
                 SettingsRow(
                     icon = SettingsIcon.Drawable(R.drawable.ic_feedback),
                     title = stringResource(R.string.settings_help_feedback_title),

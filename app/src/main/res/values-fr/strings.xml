@@ -338,7 +338,6 @@
     <string name="settings_privacy_policy_title">Politique de confidentialité</string>
     <string name="settings_ad_privacy_options_title">Options de confidentialité</string>
     <string name="settings_ad_privacy_options_summary">Gérer votre consentement publicitaire</string>
-    <string name="settings_licenses_title">Licences open source</string>
     <string name="settings_help_feedback_title">Aide et commentaires</string>
 
     <!-- Contacts list (call-end screen's "View Contacts") -->

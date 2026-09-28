@@ -122,7 +122,6 @@
     <string name="settings_privacy_policy_title">Politica de confidențialitate</string>
     <string name="settings_ad_privacy_options_title">Opțiuni de confidențialitate</string>
     <string name="settings_ad_privacy_options_summary">Gestionează consimțământul pentru reclame</string>
-    <string name="settings_licenses_title">Licențe open source</string>
     <string name="settings_help_feedback_title">Ajutor și feedback</string>
 
     <!-- Call end -->
