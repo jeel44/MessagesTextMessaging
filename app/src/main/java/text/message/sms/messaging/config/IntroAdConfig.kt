@@ -14,4 +14,9 @@ internal object IntroAdConfig {
     /** How long the full-screen native is on screen (assets rendered, shimmer gone) before its
      * close button appears. Back is blocked until then. */
     const val CLOSE_BUTTON_DELAY_MILLIS = 2000L
+
+    /** Slide 1's Next while the full-screen native is still loading: how long its overlay waits,
+     * shimmering, for the load before giving up and going to slide 2. The overlay has no close
+     * button while it waits, so this is also the longest the user can be held there. */
+    const val FULLSCREEN_NATIVE_MAX_WAIT_MILLIS = 3000L
 }

@@ -64,6 +64,7 @@ import text.message.sms.messaging.ui.components.ShineButton
 import text.message.sms.messaging.ads.NativeAdState
 import text.message.sms.messaging.ui.components.ads.AdShimmerPlaceholder
 import text.message.sms.messaging.ui.components.ads.FullScreenNativeAdCard
+import text.message.sms.messaging.ui.components.ads.FullScreenNativeAdFrame
 import text.message.sms.messaging.ui.components.ads.MediumNativeAdCard
 import text.message.sms.messaging.ui.components.ads.MediumNativeAdCardReservedHeight
 import text.message.sms.messaging.ui.components.ads.NativeAdCardShape
@@ -107,7 +108,7 @@ internal fun IntroScreen(
     viewModel: IntroViewModel = hiltViewModel(),
 ) {
     val nativeAdState by viewModel.nativeAdState.collectAsStateWithLifecycle()
-    val fullScreenNativeAd by viewModel.fullScreenNativeAd.collectAsStateWithLifecycle()
+    val fullScreenNativeOverlay by viewModel.fullScreenNativeOverlay.collectAsStateWithLifecycle()
     val fullScreenAdvancePending by viewModel.fullScreenAdvancePending.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
@@ -130,9 +131,17 @@ internal fun IntroScreen(
             onFirstSlideNext = viewModel::onFirstSlideNext,
             pagerState = pagerState,
         )
-        fullScreenNativeAd?.let { ad ->
-            FullScreenNativeAdCard(
-                nativeAd = ad,
+        when (val overlay = fullScreenNativeOverlay) {
+            null -> Unit
+            // No ad yet: the frame's own shimmer, which stays because nothing reports the assets
+            // ready -- so no close button, and back is ignored. The ViewModel ends the wait.
+            FullScreenNativeOverlay.Waiting -> FullScreenNativeAdFrame(
+                closeDelayMillis = IntroAdConfig.CLOSE_BUTTON_DELAY_MILLIS,
+                onClose = {},
+                content = {},
+            )
+            is FullScreenNativeOverlay.Showing -> FullScreenNativeAdCard(
+                nativeAd = overlay.ad,
                 closeDelayMillis = IntroAdConfig.CLOSE_BUTTON_DELAY_MILLIS,
                 onClose = viewModel::onFullScreenNativeClosed,
                 onDisplayed = viewModel::onFullScreenNativeDisplayed,

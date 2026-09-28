@@ -9,10 +9,11 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.google.android.gms.ads.nativead.NativeAd
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.config.IntroAdConfig
@@ -35,8 +36,10 @@ import javax.inject.Inject
  *   so the refresh actually replaces an ad the user has already seen (see [onPageSettled]).
  * - A full-screen native ([AdUnitIds.INTRO_NATIVE_FULLSCREEN], if
  *   [IntroAdConfig.FULLSCREEN_NATIVE_ENABLED]) shown over slide 1 on its Next, then slide 2 once
- *   it's closed ([onFirstSlideNext]). Requested once per visit, right after the slot's native, and
- *   never waited for: not loaded yet, failed or no consent means Next goes straight to slide 2.
+ *   it's closed ([onFirstSlideNext], [IntroFullScreenNativeFlow]). Requested once per visit, right
+ *   after the slot's native. Still loading at Next: its overlay comes up shimmering and waits up
+ *   to [IntroAdConfig.FULLSCREEN_NATIVE_MAX_WAIT_MILLIS] for it, then goes to slide 2 if it
+ *   hasn't come. Failed or no consent: Next goes straight to slide 2.
  * - An interstitial ([AdUnitIds.INTRO_INTERSTITIAL]) shown on the last slide's "Get started"
  *   ([onFinishClicked]).
  *
@@ -60,16 +63,36 @@ internal class IntroViewModel @Inject constructor(
 
     private val fullScreenNativeLoader = NativeAdLoader(context, AdUnitIds.INTRO_NATIVE_FULLSCREEN)
 
-    private val _fullScreenNativeAd = MutableStateFlow<NativeAd?>(null)
+    private var fullScreenInGate = false
+    private var fullScreenDisplayed = false
 
-    /** Non-null while the full-screen native is up, over slide 1. */
-    val fullScreenNativeAd: StateFlow<NativeAd?> = _fullScreenNativeAd.asStateFlow()
+    private val fullScreenNative = IntroFullScreenNativeFlow(
+        scope = viewModelScope,
+        savedStateHandle = savedStateHandle,
+        load = fullScreenNativeLoader.state
+            .map { it.toFullScreenLoad() }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, fullScreenNativeLoader.state.value.toFullScreenLoad()),
+        loadedAd = { (fullScreenNativeLoader.state.value as? NativeAdState.Loaded)?.nativeAd },
+        consent = { adConsentManager.state.value },
+        enabled = IntroAdConfig.FULLSCREEN_NATIVE_ENABLED,
+        maxWaitMillis = IntroAdConfig.FULLSCREEN_NATIVE_MAX_WAIT_MILLIS,
+        onOverlayUp = {
+            if (!fullScreenInGate) {
+                fullScreenInGate = true
+                fullScreenAdGate.inAppAdShowing()
+            }
+        },
+        onOverlayDown = ::clearFullScreenGate,
+        log = ::debugLog,
+    )
 
-    private val _fullScreenAdvancePending = MutableStateFlow(false)
+    /** Non-null while the full-screen native's overlay is up over slide 1: waiting for the load
+     * (shimmer) or showing the ad. */
+    val fullScreenNativeOverlay: StateFlow<FullScreenNativeOverlay<NativeAd>?> = fullScreenNative.overlay
 
-    /** The full-screen native is done (closed, or lost to a process death): the screen should move
-     * the pager to slide 2, then call [onFullScreenNativeAdvanced]. */
-    val fullScreenAdvancePending: StateFlow<Boolean> = _fullScreenAdvancePending.asStateFlow()
+    /** The full-screen native is done (closed, the wait gave up, or lost to a process death): the
+     * screen should move the pager to slide 2, then call [onFullScreenNativeAdvanced]. */
+    val fullScreenAdvancePending: StateFlow<Boolean> = fullScreenNative.advancePending
 
     private val interstitialLoader =
         InterstitialAdLoader(context, AdUnitIds.INTRO_INTERSTITIAL, fullScreenAdGate)
@@ -77,16 +100,8 @@ internal class IntroViewModel @Inject constructor(
     private var adsStarted = false
     private var finishPressed = false
     private var settledPage = 0
-    private var fullScreenInGate = false
-    private var fullScreenDisplayed = false
 
     init {
-        if (savedStateHandle.get<Boolean>(KEY_FULLSCREEN_SHOWING) == true) {
-            // Only a process death gets here -- rotation keeps this ViewModel, and the ad with it.
-            debugLog("full-screen native closed: process restored while it was showing, moving on to slide 2")
-            savedStateHandle[KEY_FULLSCREEN_SHOWING] = false
-            _fullScreenAdvancePending.value = true
-        }
         viewModelScope.launch {
             fullScreenNativeLoader.state.collect { state ->
                 when (state) {
@@ -141,7 +156,7 @@ internal class IntroViewModel @Inject constructor(
                 debugLog("full-screen native disabled, not preloading")
                 fullScreenNativeLoader.markUnavailable()
             }
-            fullScreenNativeDecided() -> {
+            fullScreenNative.decided -> {
                 debugLog("full-screen native already shown or skipped this visit, not preloading")
                 fullScreenNativeLoader.markUnavailable()
             }
@@ -152,49 +167,8 @@ internal class IntroViewModel @Inject constructor(
         }
     }
 
-    private fun fullScreenNativeDecided(): Boolean =
-        savedStateHandle.get<Boolean>(KEY_FULLSCREEN_SHOWN) == true ||
-            savedStateHandle.get<Boolean>(KEY_FULLSCREEN_SKIPPED) == true
-
-    /**
-     * Slide 1's Next. Returns true if the full-screen native is now showing -- the screen then
-     * stays on slide 1 under it until [fullScreenAdvancePending] -- or false (logging why) if the
-     * screen should go straight to slide 2. Decided once per visit, see
-     * [decideIntroFullScreenNative]; both outcomes live in [savedStateHandle], so neither
-     * rotation nor process death re-arms it.
-     */
-    fun onFirstSlideNext(): Boolean {
-        val loaderState = fullScreenNativeLoader.state.value
-        val decision = decideIntroFullScreenNative(
-            enabled = IntroAdConfig.FULLSCREEN_NATIVE_ENABLED,
-            alreadyShown = savedStateHandle.get<Boolean>(KEY_FULLSCREEN_SHOWN) == true,
-            alreadySkipped = savedStateHandle.get<Boolean>(KEY_FULLSCREEN_SKIPPED) == true,
-            consent = adConsentManager.state.value,
-            load = when (loaderState) {
-                NativeAdState.Loading -> FullScreenNativeLoad.LOADING
-                is NativeAdState.Loaded -> FullScreenNativeLoad.LOADED
-                NativeAdState.Failed -> FullScreenNativeLoad.FAILED
-            },
-        )
-        val ad = (loaderState as? NativeAdState.Loaded)?.nativeAd
-        if (decision is FullScreenNativeDecision.Skip || ad == null) {
-            val reason = (decision as? FullScreenNativeDecision.Skip)?.reason?.logText ?: "no ad"
-            debugLog("full-screen native skipped ($reason), going to slide 2")
-            if (savedStateHandle.get<Boolean>(KEY_FULLSCREEN_SHOWN) != true) {
-                savedStateHandle[KEY_FULLSCREEN_SKIPPED] = true
-            }
-            return false
-        }
-        savedStateHandle[KEY_FULLSCREEN_SHOWN] = true
-        savedStateHandle[KEY_FULLSCREEN_SHOWING] = true
-        if (!fullScreenInGate) {
-            fullScreenInGate = true
-            fullScreenAdGate.inAppAdShowing()
-        }
-        _fullScreenNativeAd.value = ad
-        debugLog("full-screen native opening on slide 1's Next")
-        return true
-    }
+    /** Slide 1's Next -- see [IntroFullScreenNativeFlow.onFirstSlideNext]. */
+    fun onFirstSlideNext(): Boolean = fullScreenNative.onFirstSlideNext()
 
     /** The full-screen native's assets are rendered and visible -- its close timer starts now. */
     fun onFullScreenNativeDisplayed() {
@@ -208,19 +182,10 @@ internal class IntroViewModel @Inject constructor(
 
     /** Close button, or back once it's up. The ad stays on screen until the pager has moved to
      * slide 2 under it ([onFullScreenNativeAdvanced]), so slide 1 never flashes in between. */
-    fun onFullScreenNativeClosed() {
-        if (_fullScreenNativeAd.value == null || _fullScreenAdvancePending.value) return
-        debugLog("full-screen native closed, going to slide 2")
-        savedStateHandle[KEY_FULLSCREEN_SHOWING] = false
-        _fullScreenAdvancePending.value = true
-    }
+    fun onFullScreenNativeClosed() = fullScreenNative.onClosed()
 
     /** The screen has moved the pager to slide 2 after [fullScreenAdvancePending]. */
-    fun onFullScreenNativeAdvanced() {
-        _fullScreenAdvancePending.value = false
-        _fullScreenNativeAd.value = null
-        clearFullScreenGate()
-    }
+    fun onFullScreenNativeAdvanced() = fullScreenNative.onAdvanced()
 
     private fun clearFullScreenGate() {
         if (!fullScreenInGate) return
@@ -290,8 +255,11 @@ internal class IntroViewModel @Inject constructor(
         const val TAG = "IntroViewModel"
         const val KEY_SLIDE2_AD_SEEN = "intro_slide2_ad_seen"
         const val KEY_REFRESH_DONE = "intro_native_refresh_done"
-        const val KEY_FULLSCREEN_SHOWN = "intro_fullscreen_native_shown"
-        const val KEY_FULLSCREEN_SKIPPED = "intro_fullscreen_native_skipped"
-        const val KEY_FULLSCREEN_SHOWING = "intro_fullscreen_native_showing"
+
+        fun NativeAdState.toFullScreenLoad(): FullScreenNativeLoad = when (this) {
+            NativeAdState.Loading -> FullScreenNativeLoad.LOADING
+            is NativeAdState.Loaded -> FullScreenNativeLoad.LOADED
+            NativeAdState.Failed -> FullScreenNativeLoad.FAILED
+        }
     }
 }

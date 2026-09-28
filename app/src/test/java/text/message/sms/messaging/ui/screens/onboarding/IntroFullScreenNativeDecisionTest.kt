@@ -5,11 +5,11 @@ import org.junit.Test
 import text.message.sms.messaging.ads.AdConsentState
 import text.message.sms.messaging.ui.screens.onboarding.FullScreenNativeDecision.Show
 import text.message.sms.messaging.ui.screens.onboarding.FullScreenNativeDecision.Skip
+import text.message.sms.messaging.ui.screens.onboarding.FullScreenNativeDecision.Wait
 import text.message.sms.messaging.ui.screens.onboarding.FullScreenNativeSkipReason.ALREADY_SHOWN
 import text.message.sms.messaging.ui.screens.onboarding.FullScreenNativeSkipReason.ALREADY_SKIPPED
 import text.message.sms.messaging.ui.screens.onboarding.FullScreenNativeSkipReason.DISABLED
 import text.message.sms.messaging.ui.screens.onboarding.FullScreenNativeSkipReason.FAILED
-import text.message.sms.messaging.ui.screens.onboarding.FullScreenNativeSkipReason.LOADING
 import text.message.sms.messaging.ui.screens.onboarding.FullScreenNativeSkipReason.NO_CONSENT
 
 class IntroFullScreenNativeDecisionTest {
@@ -26,7 +26,7 @@ class IntroFullScreenNativeDecisionTest {
     fun loadedWithConsent_shows() = assertEquals(Show, decide())
 
     @Test
-    fun stillLoading_skipsWithoutWaiting() = assertEquals(Skip(LOADING), decide(load = FullScreenNativeLoad.LOADING))
+    fun stillLoading_waits() = assertEquals(Wait, decide(load = FullScreenNativeLoad.LOADING))
 
     @Test
     fun failed_skips() = assertEquals(Skip(FAILED), decide(load = FullScreenNativeLoad.FAILED))
