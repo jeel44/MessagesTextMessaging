@@ -37,8 +37,8 @@ import javax.inject.Inject
  * idempotent, so it's harmless there too.
  *
  * Selection is two-phase: tapping a row only highlights it ([selectLanguage]); nothing is applied
- * until [onApplyClicked]. Every visit starts with nothing highlighted -- from Settings too, where
- * the active language is deliberately neither pre-selected nor marked.
+ * until [onApplyClicked]. Every visit opens with the active language already highlighted -- the
+ * stored tag, or System Default when none is stored yet (first run) -- see [preselectStoredLanguage].
  *
  * Both entry points get the same native ad (see [startAds]): [AdUnitIds.LANGUAGE_NATIVE],
  * requested at most twice per visit -- the initial load, plus one refresh on the first language
@@ -64,8 +64,9 @@ class LanguageViewModel @Inject constructor(
     private var adsStarted = false
     private var applyPressed = false
 
-    /** The highlighted row, or null until the first tap. Kept in [savedStateHandle] (by id) so
-     * rotation and process death mid-screen keep the highlight. */
+    /** The highlighted row -- null only until [preselectStoredLanguage] has read the stored tag.
+     * Kept in [savedStateHandle] (by id) so rotation and process death mid-screen keep the
+     * highlight. */
     internal val selectedLanguage: StateFlow<LanguageOption?> = savedStateHandle
         .getStateFlow<String?>(KEY_SELECTED_LANGUAGE_ID, null)
         .map { id -> LanguageOptions.firstOrNull { it.id == id } }
@@ -75,6 +76,21 @@ class LanguageViewModel @Inject constructor(
         // Silent and non-blocking by design: no progress UI on this screen for it, and Apply
         // never waits on it -- see LanguageScreen/MessagingNavHost.
         viewModelScope.launch { syncMessages() }
+        preselectStoredLanguage()
+    }
+
+    /** Seeds the highlight with the active language, unless [savedStateHandle] already holds one
+     * (a restored screen) or a tap lands first. Writes the id directly rather than going through
+     * [selectLanguage]: this isn't a tap, so it must not spend the first-selection ad refresh. */
+    private fun preselectStoredLanguage() {
+        if (savedStateHandle.contains(KEY_SELECTED_LANGUAGE_ID)) return
+        viewModelScope.launch {
+            val tag = onboardingPreferences.languageTag.first()
+            val option = LanguageOptions.firstOrNull { it.languageTag == tag } ?: LanguageOptions.first()
+            if (savedStateHandle.get<String>(KEY_SELECTED_LANGUAGE_ID) == null) {
+                savedStateHandle[KEY_SELECTED_LANGUAGE_ID] = option.id
+            }
+        }
     }
 
     /** Highlight only -- nothing is applied until [onApplyClicked]. */

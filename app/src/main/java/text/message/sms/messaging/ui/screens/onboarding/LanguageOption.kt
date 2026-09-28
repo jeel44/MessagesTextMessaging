@@ -1,6 +1,7 @@
 package text.message.sms.messaging.ui.screens.onboarding
 
-import text.message.sms.messaging.util.firstLetterOrDigitOrNull
+import androidx.annotation.DrawableRes
+import text.message.sms.messaging.R
 
 /**
  * One row in the language picker.
@@ -14,14 +15,36 @@ internal data class LanguageOption(
     val nativeName: String,
     val languageTag: String?,
 ) {
-    /** The avatar glyph -- [nativeName]'s own first letter/digit, codepoint-safe (see
-     * [firstLetterOrDigitOrNull]) so a script using a surrogate-pair code point never splits, and
-     * left as-is (no forced uppercasing effect) for scripts with no case, e.g. Arabic/Thai/
-     * Devanagari/Hangul. Derived rather than hand-typed so it can never drift from [nativeName]
-     * the way the old hardcoded label did for Indonesian ("Bahasa Indonesia" showed "I", the
-     * English name's initial, instead of "B"). */
-    val avatarLabel: String
-        get() = nativeName.firstLetterOrDigitOrNull().orEmpty()
+    /** The row's round flag, or null for System Default (which shows a globe instead). */
+    @get:DrawableRes
+    val flagRes: Int?
+        get() = flagFor(languageTag)
+}
+
+/**
+ * The one place a language tag maps to its flag drawable -- one flag per country (English uses
+ * the US flag, Portuguese Brazil's, Arabic Saudi Arabia's). Null only for System Default (`null`
+ * tag). Any tag without its own flag file gets [R.drawable.flag_placeholder], a neutral glyph,
+ * so a missing file never breaks the build: German's `flag_de` isn't in the project yet -- once
+ * `flag_de.webp` is added, point "de" at `R.drawable.flag_de` here.
+ */
+@DrawableRes
+internal fun flagFor(languageTag: String?): Int? = when (languageTag) {
+    null -> null
+    "en" -> R.drawable.flag_us
+    "ar" -> R.drawable.flag_sa
+    "nl" -> R.drawable.flag_nl
+    "fr" -> R.drawable.flag_fr
+    "hi" -> R.drawable.flag_in
+    "id" -> R.drawable.flag_id
+    "it" -> R.drawable.flag_it
+    "ko" -> R.drawable.flag_kr
+    "pt" -> R.drawable.flag_br
+    "ro" -> R.drawable.flag_ro
+    "es" -> R.drawable.flag_es
+    "sv" -> R.drawable.flag_se
+    "th" -> R.drawable.flag_th
+    else -> R.drawable.flag_placeholder
 }
 
 // System Default, then English, then the remaining 13 alphabetical by English display name

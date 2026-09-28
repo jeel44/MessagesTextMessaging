@@ -3,10 +3,14 @@ package text.message.sms.messaging.ui.screens.onboarding
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,31 +22,46 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -67,13 +86,11 @@ import text.message.sms.messaging.ui.theme.Pill
  * - Settings' "Language" row (`onBack` set): a top bar with a back arrow and its own "Language"
  *   title -- this screen's own title is skipped here so the two don't stack.
  *
- * Both share the rest: rows start unselected and a tap only highlights one; the bottom "Apply"
- * bar (disabled until a row is picked) applies it, shows an interstitial (Settings only), then
- * calls [onApplied]
- * (see [LanguageViewModel.onApplyClicked]). A native ad sits below Apply, not above, so its own
- * CTA is never stacked right against the button.
+ * Both share the rest: the active language opens highlighted and scrolled into view, a tap only
+ * moves the highlight; the bottom "Apply" bar applies it, shows an interstitial (Settings only),
+ * then calls [onApplied] (see [LanguageViewModel.onApplyClicked]). A native ad sits below Apply,
+ * not above, so its own CTA is never stacked right against the button.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LanguageScreen(
     onApplied: () -> Unit,
@@ -83,12 +100,56 @@ fun LanguageScreen(
 ) {
     val selectedLanguage by viewModel.selectedLanguage.collectAsStateWithLifecycle()
     val nativeAdState by viewModel.nativeAdState.collectAsStateWithLifecycle()
-    val backgroundColor = languageScreenBackground()
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
     val isOnboarding = onBack == null
 
     LaunchedEffect(Unit) { viewModel.startAds(isOnboarding) }
+
+    LanguageScreenContent(
+        selectedLanguageId = selectedLanguage?.id,
+        nativeAdState = nativeAdState,
+        onLanguageClick = viewModel::selectLanguage,
+        onApplyClick = { viewModel.onApplyClicked(activity, isOnboarding, onDone = onApplied) },
+        onBack = onBack,
+        modifier = modifier,
+    )
+}
+
+/** [LanguageScreen] minus its ViewModel, so render tests can drive it directly. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun LanguageScreenContent(
+    selectedLanguageId: String?,
+    nativeAdState: NativeAdState,
+    onLanguageClick: (LanguageOption) -> Unit,
+    onApplyClick: () -> Unit,
+    onBack: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val listState = rememberLazyListState()
+
+    // Once per visit (saveable, so rotation doesn't re-run it): the first time a selection shows
+    // up -- the ViewModel's preselection lands a moment after the first frame -- bring its row
+    // into view. Later taps never scroll; the tapped row is already on screen.
+    var initialScrollDone by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(selectedLanguageId) {
+        if (initialScrollDone || selectedLanguageId == null) return@LaunchedEffect
+        initialScrollDone = true
+        val index = LanguageOptions.indexOfFirst { it.id == selectedLanguageId }
+        val fullyVisible = listState.layoutInfo.let { info ->
+            info.visibleItemsInfo.any {
+                it.index == index &&
+                    it.offset >= info.viewportStartOffset &&
+                    it.offset + it.size <= info.viewportEndOffset
+            }
+        }
+        if (index >= 0 && !fullyVisible) {
+            // Two rows of context above, so the selected card doesn't land flush against the top.
+            listState.scrollToItem((index - 2).coerceAtLeast(0))
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -104,8 +165,8 @@ fun LanguageScreen(
                 // under the system navigation bar would be partly obscured.
                 Column(modifier = Modifier.navigationBarsPadding()) {
                     Button(
-                        onClick = { viewModel.onApplyClicked(activity, isOnboarding, onDone = onApplied) },
-                        enabled = selectedLanguage != null,
+                        onClick = onApplyClick,
+                        enabled = selectedLanguageId != null,
                         shape = Pill,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -130,33 +191,29 @@ fun LanguageScreen(
         ) {
             // Onboarding only -- Settings already shows "Language" in the top bar above, so
             // repeating a heading here would stack two titles.
-            if (isOnboarding) {
+            if (onBack == null) {
                 Text(
                     text = stringResource(R.string.language_title),
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Medium,
-                    color = languageTitleColor(),
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
                 )
             }
 
-            val avatarTones = languageAvatarTones()
-            val displayNameColor = languageDisplayNameColor()
-            val nativeNameColor = languageNativeNameColor()
-            val radioOutlineColor = languageRadioOutlineColor()
-
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                itemsIndexed(LanguageOptions, key = { _, language -> language.id }) { index, language ->
-                    val (avatarContainer, avatarContent) = avatarTones[index % avatarTones.size]
-                    LanguageRow(
+            LazyColumn(
+                state = listState,
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .selectableGroup(),
+            ) {
+                items(LanguageOptions, key = { it.id }) { language ->
+                    LanguageCard(
                         language = language,
-                        selected = language.id == selectedLanguage?.id,
-                        avatarContainerColor = avatarContainer,
-                        avatarContentColor = avatarContent,
-                        displayNameColor = displayNameColor,
-                        nativeNameColor = nativeNameColor,
-                        radioOutlineColor = radioOutlineColor,
-                        onClick = { viewModel.selectLanguage(language) },
+                        selected = language.id == selectedLanguageId,
+                        onClick = { onLanguageClick(language) },
                     )
                 }
             }
@@ -184,76 +241,132 @@ private fun LanguageNativeAdSlot(state: NativeAdState, modifier: Modifier = Modi
     }
 }
 
+private val LanguageCardShape = RoundedCornerShape(12.dp)
+
+internal const val LanguageCardTagPrefix = "language_card_"
+
+/**
+ * One language: flag (or System Default's globe), English name over native name, radio.
+ * Unselected sits on `surface` with an `outlineVariant` hairline; selected fills with `primary`
+ * and flips its text and radio to `onPrimary`, the same accent the Apply button uses.
+ *
+ * The card's own layout is pinned left-to-right in every locale -- flag left, radio right, text
+ * left-aligned -- so it looks the same with the app in Arabic as in English (the English names
+ * aren't localized, so an RTL-mirrored row would put LTR text in a right-aligned column). Each
+ * name still lays out by its own script ([TextDirection.Content]), so العربية shapes and orders
+ * as Arabic inside that left-aligned slot. The screen around the cards (top bar, title) still
+ * mirrors normally.
+ */
 @Composable
-private fun LanguageRow(
+private fun LanguageCard(
     language: LanguageOption,
     selected: Boolean,
-    avatarContainerColor: Color,
-    avatarContentColor: Color,
-    displayNameColor: Color,
-    nativeNameColor: Color,
-    radioOutlineColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(66.dp)
-            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
-            .padding(horizontal = 20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(50.dp)
-                .clip(CircleShape)
-                .background(avatarContainerColor),
-            contentAlignment = Alignment.Center,
+    val colors = MaterialTheme.colorScheme
+    val containerColor = if (selected) colors.primary else colors.surface
+    val borderColor = if (selected) colors.primary else colors.outlineVariant
+    val nameColor = if (selected) colors.onPrimary else colors.onSurface
+    val nativeNameColor = if (selected) colors.onPrimary.copy(alpha = 0.8f) else colors.onSurfaceVariant
+
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .heightIn(min = 68.dp)
+                .clip(LanguageCardShape)
+                .background(containerColor)
+                .border(width = 1.dp, color = borderColor, shape = LanguageCardShape)
+                .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+                .testTag(LanguageCardTagPrefix + language.id)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = language.avatarLabel,
-                fontSize = 21.sp,
-                fontWeight = FontWeight.Bold,
-                color = avatarContentColor,
-            )
-        }
+            LanguageFlag(flagRes = language.flagRes, selected = selected)
 
-        Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
-        // One line, ellipsized rather than wrapped -- the row height is fixed, and a long native
-        // name (e.g. "Bahasa Indonesia") wrapping to a second line would clip against it and
-        // overlap LanguageRadioIndicator instead of just truncating.
-        val nameText = buildAnnotatedString {
-            withStyle(SpanStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium, color = displayNameColor)) {
-                append(language.displayName)
+            val textStyle = TextStyle(textAlign = TextAlign.Left, textDirection = TextDirection.Content)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = language.displayName,
+                    color = nameColor,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = textStyle,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                // System Default has no native name of its own -- it's whatever the device uses.
+                if (language.languageTag != null) {
+                    Text(
+                        text = language.nativeName,
+                        color = nativeNameColor,
+                        fontSize = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = textStyle,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
-            append(" ")
-            withStyle(SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Normal, color = nativeNameColor)) {
-                append("(${language.nativeName})")
-            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            LanguageRadioIndicator(selected = selected)
         }
-        Text(
-            text = nameText,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        LanguageRadioIndicator(selected = selected, outlineColor = radioOutlineColor)
     }
 }
 
-/** A custom indicator rather than the stock M3 [androidx.compose.material3.RadioButton] -- the
- * reference design's selected state (a fully accent-filled circle with a small white dot punched
- * through its center) isn't a look M3's own ring-and-dot rendering can produce. */
+/** A 44dp round flag, cropped to fill, with a hairline ring so white-heavy flags (Indonesia, Korea)
+ * don't bleed into a light card. Null [flagRes] is System Default: a globe instead. The neutral
+ * placeholder (a flag glyph, see [flagFor]) is tinted like the globe rather than cropped. */
 @Composable
-private fun LanguageRadioIndicator(selected: Boolean, outlineColor: Color, modifier: Modifier = Modifier) {
-    val accentColor = MaterialTheme.colorScheme.primary
+private fun LanguageFlag(@DrawableRes flagRes: Int?, selected: Boolean) {
+    val colors = MaterialTheme.colorScheme
+    val glyphContainer = if (selected) colors.onPrimary.copy(alpha = 0.16f) else colors.surfaceVariant
+    val glyphTint = if (selected) colors.onPrimary else colors.onSurfaceVariant
     Box(
-        modifier = modifier.size(29.dp),
+        modifier = Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(glyphContainer)
+            .border(width = 1.dp, color = colors.outlineVariant, shape = CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        when (flagRes) {
+            null -> Icon(
+                imageVector = Icons.Outlined.Language,
+                contentDescription = null,
+                tint = glyphTint,
+                modifier = Modifier.size(24.dp),
+            )
+            R.drawable.flag_placeholder -> Image(
+                painter = painterResource(flagRes),
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(glyphTint),
+                modifier = Modifier.size(22.dp),
+            )
+            else -> Image(
+                painter = painterResource(flagRes),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+}
+
+/** A custom indicator rather than the stock M3 [androidx.compose.material3.RadioButton]: the
+ * selected card is already `primary`-filled, so its radio inverts -- an `onPrimary` disc with a
+ * `primary` dot punched through -- which M3's ring-and-dot rendering can't produce. */
+@Composable
+private fun LanguageRadioIndicator(selected: Boolean, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Box(
+        modifier = modifier.size(24.dp),
         contentAlignment = Alignment.Center,
     ) {
         if (selected) {
@@ -261,19 +374,19 @@ private fun LanguageRadioIndicator(selected: Boolean, outlineColor: Color, modif
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(CircleShape)
-                    .background(accentColor),
+                    .background(colors.onPrimary),
             )
             Box(
                 modifier = Modifier
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(Color.White),
+                    .background(colors.primary),
             )
         } else {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .border(width = 1.2.dp, color = outlineColor, shape = CircleShape),
+                    .border(width = 1.5.dp, color = colors.outline, shape = CircleShape),
             )
         }
     }
