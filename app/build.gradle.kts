@@ -200,3 +200,16 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
+
+// room-testing 2.8.5's schema reader (room-migration) is built against kotlinx-serialization 1.8,
+// but AGP pins the test APK to the app's own 1.7.3 (from lifecycle/navigation/savedstate), which
+// breaks MigrationTestHelper with an AbstractMethodError. Force 1.8.1 on the androidTest
+// configurations only -- the app's own runtime classpath (what ships) keeps 1.7.3.
+configurations.matching { it.name.contains("AndroidTest") }.configureEach {
+    resolutionStrategy.force(
+        "org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1",
+        "org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.8.1",
+        "org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1",
+        "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.8.1",
+    )
+}
