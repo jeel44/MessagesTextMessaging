@@ -156,4 +156,9 @@
     <string name="call_end_menu_messages">Mensagens</string>
     <string name="call_end_menu_schedule">Agendar mensagem</string>
     <string name="call_end_menu_backup">Backup e restauração</string>
+    <string name="screen_blocked">Blocked</string>
+    <string name="blocked_unblock">Unblock</string>
+    <string name="blocked_empty_title">No blocked numbers</string>
+    <string name="blocked_empty_message">Numbers you block from a conversation show up here.</string>
+    <string name="blocked_unblocked_snackbar">Number unblocked</string>
 </resources>

@@ -142,4 +142,9 @@
     <string name="call_end_menu_messages">Mesaje</string>
     <string name="call_end_menu_schedule">Programează mesaj</string>
     <string name="call_end_menu_backup">Backup și restaurare</string>
+    <string name="screen_blocked">Blocked</string>
+    <string name="blocked_unblock">Unblock</string>
+    <string name="blocked_empty_title">No blocked numbers</string>
+    <string name="blocked_empty_message">Numbers you block from a conversation show up here.</string>
+    <string name="blocked_unblocked_snackbar">Number unblocked</string>
 </resources>

@@ -63,6 +63,7 @@ import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -83,6 +84,7 @@ import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -177,6 +179,8 @@ fun ConversationListScreen(
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onArchivedClick: () -> Unit,
+    onBlockedClick: () -> Unit,
+    onLanguageClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ConversationListViewModel = hiltViewModel(),
 ) {
@@ -203,6 +207,7 @@ fun ConversationListScreen(
     val undoLabel = stringResource(R.string.action_undo)
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showBlockConfirm by remember { mutableStateOf(false) }
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
 
     // System back and the selection top bar's close icon both exit selection mode first, rather
     // than leaving the screen -- matching ChatScreen's own BackHandler for its selection mode.
@@ -298,140 +303,154 @@ fun ConversationListScreen(
         viewModel.refreshDefaultSmsAppStatus()
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = screenSurfaceColor(),
-        topBar = {
-            // Instant, unanimated swap -- not a Crossfade. isSelectionMode flips on the same
-            // frame as ConversationRow's own avatar Crossfade/background color animation and the
-            // FAB's AnimatedVisibility (all independently timed, all triggered by the same
-            // long-press), so cross-fading this bar too raced those and read as a blink/flicker
-            // rather than a clean instant appearance. This bar has no animation of its own to fight.
-            if (isSelectionMode) {
-                HomeSelectionTopBar(
-                    selectedCount = selectedThreadIds.size,
-                    totalCount = conversations.size,
-                    allRead = selectedConversations.isNotEmpty() && selectedConversations.all { !it.hasUnread },
-                    allPinned = selectedConversations.isNotEmpty() && selectedConversations.all { it.isPinned },
-                    // A pure-group selection has nothing blockable in it (see MarkBlocked's doc) --
-                    // disabled rather than silently doing nothing on tap. A mixed selection stays
-                    // enabled: blockSelection() blocks just the non-group threads and the ViewModel
-                    // surfaces the rest via ConversationListEvent.SelectionBlockSkippedGroups.
-                    blockEnabled = selectedConversations.any { !it.isGroup },
-                    onClose = viewModel::clearSelection,
-                    onArchive = viewModel::archiveSelection,
-                    onDelete = { showDeleteConfirm = true },
-                    onToggleRead = viewModel::toggleReadSelection,
-                    onTogglePin = viewModel::togglePinSelection,
-                    onBlock = { showBlockConfirm = true },
-                    onSelectAll = viewModel::selectAllLoaded,
-                )
-            } else {
-                ConversationListTopBar(onSearchClick = onSearchClick, onSettingsClick = onSettingsClick)
-            }
-        },
-        floatingActionButton = {
-            // Hides while selecting rather than disabling -- selection mode has no use for
-            // starting a brand-new conversation, and the reference design's FAB fades out rather
-            // than sitting there dead.
-            AnimatedVisibility(
-                visible = !isSelectionMode,
-                enter = fadeIn(tween(durationMillis = 120)),
-                exit = fadeOut(tween(durationMillis = 120)),
-            ) {
-                FloatingActionButton(
-                    onClick = onNewMessageClick,
-                    containerColor = ConversationFabBlue,
-                    contentColor = Color.White,
-                    shape = RoundedCornerShape(18.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Message,
-                        contentDescription = stringResource(R.string.home_new_chat_label),
-                        modifier = Modifier.size(24.dp),
+    // Closed and inert while selecting -- the selection top bar replaces the hamburger anyway.
+    HomeDrawer(
+        drawerState = drawerState,
+        enabled = !isSelectionMode,
+        onArchivedClick = onArchivedClick,
+        onBlockedClick = onBlockedClick,
+        onLanguageClick = onLanguageClick,
+        modifier = modifier,
+    ) { openDrawer ->
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = screenSurfaceColor(),
+            topBar = {
+                // Instant, unanimated swap -- not a Crossfade. isSelectionMode flips on the same
+                // frame as ConversationRow's own avatar Crossfade/background color animation and the
+                // FAB's AnimatedVisibility (all independently timed, all triggered by the same
+                // long-press), so cross-fading this bar too raced those and read as a blink/flicker
+                // rather than a clean instant appearance. This bar has no animation of its own to fight.
+                if (isSelectionMode) {
+                    HomeSelectionTopBar(
+                        selectedCount = selectedThreadIds.size,
+                        totalCount = conversations.size,
+                        allRead = selectedConversations.isNotEmpty() && selectedConversations.all { !it.hasUnread },
+                        allPinned = selectedConversations.isNotEmpty() && selectedConversations.all { it.isPinned },
+                        // A pure-group selection has nothing blockable in it (see MarkBlocked's doc) --
+                        // disabled rather than silently doing nothing on tap. A mixed selection stays
+                        // enabled: blockSelection() blocks just the non-group threads and the ViewModel
+                        // surfaces the rest via ConversationListEvent.SelectionBlockSkippedGroups.
+                        blockEnabled = selectedConversations.any { !it.isGroup },
+                        onClose = viewModel::clearSelection,
+                        onArchive = viewModel::archiveSelection,
+                        onDelete = { showDeleteConfirm = true },
+                        onToggleRead = viewModel::toggleReadSelection,
+                        onTogglePin = viewModel::togglePinSelection,
+                        onBlock = { showBlockConfirm = true },
+                        onSelectAll = viewModel::selectAllLoaded,
+                    )
+                } else {
+                    ConversationListTopBar(
+                        onMenuClick = openDrawer,
+                        onSearchClick = onSearchClick,
+                        onSettingsClick = onSettingsClick,
                     )
                 }
-            }
-        },
-        // The FAB and snackbars sit above it, and innerPadding keeps the list clear of it.
-        bottomBar = { HomeBannerAd(manager = viewModel.homeBanner, consent = adConsentState) },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            ConversationFilterRow(selected = selectedFilter, onSelect = viewModel::selectFilter)
-
-            if (syncProgress is SyncProgress.Running) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-
-            val failure = syncProgress as? SyncProgress.Failed
-            if (failure != null && failure != dismissedFailure) {
-                SyncFailedBanner(
-                    onRetry = viewModel::retrySync,
-                    onDismiss = { dismissedFailure = failure },
-                )
-            }
-
-            // Persistent, not dismissible -- this app straight-up stops receiving SMS/MMS the
-            // moment it loses the role, so the old (now frozen) conversation list already showing
-            // below must never look like everything's still fine. HomeBodyState.NotDefault
-            // already covers the genuinely-empty-inbox case with its own full-body message, so
-            // this only needs to fill the gap that leaves: an inbox with existing conversations,
-            // where [homeBodyState] takes the List branch regardless of default-app status.
-            if (!isDefaultSmsApp && homeBodyState != HomeBodyState.NotDefault) {
-                LostDefaultSmsAppBanner(
-                    onRequestDefault = {
-                        roleRequestLauncher.launch(viewModel.defaultSmsAppRoleRequestIntent())
-                    },
-                )
-            }
-
-            if (archivedCount > 0) {
-                ArchivedSummaryRow(count = archivedCount, onClick = onArchivedClick)
-            }
-
-            // Plain background, no rounded card behind the list -- matches the reference design,
-            // which sits the inbox directly on the screen background rather than a distinct
-            // surface underneath it.
-            Box(
+            },
+            floatingActionButton = {
+                // Hides while selecting rather than disabling -- selection mode has no use for
+                // starting a brand-new conversation, and the reference design's FAB fades out rather
+                // than sitting there dead.
+                AnimatedVisibility(
+                    visible = !isSelectionMode,
+                    enter = fadeIn(tween(durationMillis = 120)),
+                    exit = fadeOut(tween(durationMillis = 120)),
+                ) {
+                    FloatingActionButton(
+                        onClick = onNewMessageClick,
+                        containerColor = ConversationFabBlue,
+                        contentColor = Color.White,
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Message,
+                            contentDescription = stringResource(R.string.home_new_chat_label),
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                }
+            },
+            // The FAB and snackbars sit above it, and innerPadding keeps the list clear of it.
+            bottomBar = { HomeBannerAd(manager = viewModel.homeBanner, consent = adConsentState) },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+        ) { innerPadding ->
+            Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                    .fillMaxSize()
+                    .padding(innerPadding),
             ) {
-                when (homeBodyState) {
-                    HomeBodyState.Loading -> ShimmerConversationList()
-                    HomeBodyState.EmptyInbox -> EmptyInbox()
-                    HomeBodyState.NotDefault -> NotDefaultSmsAppEmptyState(
+                ConversationFilterRow(selected = selectedFilter, onSelect = viewModel::selectFilter)
+
+                if (syncProgress is SyncProgress.Running) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+
+                val failure = syncProgress as? SyncProgress.Failed
+                if (failure != null && failure != dismissedFailure) {
+                    SyncFailedBanner(
+                        onRetry = viewModel::retrySync,
+                        onDismiss = { dismissedFailure = failure },
+                    )
+                }
+
+                // Persistent, not dismissible -- this app straight-up stops receiving SMS/MMS the
+                // moment it loses the role, so the old (now frozen) conversation list already showing
+                // below must never look like everything's still fine. HomeBodyState.NotDefault
+                // already covers the genuinely-empty-inbox case with its own full-body message, so
+                // this only needs to fill the gap that leaves: an inbox with existing conversations,
+                // where [homeBodyState] takes the List branch regardless of default-app status.
+                if (!isDefaultSmsApp && homeBodyState != HomeBodyState.NotDefault) {
+                    LostDefaultSmsAppBanner(
                         onRequestDefault = {
                             roleRequestLauncher.launch(viewModel.defaultSmsAppRoleRequestIntent())
                         },
                     )
-                    HomeBodyState.List -> ConversationList(
-                        conversations = conversations,
-                        swipeActionPreference = swipeActionPreference,
-                        isSelectionMode = isSelectionMode,
-                        selectedThreadIds = selectedThreadIdsState,
-                        onConversationClick = { threadId ->
-                            NavPerfTracer.markConversationClicked()
-                            onConversationClick(threadId)
-                        },
-                        onSwipeAction = { action, conversation ->
-                            when (action) {
-                                SwipeAction.ARCHIVE -> viewModel.archiveConversation(conversation)
-                                SwipeAction.TOGGLE_READ -> viewModel.toggleRead(conversation)
-                                SwipeAction.CALL ->
-                                    conversation.recipients.firstOrNull()?.address?.let { placeCall(context, it) }
-                                SwipeAction.DELETE, SwipeAction.NONE -> Unit
-                            }
-                        },
-                        onDeleteRequested = { conversation -> viewModel.requestDelete(conversation) },
-                        onToggleSelection = viewModel::toggleSelection,
-                        onStartSelection = viewModel::startSelection,
-                    )
+                }
+
+                if (archivedCount > 0) {
+                    ArchivedSummaryRow(count = archivedCount, onClick = onArchivedClick)
+                }
+
+                // Plain background, no rounded card behind the list -- matches the reference design,
+                // which sits the inbox directly on the screen background rather than a distinct
+                // surface underneath it.
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                ) {
+                    when (homeBodyState) {
+                        HomeBodyState.Loading -> ShimmerConversationList()
+                        HomeBodyState.EmptyInbox -> EmptyInbox()
+                        HomeBodyState.NotDefault -> NotDefaultSmsAppEmptyState(
+                            onRequestDefault = {
+                                roleRequestLauncher.launch(viewModel.defaultSmsAppRoleRequestIntent())
+                            },
+                        )
+                        HomeBodyState.List -> ConversationList(
+                            conversations = conversations,
+                            swipeActionPreference = swipeActionPreference,
+                            isSelectionMode = isSelectionMode,
+                            selectedThreadIds = selectedThreadIdsState,
+                            onConversationClick = { threadId ->
+                                NavPerfTracer.markConversationClicked()
+                                onConversationClick(threadId)
+                            },
+                            onSwipeAction = { action, conversation ->
+                                when (action) {
+                                    SwipeAction.ARCHIVE -> viewModel.archiveConversation(conversation)
+                                    SwipeAction.TOGGLE_READ -> viewModel.toggleRead(conversation)
+                                    SwipeAction.CALL ->
+                                        conversation.recipients.firstOrNull()?.address?.let { placeCall(context, it) }
+                                    SwipeAction.DELETE, SwipeAction.NONE -> Unit
+                                }
+                            },
+                            onDeleteRequested = { conversation -> viewModel.requestDelete(conversation) },
+                            onToggleSelection = viewModel::toggleSelection,
+                            onStartSelection = viewModel::startSelection,
+                        )
+                    }
                 }
             }
         }
@@ -481,13 +500,13 @@ internal fun screenSurfaceColor(): Color {
  * The reference design's search affordance: a white, rounded-pill container (not a plain
  * [androidx.compose.material3.TopAppBar]) holding a hamburger icon, the "Search Messages"
  * placeholder, and the settings hexagon -- deliberately no ads-block icon and no overflow menu.
- * The hamburger isn't wired to anything yet (no drawer exists): purely visual until there's
- * something for it to open. Each icon relies on [IconButton]'s own default 48dp touch target
+ * The hamburger opens [HomeDrawer]. Each icon relies on [IconButton]'s own default 48dp touch target
  * around its 24dp icon to get the reference design's ~12dp visual inset for free, rather than
  * hand-tuning padding around a smaller touch target.
  */
 @Composable
-private fun ConversationListTopBar(
+internal fun ConversationListTopBar(
+    onMenuClick: () -> Unit,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -503,7 +522,7 @@ private fun ConversationListTopBar(
             .border(1.dp, SearchBarBorder, RoundedCornerShape(28.dp)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = {}) {
+        IconButton(onClick = onMenuClick) {
             Icon(
                 imageVector = Icons.Filled.Menu,
                 contentDescription = stringResource(R.string.action_menu),

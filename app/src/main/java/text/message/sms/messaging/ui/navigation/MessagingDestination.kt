@@ -46,6 +46,10 @@ sealed class MessagingDestination(val route: String) {
 
     data object Archived : MessagingDestination("conversations/archived")
 
+    /** Every blocked number, reached from the inbox's side drawer -- see
+     * [text.message.sms.messaging.ui.screens.blocked.BlockedScreen]. */
+    data object Blocked : MessagingDestination("conversations/blocked")
+
     data object Settings : MessagingDestination("settings")
 
     /** Settings' "Language" row -- distinct from onboarding's [Language] since it behaves

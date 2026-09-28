@@ -24,6 +24,7 @@ import text.message.sms.messaging.config.OverlayFeatureFlag
 import text.message.sms.messaging.data.local.datastore.OnboardingStep
 import text.message.sms.messaging.data.local.datastore.applyOverlayFlag
 import text.message.sms.messaging.ui.screens.archived.ArchivedScreen
+import text.message.sms.messaging.ui.screens.blocked.BlockedScreen
 import text.message.sms.messaging.ui.screens.callend.ComingSoonScreen
 import text.message.sms.messaging.ui.screens.chat.ChatScreen
 import text.message.sms.messaging.ui.screens.chat.MediaViewerScreen
@@ -194,6 +195,14 @@ fun MessagingNavHost(
                 onArchivedClick = {
                     navController.navigate(MessagingDestination.Archived.route)
                 },
+                onBlockedClick = {
+                    navController.navigate(MessagingDestination.Blocked.route)
+                },
+                // Settings' mode of the picker (back arrow, pops back here on confirm) -- never
+                // onboarding's Language route, which moves on to Intro.
+                onLanguageClick = {
+                    navController.navigate(MessagingDestination.LanguageSettings.route)
+                },
             )
         }
 
@@ -204,6 +213,10 @@ fun MessagingNavHost(
                     navController.navigate(MessagingDestination.Chat.routeFor(threadId))
                 },
             )
+        }
+
+        composable(MessagingDestination.Blocked.route) {
+            BlockedScreen(onBack = navController::popBackStack)
         }
 
         composable(

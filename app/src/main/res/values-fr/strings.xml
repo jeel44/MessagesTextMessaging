@@ -109,6 +109,11 @@
     <string name="archived_unarchive">Désarchiver</string>
     <string name="archived_empty_title">Aucune conversation archivée</string>
     <string name="archived_empty_message">Les conversations que vous archivez s\'affichent ici.</string>
+    <string name="screen_blocked">Blocked</string>
+    <string name="blocked_unblock">Unblock</string>
+    <string name="blocked_empty_title">No blocked numbers</string>
+    <string name="blocked_empty_message">Numbers you block from a conversation show up here.</string>
+    <string name="blocked_unblocked_snackbar">Number unblocked</string>
 
     <!-- Actions -->
     <string name="action_search">Recherche</string>

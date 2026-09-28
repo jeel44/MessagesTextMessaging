@@ -109,6 +109,11 @@
     <string name="archived_unarchive">संग्रह से निकालें</string>
     <string name="archived_empty_title">कोई संग्रहीत वार्तालाप नहीं</string>
     <string name="archived_empty_message">आपके द्वारा संग्रहीत वार्तालाप यहां दिखाई देते हैं।</string>
+    <string name="screen_blocked">Blocked</string>
+    <string name="blocked_unblock">Unblock</string>
+    <string name="blocked_empty_title">No blocked numbers</string>
+    <string name="blocked_empty_message">Numbers you block from a conversation show up here.</string>
+    <string name="blocked_unblocked_snackbar">Number unblocked</string>
 
     <!-- Actions -->
     <string name="action_search">खोजें</string>

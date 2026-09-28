@@ -109,6 +109,11 @@
     <string name="archived_unarchive">보관 취소</string>
     <string name="archived_empty_title">보관된 대화 없음</string>
     <string name="archived_empty_message">보관처리한 대화가 여기에 표시됩니다.</string>
+    <string name="screen_blocked">Blocked</string>
+    <string name="blocked_unblock">Unblock</string>
+    <string name="blocked_empty_title">No blocked numbers</string>
+    <string name="blocked_empty_message">Numbers you block from a conversation show up here.</string>
+    <string name="blocked_unblocked_snackbar">Number unblocked</string>
 
     <!-- Actions -->
     <string name="action_search">찾다</string>
