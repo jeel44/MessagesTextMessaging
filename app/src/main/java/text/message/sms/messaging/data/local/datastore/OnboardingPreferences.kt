@@ -42,6 +42,16 @@ internal fun resolveOnboardingStep(
         }
 
 /**
+ * [step], or the step that replaces it when it's switched off: with the overlay/call-end flag off
+ * ([overlayEnabled] false) [OnboardingStep.OVERLAY] is skipped, so it becomes
+ * [OnboardingStep.SET_DEFAULT_SMS] -- both for a saved step Splash resumes at and for the step
+ * Welcome moves on to. Every other step is returned unchanged. Pure, with the flag passed in, so
+ * it can be tested for both values.
+ */
+internal fun applyOverlayFlag(step: OnboardingStep, overlayEnabled: Boolean): OnboardingStep =
+    if (step == OnboardingStep.OVERLAY && !overlayEnabled) OnboardingStep.SET_DEFAULT_SMS else step
+
+/**
  * Onboarding progress: which step the user is on ([currentStep] -- so Splash can resume there, or
  * skip straight to the inbox once it's [OnboardingStep.DONE]), whether any launch has got past
  * Splash yet ([hasCompletedFirstLaunch]), and the language the user picked (so a future in-app

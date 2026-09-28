@@ -7,6 +7,7 @@ import android.telephony.TelephonyManager
 import android.util.Log
 import dagger.hilt.android.AndroidEntryPoint
 import text.message.sms.messaging.BuildConfig
+import text.message.sms.messaging.config.OverlayFeatureFlag
 import javax.inject.Inject
 
 private const val TAG = "PhoneStateReceiver"
@@ -44,6 +45,11 @@ class PhoneStateReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != TelephonyManager.ACTION_PHONE_STATE_CHANGED) return
+        // Call-end disabled: no service start (so no FGS notification) and no call-end screen.
+        if (!OverlayFeatureFlag.isEnabled()) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "Ignoring: overlay/call-end feature flag is off")
+            return
+        }
         val rawState = intent.getStringExtra(TelephonyManager.EXTRA_STATE)
         if (BuildConfig.DEBUG) Log.d(TAG, "onReceive rawState=$rawState")
         if (callStateMonitor.isIdleNoOp(rawState)) {

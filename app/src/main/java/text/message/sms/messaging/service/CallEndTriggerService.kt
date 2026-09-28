@@ -25,6 +25,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.R
+import text.message.sms.messaging.config.OverlayFeatureFlag
 import text.message.sms.messaging.domain.model.CallSession
 import text.message.sms.messaging.ui.screens.callend.CallEndActivity
 import javax.inject.Inject
@@ -155,6 +156,13 @@ class CallEndTriggerService : Service() {
 
     private fun handleCallEnded(session: CallSession) {
         cancelPendingWork()
+
+        // Backstop -- PhoneStateReceiver already drops every broadcast with the flag off.
+        if (!OverlayFeatureFlag.isEnabled()) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "overlay/call-end feature flag is off, not launching")
+            scheduleStop()
+            return
+        }
 
         val canDrawOverlays = Settings.canDrawOverlays(this)
         if (BuildConfig.DEBUG) Log.d(TAG, "canDrawOverlays=$canDrawOverlays")

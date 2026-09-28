@@ -25,8 +25,10 @@ import text.message.sms.messaging.ads.AdUnitIds
 import text.message.sms.messaging.ads.AppOpenAdManager
 import text.message.sms.messaging.ads.NativeAdLoader
 import text.message.sms.messaging.ads.NativeAdState
+import text.message.sms.messaging.config.OverlayFeatureFlag
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import text.message.sms.messaging.data.local.datastore.OnboardingStep
+import text.message.sms.messaging.data.local.datastore.applyOverlayFlag
 import javax.inject.Inject
 
 /** Where [SplashScreen] is in its hand-off -- see [SplashViewModel]. */
@@ -117,7 +119,8 @@ internal class SplashViewModel @Inject constructor(
         if (started) return
         started = true
         viewModelScope.launch {
-            exit = onboardingPreferences.currentStep.first()
+            // A saved OVERLAY resumes at SetDefaultSms while the overlay/call-end flag is off.
+            exit = applyOverlayFlag(onboardingPreferences.currentStep.first(), OverlayFeatureFlag.isEnabled())
             val onboardingComplete = exit == OnboardingStep.DONE
             // Completed onboarding implies an earlier launch, even from before this flag existed.
             firstLaunch = !onboardingComplete && !onboardingPreferences.hasCompletedFirstLaunch.first()

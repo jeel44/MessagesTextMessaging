@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import text.message.sms.messaging.MainActivity
 import text.message.sms.messaging.ads.AdConsentManager
+import text.message.sms.messaging.config.OverlayFeatureFlag
 import text.message.sms.messaging.data.local.datastore.ThemeMode
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
 import text.message.sms.messaging.domain.model.CallDirection
@@ -201,6 +202,9 @@ class CallEndActivity : ComponentActivity() {
          * `FLAG_ACTIVITY_NO_ANIMATION` (an incoming-call-style instant appearance, not a normal
          * windowed transition) have no manifest equivalent, so both are set explicitly. */
         fun start(context: Context, session: CallSession) {
+            // Backstop -- PhoneStateReceiver and CallEndTriggerService already stop earlier with
+            // the overlay/call-end flag off.
+            if (!OverlayFeatureFlag.isEnabled()) return
             val intent = Intent(context, CallEndActivity::class.java)
                 .addFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK or

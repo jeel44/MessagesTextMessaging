@@ -20,7 +20,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import text.message.sms.messaging.BuildConfig
+import text.message.sms.messaging.config.OverlayFeatureFlag
 import text.message.sms.messaging.data.local.datastore.OnboardingStep
+import text.message.sms.messaging.data.local.datastore.applyOverlayFlag
 import text.message.sms.messaging.ui.screens.archived.ArchivedScreen
 import text.message.sms.messaging.ui.screens.callend.ComingSoonScreen
 import text.message.sms.messaging.ui.screens.chat.ChatScreen
@@ -130,8 +132,11 @@ fun MessagingNavHost(
         composable(MessagingDestination.Welcome.route) {
             WelcomeScreen(
                 onContinue = {
-                    onboardingProgress.advanceTo(OnboardingStep.OVERLAY) {
-                        navController.navigate(MessagingDestination.OverlayPermission.route) {
+                    // OverlayPermission, or straight to SetDefaultSms with the overlay/call-end
+                    // flag off.
+                    val next = applyOverlayFlag(OnboardingStep.OVERLAY, OverlayFeatureFlag.isEnabled())
+                    onboardingProgress.advanceTo(next) {
+                        navController.navigate(next.route()) {
                             popUpTo(MessagingDestination.Welcome.route) { inclusive = true }
                         }
                     }
@@ -140,15 +145,20 @@ fun MessagingNavHost(
         }
 
         composable(MessagingDestination.OverlayPermission.route) {
-            OverlayPermissionScreen(
-                onGranted = {
-                    onboardingProgress.advanceTo(OnboardingStep.SET_DEFAULT_SMS) {
-                        navController.navigate(MessagingDestination.SetDefaultSms.route) {
-                            popUpTo(MessagingDestination.OverlayPermission.route) { inclusive = true }
-                        }
+            val onOverlayDone = {
+                onboardingProgress.advanceTo(OnboardingStep.SET_DEFAULT_SMS) {
+                    navController.navigate(MessagingDestination.SetDefaultSms.route) {
+                        popUpTo(MessagingDestination.OverlayPermission.route) { inclusive = true }
                     }
-                },
-            )
+                }
+            }
+            if (OverlayFeatureFlag.isEnabled()) {
+                OverlayPermissionScreen(onGranted = onOverlayDone)
+            } else {
+                // Backstop only -- Welcome and Splash never route here with the flag off. Moves
+                // straight on instead of ever showing (and requesting) the permission.
+                LaunchedEffect(Unit) { onOverlayDone() }
+            }
         }
 
         composable(MessagingDestination.SetDefaultSms.route) {
