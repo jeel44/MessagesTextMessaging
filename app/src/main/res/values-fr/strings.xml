@@ -50,7 +50,7 @@
 
     <!-- Language -->
     <string name="language_title">Sélectionner la langue</string>
-    <string name="language_apply">Appliquer</string>
+    <string name="language_apply_content_description">Appliquer la langue</string>
 
     <!-- Intro (onboarding, after Language): English placeholders, not yet translated -->
     <string name="intro_schedule_title">Schedule messages</string>

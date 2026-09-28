@@ -50,7 +50,7 @@
 
     <!-- Language -->
     <string name="language_title">앱 언어 선택</string>
-    <string name="language_apply">적용</string>
+    <string name="language_apply_content_description">언어 적용</string>
 
     <!-- Intro (onboarding, after Language): English placeholders, not yet translated -->
     <string name="intro_schedule_title">Schedule messages</string>

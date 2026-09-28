@@ -39,11 +39,13 @@ import javax.inject.Inject
  * Selection is two-phase: tapping a row only highlights it ([selectLanguage]); nothing is applied
  * until [onApplyClicked]. Every visit opens with the active language already highlighted -- the
  * stored tag, or System Default when none is stored yet (first run) -- see [preselectStoredLanguage].
+ * The confirm check that calls [onApplyClicked] stays hidden until [CONFIRM_REVEAL_DELAY_MILLIS]
+ * after the last real tap ([confirmVisible]); the preselection alone never reveals it.
  *
  * Both entry points get the same native ad (see [startAds]): [AdUnitIds.LANGUAGE_NATIVE],
  * requested at most twice per visit -- the initial load, plus one refresh on the first language
- * tap. Only Settings' Apply shows an interstitial ([AdUnitIds.LANGUAGE_INTERSTITIAL]); onboarding's
- * Apply goes straight on to Intro, whose own last Next shows one instead (see IntroViewModel).
+ * tap. Only Settings' confirm shows an interstitial ([AdUnitIds.LANGUAGE_INTERSTITIAL]); onboarding's
+ * confirm goes straight on to Intro, whose own last Next shows one instead (see IntroViewModel).
  */
 @HiltViewModel
 class LanguageViewModel @Inject constructor(
@@ -72,16 +74,31 @@ class LanguageViewModel @Inject constructor(
         .map { id -> LanguageOptions.firstOrNull { it.id == id } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    /** Restored from [savedStateHandle] so a check already on screen stays up across process
+     * death; rotation keeps this ViewModel, and with it any reveal still pending. */
+    private val confirmRevealTimer = ConfirmRevealTimer(
+        scope = viewModelScope,
+        initiallyVisible = savedStateHandle.get<Boolean>(KEY_CONFIRM_VISIBLE) == true,
+    )
+
+    /** Whether the confirm check is showing -- see [ConfirmRevealTimer]. */
+    internal val confirmVisible: StateFlow<Boolean> = confirmRevealTimer.visible
+
     init {
         // Silent and non-blocking by design: no progress UI on this screen for it, and Apply
         // never waits on it -- see LanguageScreen/MessagingNavHost.
         viewModelScope.launch { syncMessages() }
         preselectStoredLanguage()
+        viewModelScope.launch {
+            confirmVisible.first { it }
+            savedStateHandle[KEY_CONFIRM_VISIBLE] = true
+        }
     }
 
     /** Seeds the highlight with the active language, unless [savedStateHandle] already holds one
      * (a restored screen) or a tap lands first. Writes the id directly rather than going through
-     * [selectLanguage]: this isn't a tap, so it must not spend the first-selection ad refresh. */
+     * [selectLanguage]: this isn't a tap, so it must not spend the first-selection ad refresh or
+     * start the confirm check's reveal. */
     private fun preselectStoredLanguage() {
         if (savedStateHandle.contains(KEY_SELECTED_LANGUAGE_ID)) return
         viewModelScope.launch {
@@ -96,6 +113,7 @@ class LanguageViewModel @Inject constructor(
     /** Highlight only -- nothing is applied until [onApplyClicked]. */
     internal fun selectLanguage(language: LanguageOption) {
         savedStateHandle[KEY_SELECTED_LANGUAGE_ID] = language.id
+        confirmRevealTimer.onSelection()
         refreshNativeAdOnFirstSelection()
     }
 
@@ -179,5 +197,6 @@ class LanguageViewModel @Inject constructor(
     private companion object {
         const val KEY_SELECTED_LANGUAGE_ID = "language_selected_id"
         const val KEY_FIRST_SELECTION_REFRESH_DONE = "language_first_selection_refresh_done"
+        const val KEY_CONFIRM_VISIBLE = "language_confirm_visible"
     }
 }

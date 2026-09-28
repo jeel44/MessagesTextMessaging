@@ -50,7 +50,7 @@
 
     <!-- Language -->
     <string name="language_title">ऐप की भाषा चुनें</string>
-    <string name="language_apply">लागू करें</string>
+    <string name="language_apply_content_description">भाषा लागू करें</string>
 
     <!-- Intro (onboarding, after Language): English placeholders, not yet translated -->
     <string name="intro_schedule_title">Schedule messages</string>

@@ -50,7 +50,7 @@
 
     <!-- Language -->
     <string name="language_title">Selecteer app-taal</string>
-    <string name="language_apply">Toepassen</string>
+    <string name="language_apply_content_description">Taal toepassen</string>
 
     <!-- Intro (onboarding, after Language): English placeholders, not yet translated -->
     <string name="intro_schedule_title">Schedule messages</string>

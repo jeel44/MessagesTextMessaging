@@ -50,7 +50,7 @@
 
     <!-- Language -->
     <string name="language_title">اختر لغة التطبيق</string>
-    <string name="language_apply">تطبيق</string>
+    <string name="language_apply_content_description">تطبيق اللغة</string>
 
     <!-- Intro (onboarding, after Language): English placeholders, not yet translated -->
     <string name="intro_schedule_title">Schedule messages</string>

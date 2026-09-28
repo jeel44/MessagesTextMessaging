@@ -33,7 +33,7 @@
 
     <!-- Language -->
     <string name="language_title">เลือกภาษาของแอป</string>
-    <string name="language_apply">นำไปใช้</string>
+    <string name="language_apply_content_description">ใช้ภาษา</string>
 
     <!-- Intro (onboarding, after Language): English placeholders, not yet translated -->
     <string name="intro_schedule_title">Schedule messages</string>

@@ -51,7 +51,7 @@
 
     <!-- Language -->
     <string name="language_title">Seleziona la lingua dell\'app</string>
-    <string name="language_apply">Applica</string>
+    <string name="language_apply_content_description">Applica lingua</string>
 
     <!-- Intro (onboarding, after Language): English placeholders, not yet translated -->
     <string name="intro_schedule_title">Schedule messages</string>

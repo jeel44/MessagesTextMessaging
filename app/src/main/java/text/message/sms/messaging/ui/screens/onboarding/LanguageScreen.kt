@@ -3,7 +3,14 @@ package text.message.sms.messaging.ui.screens.onboarding
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.provider.Settings
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,7 +22,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -29,10 +35,11 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -73,23 +80,24 @@ import text.message.sms.messaging.ui.components.ads.AdShimmerPlaceholder
 import text.message.sms.messaging.ui.components.ads.NativeAdCard
 import text.message.sms.messaging.ui.components.ads.NativeAdCardReservedHeight
 import text.message.sms.messaging.ui.components.ads.NativeAdCardShape
-import text.message.sms.messaging.ui.theme.Pill
 
 /**
  * The language picker, reused for two different entry points -- [onBack] picks which:
  *
  * - Onboarding's first step, right after Splash (`onBack` null): no top bar, just this screen's
- *   own small title. Apply moves on to Intro (storing it as the step to resume at), with no
- *   interstitial. [LanguageViewModel] silently syncs the message cache in
- *   the background while this is up (see its `init` block); Apply never waits on that sync --
- *   Home's own Flow-backed repository query picks up any rows that land after navigation.
- * - Settings' "Language" row (`onBack` set): a top bar with a back arrow and its own "Language"
- *   title -- this screen's own title is skipped here so the two don't stack.
+ *   own small title, with the confirm check at its end. Confirming moves on to Intro (storing it
+ *   as the step to resume at), with no interstitial. [LanguageViewModel] silently syncs the
+ *   message cache in the background while this is up (see its `init` block); confirming never
+ *   waits on that sync -- Home's own Flow-backed repository query picks up any rows that land
+ *   after navigation.
+ * - Settings' "Language" row (`onBack` set): a top bar with a back arrow, its own "Language"
+ *   title and the confirm check as its action -- this screen's own title is skipped here so the
+ *   two don't stack.
  *
  * Both share the rest: the active language opens highlighted and scrolled into view, a tap only
- * moves the highlight; the bottom "Apply" bar applies it, shows an interstitial (Settings only),
- * then calls [onApplied] (see [LanguageViewModel.onApplyClicked]). A native ad sits below Apply,
- * not above, so its own CTA is never stacked right against the button.
+ * moves the highlight. The confirm check stays hidden until 2s after the last tap (see
+ * [ConfirmRevealTimer]); it applies the language, shows an interstitial (Settings only), then
+ * calls [onApplied] (see [LanguageViewModel.onApplyClicked]). A native ad is pinned at the bottom.
  */
 @Composable
 fun LanguageScreen(
@@ -100,6 +108,7 @@ fun LanguageScreen(
 ) {
     val selectedLanguage by viewModel.selectedLanguage.collectAsStateWithLifecycle()
     val nativeAdState by viewModel.nativeAdState.collectAsStateWithLifecycle()
+    val confirmVisible by viewModel.confirmVisible.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
     val isOnboarding = onBack == null
@@ -109,8 +118,9 @@ fun LanguageScreen(
     LanguageScreenContent(
         selectedLanguageId = selectedLanguage?.id,
         nativeAdState = nativeAdState,
+        confirmVisible = confirmVisible,
         onLanguageClick = viewModel::selectLanguage,
-        onApplyClick = { viewModel.onApplyClicked(activity, isOnboarding, onDone = onApplied) },
+        onConfirmClick = { viewModel.onApplyClicked(activity, isOnboarding, onDone = onApplied) },
         onBack = onBack,
         modifier = modifier,
     )
@@ -122,13 +132,23 @@ fun LanguageScreen(
 internal fun LanguageScreenContent(
     selectedLanguageId: String?,
     nativeAdState: NativeAdState,
+    confirmVisible: Boolean,
     onLanguageClick: (LanguageOption) -> Unit,
-    onApplyClick: () -> Unit,
+    onConfirmClick: () -> Unit,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val backgroundColor = MaterialTheme.colorScheme.background
     val listState = rememberLazyListState()
+
+    // First tap wins, so a double-tap only confirms once (the ViewModel guards it too).
+    var confirmed by remember { mutableStateOf(false) }
+    val confirm = {
+        if (!confirmed) {
+            confirmed = true
+            onConfirmClick()
+        }
+    }
 
     // Once per visit (saveable, so rotation doesn't re-run it): the first time a selection shows
     // up -- the ViewModel's preselection lands a moment after the first frame -- bring its row
@@ -156,7 +176,11 @@ internal fun LanguageScreenContent(
         containerColor = backgroundColor,
         topBar = {
             if (onBack != null) {
-                AppTopBar(title = stringResource(R.string.settings_language_title), onBack = onBack)
+                AppTopBar(
+                    title = stringResource(R.string.settings_language_title),
+                    onBack = onBack,
+                    actions = { LanguageConfirmButton(visible = confirmVisible, onClick = confirm) },
+                )
             }
         },
         bottomBar = {
@@ -164,17 +188,6 @@ internal fun LanguageScreenContent(
                 // navigationBarsPadding: the ad is the bottom-most element, and an ad drawn
                 // under the system navigation bar would be partly obscured.
                 Column(modifier = Modifier.navigationBarsPadding()) {
-                    Button(
-                        onClick = onApplyClick,
-                        enabled = selectedLanguageId != null,
-                        shape = Pill,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 16.dp)
-                            .height(52.dp),
-                    ) {
-                        Text(stringResource(R.string.language_apply))
-                    }
                     LanguageNativeAdSlot(
                         state = nativeAdState,
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
@@ -189,16 +202,25 @@ internal fun LanguageScreenContent(
                 .background(backgroundColor)
                 .padding(innerPadding),
         ) {
-            // Onboarding only -- Settings already shows "Language" in the top bar above, so
-            // repeating a heading here would stack two titles.
+            // Onboarding only -- Settings already shows "Language" (and the check) in the top bar
+            // above, so repeating a heading here would stack two titles.
             if (onBack == null) {
-                Text(
-                    text = stringResource(R.string.language_title),
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(R.string.language_title),
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 20.dp, end = 8.dp, top = 16.dp, bottom = 16.dp),
+                    )
+                    LanguageConfirmButton(
+                        visible = confirmVisible,
+                        onClick = confirm,
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                }
             }
 
             LazyColumn(
@@ -221,8 +243,47 @@ internal fun LanguageScreenContent(
     }
 }
 
+internal const val LanguageConfirmTag = "language_confirm"
+
+/**
+ * The confirm check, in a fixed 48dp slot so neither the top bar's title nor the list below
+ * moves when it appears. While hidden it isn't composed at all -- not just disabled -- so it's
+ * absent from the semantics tree too. It fades and scales in, or just appears when the system's
+ * "remove animations" setting is on; once shown it never leaves (see [ConfirmRevealTimer]).
+ */
+@Composable
+private fun LanguageConfirmButton(visible: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val reducedMotion = remember(context) {
+        Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+    }
+    Box(modifier = modifier.size(48.dp), contentAlignment = Alignment.Center) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = if (reducedMotion) {
+                EnterTransition.None
+            } else {
+                fadeIn(tween(CONFIRM_REVEAL_ANIM_MILLIS)) +
+                    scaleIn(tween(CONFIRM_REVEAL_ANIM_MILLIS), initialScale = 0.6f)
+            },
+            exit = ExitTransition.None,
+        ) {
+            IconButton(onClick = onClick, modifier = Modifier.testTag(LanguageConfirmTag)) {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = stringResource(R.string.language_apply_content_description),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
+    }
+}
+
+private const val CONFIRM_REVEAL_ANIM_MILLIS = 200
+
 /** Shimmer while the first load is in flight, then the card; nothing if it failed. Both reserve
- * [NativeAdCardReservedHeight], so Apply above doesn't move when the ad arrives or is swapped
+ * [NativeAdCardReservedHeight], so the slot doesn't jump when the ad arrives or is swapped
  * by the first-selection refresh (a refresh keeps the current card up, see
  * [text.message.sms.messaging.ads.NativeAdLoader.refresh]). */
 @Composable
@@ -248,7 +309,7 @@ internal const val LanguageCardTagPrefix = "language_card_"
 /**
  * One language: flag (or System Default's globe), English name over native name, radio.
  * Unselected sits on `surface` with an `outlineVariant` hairline; selected fills with `primary`
- * and flips its text and radio to `onPrimary`, the same accent the Apply button uses.
+ * and flips its text and radio to `onPrimary`, the same accent the confirm check uses.
  *
  * The card's own layout is pinned left-to-right in every locale -- flag left, radio right, text
  * left-aligned -- so it looks the same with the app in Arabic as in English (the English names

@@ -33,7 +33,7 @@
 
     <!-- Language -->
     <string name="language_title">Selectați limba aplicației</string>
-    <string name="language_apply">Aplică</string>
+    <string name="language_apply_content_description">Aplică limba</string>
 
     <!-- Intro (onboarding, after Language): English placeholders, not yet translated -->
     <string name="intro_schedule_title">Schedule messages</string>

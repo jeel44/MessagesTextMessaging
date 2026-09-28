@@ -33,7 +33,7 @@
 
     <!-- Language -->
     <string name="language_title">Välj appens språk</string>
-    <string name="language_apply">Verkställ</string>
+    <string name="language_apply_content_description">Använd språk</string>
 
     <!-- Intro (onboarding, after Language): English placeholders, not yet translated -->
     <string name="intro_schedule_title">Schedule messages</string>
