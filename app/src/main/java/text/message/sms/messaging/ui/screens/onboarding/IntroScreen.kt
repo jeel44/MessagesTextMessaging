@@ -78,10 +78,10 @@ private val IntroSlides = listOf(
 internal val IntroPageCount = IntroSlides.size
 
 /**
- * Onboarding's last step, between Language's Apply and the inbox: three Lottie slides in a
+ * Onboarding's second step, between Language's Apply and Welcome: three Lottie slides in a
  * [HorizontalPager], a dots indicator, a Next button ("Get started" on the last slide, which
- * finishes onboarding via [IntroViewModel.onFinishClicked] -- interstitial first, if ready -- then
- * calls [onFinished]), and a native ad slot below it all (see [IntroViewModel] for the ad rules).
+ * leaves Intro via [IntroViewModel.onFinishClicked] -- interstitial first, if ready -- then calls
+ * [onFinished]), and a native ad slot below it all (see [IntroViewModel] for the ad rules).
  *
  * System back steps to the previous slide; on the first slide it's left alone, so it behaves like
  * every other onboarding screen's back (the Activity finishes).

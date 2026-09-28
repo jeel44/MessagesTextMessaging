@@ -16,12 +16,37 @@ import javax.inject.Singleton
 private val Context.onboardingDataStore: DataStore<Preferences> by preferencesDataStore(name = "onboarding")
 
 /**
- * Onboarding progress: whether the flow has been completed (so Splash can skip straight to the
- * inbox on future launches), whether Language has been applied but the Intro slides not yet
- * finished ([isIntroPending] -- so Splash resumes at Intro, not Welcome), whether any launch has got past Splash yet ([hasCompletedFirstLaunch]),
- * and the language the user picked (so a future in-app language switch
- * in Settings has something to read, alongside what [androidx.appcompat.app.AppCompatDelegate]
- * already persists for itself).
+ * Onboarding's steps, in order. [OnboardingPreferences.currentStep] is the one the user is on (or
+ * [DONE]) -- Splash resumes there after a process death, and each step stores the next one as it
+ * completes.
+ */
+enum class OnboardingStep { LANGUAGE, INTRO, WELCOME, OVERLAY, SET_DEFAULT_SMS, DONE }
+
+/**
+ * [OnboardingPreferences.currentStep]'s resolution, pure so it can be tested on its own. A
+ * stored step wins; otherwise (an install from before the step key existed, or a value this build
+ * doesn't know) it falls back on the older flags: `onboarding_complete` means [OnboardingStep.DONE],
+ * the unreleased `intro_pending` means [OnboardingStep.INTRO], and neither means a fresh start at
+ * [OnboardingStep.LANGUAGE]. Nothing is migrated on disk -- the next step write replaces it all.
+ */
+internal fun resolveOnboardingStep(
+    storedStep: String?,
+    legacyOnboardingComplete: Boolean,
+    legacyIntroPending: Boolean,
+): OnboardingStep =
+    storedStep?.let { name -> OnboardingStep.entries.firstOrNull { it.name == name } }
+        ?: when {
+            legacyOnboardingComplete -> OnboardingStep.DONE
+            legacyIntroPending -> OnboardingStep.INTRO
+            else -> OnboardingStep.LANGUAGE
+        }
+
+/**
+ * Onboarding progress: which step the user is on ([currentStep] -- so Splash can resume there, or
+ * skip straight to the inbox once it's [OnboardingStep.DONE]), whether any launch has got past
+ * Splash yet ([hasCompletedFirstLaunch]), and the language the user picked (so a future in-app
+ * language switch in Settings has something to read, alongside what
+ * [androidx.appcompat.app.AppCompatDelegate] already persists for itself).
  */
 @Singleton
 class OnboardingPreferences @Inject constructor(
@@ -29,14 +54,30 @@ class OnboardingPreferences @Inject constructor(
 ) {
 
     private object Keys {
+        val CURRENT_ONBOARDING_STEP = stringPreferencesKey("current_onboarding_step")
+
+        /** Still written alongside [OnboardingStep.DONE], so a downgrade to a build from before
+         * [CURRENT_ONBOARDING_STEP] doesn't restart onboarding. */
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
+
+        /** Read-only: only an unreleased build wrote it (see [resolveOnboardingStep]); cleared by
+         * the first step write. */
+        val LEGACY_INTRO_PENDING = booleanPreferencesKey("intro_pending")
         val LANGUAGE_TAG = stringPreferencesKey("language_tag")
         val FIRST_LAUNCH_COMPLETED = booleanPreferencesKey("first_launch_completed")
-        val INTRO_PENDING = booleanPreferencesKey("intro_pending")
     }
 
-    val isOnboardingComplete: Flow<Boolean> =
-        context.onboardingDataStore.data.map { it[Keys.ONBOARDING_COMPLETE] == true }
+    val currentStep: Flow<OnboardingStep> =
+        context.onboardingDataStore.data.map {
+            resolveOnboardingStep(
+                storedStep = it[Keys.CURRENT_ONBOARDING_STEP],
+                legacyOnboardingComplete = it[Keys.ONBOARDING_COMPLETE] == true,
+                legacyIntroPending = it[Keys.LEGACY_INTRO_PENDING] == true,
+            )
+        }
+
+    /** [currentStep] is [OnboardingStep.DONE]. */
+    val isOnboardingComplete: Flow<Boolean> = currentStep.map { it == OnboardingStep.DONE }
 
     /** Whether a launch on this install has already got past Splash -- Splash withholds the App
      * Open ad until this is true (see SplashViewModel). Wiped with the rest of this store on
@@ -44,24 +85,15 @@ class OnboardingPreferences @Inject constructor(
     val hasCompletedFirstLaunch: Flow<Boolean> =
         context.onboardingDataStore.data.map { it[Keys.FIRST_LAUNCH_COMPLETED] == true }
 
-    /** Set by onboarding's Language Apply, cleared by [completeIntro] -- true only while the user
-     * is somewhere in the Intro slides, so a process death there resumes at Intro. */
-    val isIntroPending: Flow<Boolean> =
-        context.onboardingDataStore.data.map { it[Keys.INTRO_PENDING] == true }
-
     val languageTag: Flow<String?> =
         context.onboardingDataStore.data.map { it[Keys.LANGUAGE_TAG] }
 
-    suspend fun setIntroPending() {
-        context.onboardingDataStore.edit { it[Keys.INTRO_PENDING] = true }
-    }
-
-    /** Intro's finish: marks onboarding complete and clears [isIntroPending] in one edit, so no
-     * launch can ever see both flags set, or neither. */
-    suspend fun completeIntro() {
+    /** A step was completed and [step] is next ([OnboardingStep.DONE] once the last one is). */
+    suspend fun setCurrentStep(step: OnboardingStep) {
         context.onboardingDataStore.edit {
-            it[Keys.ONBOARDING_COMPLETE] = true
-            it.remove(Keys.INTRO_PENDING)
+            it[Keys.CURRENT_ONBOARDING_STEP] = step.name
+            if (step == OnboardingStep.DONE) it[Keys.ONBOARDING_COMPLETE] = true
+            it.remove(Keys.LEGACY_INTRO_PENDING)
         }
     }
 

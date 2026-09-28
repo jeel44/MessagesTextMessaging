@@ -30,10 +30,11 @@ import javax.inject.Inject
  * Backs [LanguageScreen], reached both from onboarding (a one-time step) and from Settings (to
  * change the language later) -- see [LanguageScreen]'s doc for how it tells the two apart.
  *
- * Also owns the moment the post-onboarding sync starts: the instant this ViewModel is created
- * (i.e. the instant the screen is first composed), on [viewModelScope] so the sync keeps running
- * even if the user continues on to Home before it finishes. Reached from Settings, this sync is
- * already long done and [SyncMessages] is idempotent, so it's harmless there too.
+ * Also kicks off a message sync the instant this ViewModel is created, on [viewModelScope] so it
+ * keeps running if the user moves on before it finishes. From onboarding -- now its first step,
+ * before Set as default -- that sync is a no-op (it needs the default-SMS role; MainActivity's
+ * onResume starts the real one once the role is granted). From Settings, [SyncMessages] is
+ * idempotent, so it's harmless there too.
  *
  * Selection is two-phase: tapping a row only highlights it ([selectLanguage]); nothing is applied
  * until [onApplyClicked]. Every visit starts with nothing highlighted -- from Settings too, where
@@ -117,10 +118,9 @@ class LanguageViewModel @Inject constructor(
 
     /**
      * Apply, in this order:
-     * 1. Persist the tag to [OnboardingPreferences] (and, from onboarding, mark Intro pending, so
-     *    a process death from here on resumes at Intro -- onboarding itself is only marked
-     *    complete at Intro's finish). MainActivity localizes its Compose tree off that tag, so the
-     *    app's own UI switches language right away, with no configuration change.
+     * 1. Persist the tag to [OnboardingPreferences]. MainActivity localizes its Compose tree off
+     *    that tag, so the app's own UI switches language right away, with no configuration change.
+     *    (From onboarding, the next step is stored by [onDone], see [OnboardingProgressViewModel].)
      * 2. From Settings only: show the preloaded interstitial, if ready.
      * 3. Once it's dismissed (or fails to show, or wasn't ready, or this is onboarding), call
      *    [AppCompatDelegate.setApplicationLocales], then [onDone].
@@ -141,7 +141,6 @@ class LanguageViewModel @Inject constructor(
         interstitialLoader.commitToShow()
         viewModelScope.launch {
             onboardingPreferences.setLanguageTag(language.languageTag)
-            if (isOnboarding) onboardingPreferences.setIntroPending()
             val finish = {
                 AppCompatDelegate.setApplicationLocales(
                     language.languageTag

@@ -19,11 +19,10 @@ import text.message.sms.messaging.ads.FullScreenAdGate
 import text.message.sms.messaging.ads.InterstitialAdLoader
 import text.message.sms.messaging.ads.NativeAdLoader
 import text.message.sms.messaging.ads.NativeAdState
-import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import javax.inject.Inject
 
 /**
- * Backs [IntroScreen], onboarding's last step (after Language's Apply, before the inbox).
+ * Backs [IntroScreen], onboarding's second step (after Language's Apply, before Welcome).
  *
  * Ads, both started by [startAds] once consent settles -- never preloaded from Splash or Language:
  * - One native ad ([AdUnitIds.INTRO_NATIVE]) for the shared slot under slides 2 and 3 (slide 1
@@ -33,13 +32,11 @@ import javax.inject.Inject
  * - An interstitial ([AdUnitIds.INTRO_INTERSTITIAL]) shown on the last slide's "Get started"
  *   ([onFinishClicked]).
  *
- * Onboarding is only marked complete once that interstitial is gone (or wasn't shown), so until
- * then Splash resumes here after a process death (the `intro_pending` flag Language set) and a
- * warm-resume App Open stays off (see [text.message.sms.messaging.ads.AppOpenAdManager]).
+ * The next step (Welcome) is only stored once that interstitial is gone (or wasn't shown), so until
+ * then Splash resumes here after a process death (see [OnboardingProgressViewModel]).
  */
 @HiltViewModel
 internal class IntroViewModel @Inject constructor(
-    private val onboardingPreferences: OnboardingPreferences,
     private val adConsentManager: AdConsentManager,
     private val savedStateHandle: SavedStateHandle,
     @param:ApplicationContext context: Context,
@@ -119,29 +116,23 @@ internal class IntroViewModel @Inject constructor(
 
     /**
      * The last slide's "Get started": shows the preloaded interstitial if ready, then -- once it's
-     * dismissed, fails to show, or straight away if it wasn't ready -- marks onboarding complete
-     * (clearing `intro_pending`) and calls [onDone]. Taps after the first are ignored, so a quick
-     * double-tap can't show twice or navigate under an opening ad.
+     * dismissed, fails to show, or straight away if it wasn't ready -- calls [onDone] (which
+     * stores the next onboarding step, see [OnboardingProgressViewModel]). Taps after the first
+     * are ignored, so a quick double-tap can't show twice or navigate under an opening ad.
      */
     fun onFinishClicked(activity: Activity?, onDone: () -> Unit) {
         if (finishPressed) return
         finishPressed = true
         interstitialLoader.commitToShow()
-        val finish = {
-            viewModelScope.launch {
-                onboardingPreferences.completeIntro()
-                onDone()
-            }
-            Unit
-        }
+        val finish = { onDone() }
         val shown = activity != null && interstitialLoader.showIfReady(activity, onFinished = {
-            debugLog("interstitial finished, completing onboarding")
+            debugLog("interstitial finished, leaving Intro")
             finish()
         })
         if (shown) {
             debugLog("interstitial showing")
         } else {
-            debugLog("interstitial missed (${interstitialLoader.state.value}), completing onboarding")
+            debugLog("interstitial missed (${interstitialLoader.state.value}), leaving Intro")
             finish()
         }
     }

@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.MainActivity
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
+import text.message.sms.messaging.data.local.datastore.OnboardingStep
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -82,8 +83,8 @@ class AppOpenAdManager @Inject constructor(
     private var isShowingAd = false
     private var onboardingComplete = false
 
-    /** Only for the warm-resume skip log -- tells "mid-Intro" apart from earlier onboarding. */
-    private var introPending = false
+    /** Only for the warm-resume skip log -- which onboarding step the user is on. */
+    private var onboardingStep: OnboardingStep? = null
 
     private var topActivity: Activity? = null
     private var mainActivityCreated = false
@@ -120,7 +121,7 @@ class AppOpenAdManager @Inject constructor(
             }
         }
         if (BuildConfig.DEBUG) {
-            scope.launch { onboardingPreferences.isIntroPending.collect { introPending = it } }
+            scope.launch { onboardingPreferences.currentStep.collect { onboardingStep = it } }
         }
         scope.launch {
             adConsentManager.state.collect { if (it == AdConsentState.Allowed) maybeLoad() }
@@ -276,8 +277,7 @@ class AppOpenAdManager @Inject constructor(
     private fun showOnWarmResume() {
         val activity = topActivity
         val skipReason = when {
-            !onboardingComplete && introPending -> "onboarding incomplete (on Intro, completes at its last Next)"
-            !onboardingComplete -> "onboarding incomplete"
+            !onboardingComplete -> "onboarding incomplete (at $onboardingStep, completes at Set as default)"
             fullScreenAdGate.isFullScreenAdBusy() -> "a full-screen ad is showing or about to show"
             activity !is MainActivity -> "top activity is ${activity?.javaClass?.simpleName}"
             else -> null

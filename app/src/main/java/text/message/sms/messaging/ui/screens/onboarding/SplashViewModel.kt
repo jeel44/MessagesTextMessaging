@@ -26,6 +26,7 @@ import text.message.sms.messaging.ads.AppOpenAdManager
 import text.message.sms.messaging.ads.NativeAdLoader
 import text.message.sms.messaging.ads.NativeAdState
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
+import text.message.sms.messaging.data.local.datastore.OnboardingStep
 import javax.inject.Inject
 
 /** Where [SplashScreen] is in its hand-off -- see [SplashViewModel]. */
@@ -40,27 +41,15 @@ internal sealed interface SplashStep {
     /** An App Open ad is ready and the minimum branding time has passed -- show it. */
     data object ShowAd : SplashStep
 
-    /** Leave Splash, to [exit]. */
-    data class Done(val exit: SplashExit) : SplashStep
-}
-
-/** Where [SplashStep.Done] leaves to. */
-internal enum class SplashExit {
-    /** Onboarding is complete -- the inbox. */
-    Home,
-
-    /** Language was applied but the Intro slides weren't finished (process death mid-Intro) --
-     * resume there, not at Welcome. */
-    Intro,
-
-    /** Onboarding hasn't reached Language's Apply yet -- start over at Welcome. */
-    Welcome,
+    /** Leave Splash, to [exit]: the onboarding step to resume at, or the inbox once it's
+     * [OnboardingStep.DONE]. */
+    data class Done(val exit: OnboardingStep) : SplashStep
 }
 
 /**
- * Backs [SplashScreen]: decides where the app goes (inbox, Intro, or Welcome -- see [SplashExit]),
- * and which ads the launch shows on the way (see [AppOpenAdManager] for the app-wide App Open
- * rules).
+ * Backs [SplashScreen]: decides where the app goes (the inbox, or the onboarding step to resume at
+ * -- see [OnboardingPreferences.currentStep]), and which ads the launch shows on the way (see
+ * [AppOpenAdManager] for the app-wide App Open rules).
  *
  * - Deep-link launches (notification tap, call-end hand-off) and launches [AppOpenAdManager]
  *   didn't find eligible go straight to [SplashStep.Done], exactly as before -- no hold, no ads.
@@ -68,7 +57,7 @@ internal enum class SplashExit {
  *   disclosure and a compact native ad ([AdUnitIds.SPLASH_NATIVE], [nativeAdState]), then runs:
  *   1. **Consent** -- up to [CONSENT_TIMEOUT_MILLIS] for UMP to settle. Time the consent form is
  *      on screen isn't counted (see [HoldClock]): it's modal, and leaving Splash wouldn't close it.
- *      A timeout skips this launch's ads; consent carries on, and any form lands over Welcome.
+ *      A timeout skips this launch's ads; consent carries on, and any form lands over the next screen.
  *   2. **Native** -- up to [NATIVE_TIMEOUT_MILLIS] for it to load or fail, or
  *      [FIRST_LAUNCH_NATIVE_TIMEOUT_MILLIS] on a first launch (cold ads SDK and WebView). A timeout
  *      collapses the slot for good (a late ad never pops in).
@@ -115,7 +104,7 @@ internal class SplashViewModel @Inject constructor(
 
     private var started = false
     private var adShowAttempted = false
-    private var exit = SplashExit.Welcome
+    private var exit = OnboardingStep.LANGUAGE
     private var firstLaunch = false
 
     /** The hold's total cap -- longer on a first launch, where the ads SDK and WebView start cold
@@ -128,12 +117,8 @@ internal class SplashViewModel @Inject constructor(
         if (started) return
         started = true
         viewModelScope.launch {
-            val onboardingComplete = onboardingPreferences.isOnboardingComplete.first()
-            exit = when {
-                onboardingComplete -> SplashExit.Home
-                onboardingPreferences.isIntroPending.first() -> SplashExit.Intro
-                else -> SplashExit.Welcome
-            }
+            exit = onboardingPreferences.currentStep.first()
+            val onboardingComplete = exit == OnboardingStep.DONE
             // Completed onboarding implies an earlier launch, even from before this flag existed.
             firstLaunch = !onboardingComplete && !onboardingPreferences.hasCompletedFirstLaunch.first()
             // Always consumed, so a stale eligibility can never leak into a later Splash.

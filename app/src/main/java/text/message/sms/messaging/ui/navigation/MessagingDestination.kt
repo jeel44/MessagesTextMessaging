@@ -22,7 +22,7 @@ sealed class MessagingDestination(val route: String) {
 
     data object Language : MessagingDestination("language")
 
-    /** Onboarding's last step, after [Language] -- see
+    /** Onboarding's second step, after [Language] -- see
      * [text.message.sms.messaging.ui.screens.onboarding.IntroScreen]. */
     data object Intro : MessagingDestination("intro")
 

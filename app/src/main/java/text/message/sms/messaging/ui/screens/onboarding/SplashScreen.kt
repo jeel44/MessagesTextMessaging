@@ -30,6 +30,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import text.message.sms.messaging.R
 import text.message.sms.messaging.ads.NativeAdState
+import text.message.sms.messaging.data.local.datastore.OnboardingStep
 import text.message.sms.messaging.ui.components.ads.AdShimmerPlaceholder
 import text.message.sms.messaging.ui.components.ads.CompactNativeAdCard
 import text.message.sms.messaging.ui.components.ads.CompactNativeAdCardHeight
@@ -38,11 +39,10 @@ import text.message.sms.messaging.ui.components.ads.CompactNativeAdCardShape
 /**
  * The app's first destination. MainActivity's `installSplashScreen()` keeps the system splash
  * (brand icon, see `Theme.App.Starting` in themes.xml) over this screen until [onBrandingVisible]
- * fires or Splash is left. [SplashViewModel] reads the onboarding flag and, for [isDeepLinkLaunch]
- * launches (notification tap, call-end hand-off) and launches not eligible for launch ads (see
- * [text.message.sms.messaging.ads.AppOpenAdManager]), hands off to [onOnboardingComplete],
- * [onIntroPending] or [onOnboardingIncomplete] with no artificial delay -- this UI is never
- * actually seen.
+ * fires or Splash is left. [SplashViewModel] reads the stored onboarding step and, for
+ * [isDeepLinkLaunch] launches (notification tap, call-end hand-off) and launches not eligible for
+ * launch ads (see [text.message.sms.messaging.ads.AppOpenAdManager]), hands it to [onExit] with no
+ * artificial delay -- this UI is never actually seen.
  *
  * Every other launch, new users included, releases the system splash so this screen's own
  * branding is visible, with an ads disclosure and a compact native ad at the bottom. The consent
@@ -62,9 +62,8 @@ import text.message.sms.messaging.ui.components.ads.CompactNativeAdCardShape
 internal fun SplashScreen(
     isDeepLinkLaunch: Boolean,
     onBrandingVisible: () -> Unit,
-    onOnboardingComplete: () -> Unit,
-    onIntroPending: () -> Unit,
-    onOnboardingIncomplete: () -> Unit,
+    /** Where to go: the onboarding step to resume at, or the inbox for [OnboardingStep.DONE]. */
+    onExit: (OnboardingStep) -> Unit,
     viewModel: SplashViewModel = hiltViewModel(),
 ) {
     val step by viewModel.step.collectAsStateWithLifecycle()
@@ -83,11 +82,7 @@ internal fun SplashScreen(
                 onBrandingVisible()
                 viewModel.showAd(activity)
             }
-            is SplashStep.Done -> when (current.exit) {
-                SplashExit.Home -> onOnboardingComplete()
-                SplashExit.Intro -> onIntroPending()
-                SplashExit.Welcome -> onOnboardingIncomplete()
-            }
+            is SplashStep.Done -> onExit(current.exit)
         }
     }
 

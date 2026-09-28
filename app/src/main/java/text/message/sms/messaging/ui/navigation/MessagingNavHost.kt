@@ -11,6 +11,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -19,6 +20,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import text.message.sms.messaging.BuildConfig
+import text.message.sms.messaging.data.local.datastore.OnboardingStep
 import text.message.sms.messaging.ui.screens.archived.ArchivedScreen
 import text.message.sms.messaging.ui.screens.callend.ComingSoonScreen
 import text.message.sms.messaging.ui.screens.chat.ChatScreen
@@ -29,6 +31,7 @@ import text.message.sms.messaging.ui.screens.conversationlist.ConversationListSc
 import text.message.sms.messaging.ui.screens.newmessage.NewMessageScreen
 import text.message.sms.messaging.ui.screens.onboarding.IntroScreen
 import text.message.sms.messaging.ui.screens.onboarding.LanguageScreen
+import text.message.sms.messaging.ui.screens.onboarding.OnboardingProgressViewModel
 import text.message.sms.messaging.ui.screens.onboarding.SetDefaultSmsScreen
 import text.message.sms.messaging.ui.screens.onboarding.SplashScreen
 import text.message.sms.messaging.ui.screens.onboarding.WelcomeScreen
@@ -66,6 +69,9 @@ fun MessagingNavHost(
     isDeepLinkLaunch: Boolean = false,
     onSplashBrandingVisible: () -> Unit = {},
 ) {
+    // Activity-scoped (this is outside NavHost, so the owner is the Activity), so a step write
+    // isn't cancelled by the navigation it precedes.
+    val onboardingProgress: OnboardingProgressViewModel = hiltViewModel()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     if (BuildConfig.DEBUG) {
         LaunchedEffect(currentRoute) {
@@ -86,59 +92,24 @@ fun MessagingNavHost(
             SplashScreen(
                 isDeepLinkLaunch = isDeepLinkLaunch,
                 onBrandingVisible = onSplashBrandingVisible,
-                onOnboardingComplete = {
-                    navController.navigate(MessagingDestination.ConversationList.route) {
-                        popUpTo(MessagingDestination.Splash.route) { inclusive = true }
-                    }
-                },
-                onIntroPending = {
-                    navController.navigate(MessagingDestination.Intro.route) {
-                        popUpTo(MessagingDestination.Splash.route) { inclusive = true }
-                    }
-                },
-                onOnboardingIncomplete = {
-                    navController.navigate(MessagingDestination.Welcome.route) {
+                onExit = { step ->
+                    navController.navigate(step.route()) {
                         popUpTo(MessagingDestination.Splash.route) { inclusive = true }
                     }
                 },
             )
         }
 
-        composable(MessagingDestination.Welcome.route) {
-            WelcomeScreen(
-                onContinue = {
-                    navController.navigate(MessagingDestination.OverlayPermission.route) {
-                        popUpTo(MessagingDestination.Welcome.route) { inclusive = true }
-                    }
-                },
-            )
-        }
-
-        composable(MessagingDestination.OverlayPermission.route) {
-            OverlayPermissionScreen(
-                onGranted = {
-                    navController.navigate(MessagingDestination.SetDefaultSms.route) {
-                        popUpTo(MessagingDestination.OverlayPermission.route) { inclusive = true }
-                    }
-                },
-            )
-        }
-
-        composable(MessagingDestination.SetDefaultSms.route) {
-            SetDefaultSmsScreen(
-                onDefaultSet = {
-                    navController.navigate(MessagingDestination.Language.route) {
-                        popUpTo(MessagingDestination.SetDefaultSms.route) { inclusive = true }
-                    }
-                },
-            )
-        }
-
+        // Onboarding, in order: Language -> Intro -> Welcome -> OverlayPermission -> SetDefaultSms
+        // -> inbox. Each step's "done" stores the next step before navigating there (see
+        // OnboardingProgressViewModel), so Splash resumes at it after a process death.
         composable(MessagingDestination.Language.route) {
             LanguageScreen(
                 onApplied = {
-                    navController.navigate(MessagingDestination.Intro.route) {
-                        popUpTo(MessagingDestination.Language.route) { inclusive = true }
+                    onboardingProgress.advanceTo(OnboardingStep.INTRO) {
+                        navController.navigate(MessagingDestination.Intro.route) {
+                            popUpTo(MessagingDestination.Language.route) { inclusive = true }
+                        }
                     }
                 },
             )
@@ -147,11 +118,50 @@ fun MessagingNavHost(
         composable(MessagingDestination.Intro.route) {
             IntroScreen(
                 onFinished = {
-                    // Pop to the graph root, not Splash: Splash (and every earlier onboarding
-                    // screen) was already popped by its own hop, and popUpTo a route that isn't on
-                    // the back stack is a silent no-op -- which left the last step under the list.
-                    navController.navigate(MessagingDestination.ConversationList.route) {
-                        popUpTo(navController.graph.id) { inclusive = true }
+                    onboardingProgress.advanceTo(OnboardingStep.WELCOME) {
+                        navController.navigate(MessagingDestination.Welcome.route) {
+                            popUpTo(MessagingDestination.Intro.route) { inclusive = true }
+                        }
+                    }
+                },
+            )
+        }
+
+        composable(MessagingDestination.Welcome.route) {
+            WelcomeScreen(
+                onContinue = {
+                    onboardingProgress.advanceTo(OnboardingStep.OVERLAY) {
+                        navController.navigate(MessagingDestination.OverlayPermission.route) {
+                            popUpTo(MessagingDestination.Welcome.route) { inclusive = true }
+                        }
+                    }
+                },
+            )
+        }
+
+        composable(MessagingDestination.OverlayPermission.route) {
+            OverlayPermissionScreen(
+                onGranted = {
+                    onboardingProgress.advanceTo(OnboardingStep.SET_DEFAULT_SMS) {
+                        navController.navigate(MessagingDestination.SetDefaultSms.route) {
+                            popUpTo(MessagingDestination.OverlayPermission.route) { inclusive = true }
+                        }
+                    }
+                },
+            )
+        }
+
+        composable(MessagingDestination.SetDefaultSms.route) {
+            SetDefaultSmsScreen(
+                onDefaultSet = {
+                    onboardingProgress.advanceTo(OnboardingStep.DONE) {
+                        // Pop to the graph root, not Splash: Splash (and every earlier onboarding
+                        // screen) was already popped by its own hop, and popUpTo a route that isn't
+                        // on the back stack is a silent no-op -- which left the last step under the
+                        // list.
+                        navController.navigate(MessagingDestination.ConversationList.route) {
+                            popUpTo(navController.graph.id) { inclusive = true }
+                        }
                     }
                 },
             )
@@ -305,4 +315,14 @@ fun MessagingNavHost(
             )
         }
     }
+}
+
+/** Where Splash resumes for a stored onboarding [OnboardingStep] -- the inbox once it's DONE. */
+private fun OnboardingStep.route(): String = when (this) {
+    OnboardingStep.LANGUAGE -> MessagingDestination.Language.route
+    OnboardingStep.INTRO -> MessagingDestination.Intro.route
+    OnboardingStep.WELCOME -> MessagingDestination.Welcome.route
+    OnboardingStep.OVERLAY -> MessagingDestination.OverlayPermission.route
+    OnboardingStep.SET_DEFAULT_SMS -> MessagingDestination.SetDefaultSms.route
+    OnboardingStep.DONE -> MessagingDestination.ConversationList.route
 }
