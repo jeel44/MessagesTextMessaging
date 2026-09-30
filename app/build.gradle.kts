@@ -34,6 +34,23 @@ val localProperties = Properties().apply {
 }
 fun localProperty(key: String): String = localProperties.getProperty(key)?.trim().orEmpty()
 
+// ADS: THE ONE SWITCH between Google's test IDs and this app's real AdMob IDs.
+//   true  = Google's test IDs everywhere (safe: no real revenue, no policy risk).
+//   false = the real IDs -- only for a release build meant to be published.
+// Drives both the manifest's AdMob App ID (the ${admobAppId} placeholder) and
+// BuildConfig.USE_TEST_ADS, which AdUnitIds.kt reads to pick each placement's ad unit ID -- the
+// real ad unit IDs are filled in there, the real App ID here.
+val useTestAds = true
+val admobTestAppId = "ca-app-pub-3940256099942544~3347511713"
+val admobRealAppId = "REPLACE_ME_ADMOB_APP_ID"
+// The Mobile Ads SDK crashes the app at startup on a malformed App ID, so refuse to build one in.
+if (!useTestAds && admobRealAppId.startsWith("REPLACE_ME")) {
+    throw GradleException(
+        "useTestAds is false but admobRealAppId is still a placeholder -- set the real AdMob " +
+            "App ID in app/build.gradle.kts, or set useTestAds = true.",
+    )
+}
+
 android {
     namespace = "text.message.sms.messaging"
 
@@ -54,6 +71,10 @@ android {
         // UMP debug settings.
         buildConfigField("String", "UMP_DEBUG_GEOGRAPHY", "\"\"")
         buildConfigField("String", "UMP_TEST_DEVICE_HASHED_ID", "\"\"")
+
+        // See useTestAds above.
+        buildConfigField("boolean", "USE_TEST_ADS", useTestAds.toString())
+        manifestPlaceholders["admobAppId"] = if (useTestAds) admobTestAppId else admobRealAppId
     }
 
     signingConfigs {
