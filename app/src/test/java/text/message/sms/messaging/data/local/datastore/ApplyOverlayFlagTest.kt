@@ -6,7 +6,7 @@ import org.junit.Test
 
 /**
  * [applyOverlayFlag] with the overlay/call-end flag passed in explicitly, so these don't depend on
- * the hardcoded value in OverlayFeatureFlag. Covers both uses: the step Splash resumes at, and the
+ * the Remote Config value in OverlayFeatureFlag. Covers both uses: the step Splash resumes at, and the
  * step Welcome moves on to (always [OnboardingStep.OVERLAY] going in).
  */
 class ApplyOverlayFlagTest {

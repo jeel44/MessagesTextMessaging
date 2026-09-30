@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.room)
+    alias(libs.plugins.google.services)
     alias(libs.plugins.androidx.baselineprofile)
 }
 
@@ -156,6 +157,11 @@ dependencies {
     implementation(libs.google.play.services.ads)
     // Ad consent (GDPR/US-state messages) -- gates every ad request, see AdConsentManager
     implementation(libs.google.ump)
+
+    // Remote Config -- the overlay/call-end flag's only source, see OverlayFeatureFlag. Reads
+    // app/google-services.json (google-services plugin). No Analytics, no other Firebase product.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.config)
 
     // Dependency injection
     implementation(libs.hilt.android)

@@ -42,6 +42,10 @@ playServicesAds = "25.5.0"
 # pulls 4.0.0 in transitively -- see AdConsentManager.
 userMessagingPlatform = "4.0.0"
 
+# Firebase -- Remote Config only (the overlay/call-end flag, see OverlayFeatureFlag). No Analytics.
+googleServices = "4.5.0"
+firebaseBom = "34.19.0"
+
 # Kotlin libraries
 coroutines = "1.11.0"
 
@@ -107,6 +111,10 @@ coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coi
 google-play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playServicesAds" }
 google-ump = { group = "com.google.android.ump", name = "user-messaging-platform", version.ref = "userMessagingPlatform" }
 
+# Firebase (version comes from the BOM)
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-config = { group = "com.google.firebase", name = "firebase-config" }
+
 # Kotlin libraries
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
@@ -128,4 +136,5 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 room = { id = "androidx.room", version.ref = "room" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "androidxBenchmark" }

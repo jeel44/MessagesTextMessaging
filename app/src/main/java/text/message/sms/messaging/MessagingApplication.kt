@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.ads.AppOpenAdManager
+import text.message.sms.messaging.config.OverlayFeatureFlag
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
 import text.message.sms.messaging.data.local.provider.ContactChangeObserver
@@ -139,6 +140,11 @@ class MessagingApplication : Application(), Configuration.Provider {
         // nothing: the manager loads only once a MainActivity exists and consent allows it, so a
         // process started for an incoming SMS or a call never makes an ad request.
         appOpenAdManager.register(this)
+
+        // Overlay/call-end flag: off the main thread, snapshot this session's value, then fetch
+        // Remote Config for the next one. Before the early return below, so it runs in every
+        // process, including one started for a call or an incoming SMS.
+        applicationScope.launch { OverlayFeatureFlag.snapshotThenFetch() }
 
         // READ_CONTACTS is a separate runtime permission from the default-SMS-app role SMS/MMS
         // sync below depends on, so it gets its own check rather than being folded into
