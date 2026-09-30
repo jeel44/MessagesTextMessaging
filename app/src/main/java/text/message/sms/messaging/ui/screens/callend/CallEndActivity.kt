@@ -46,7 +46,7 @@ private const val EXTRA_CALL_DURATION_MILLIS = "extra_call_duration_millis"
 
 /**
  * Full-screen call-end popup, launched directly by [text.message.sms.messaging.service
- * .CallEndTriggerService] the instant a call ends (see [start]) -- no notification involved.
+ * .CallEndLauncher] the instant a call ends (see [start]) -- no notification involved.
  *
  * Lives in its own task (`launchMode="singleTask"` plus a dedicated `taskAffinity` and
  * `excludeFromRecents` in the manifest) so back/close returns to whatever the user was doing
@@ -189,9 +189,9 @@ class CallEndActivity : ComponentActivity() {
     companion object {
         /** Starts the call-end screen directly, bypassing any notification. Called only when
          * [android.provider.Settings.canDrawOverlays] is true (see
-         * [text.message.sms.messaging.service.CallEndTriggerService]) -- holding that permission
+         * [text.message.sms.messaging.service.CallEndLauncher]) -- holding that permission
          * is also what exempts this from the platform's background-activity-launch restrictions
-         * when started from the service's context.
+         * when started from the background.
          *
          * `FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS`/`FLAG_ACTIVITY_SINGLE_TOP` are deliberately not
          * added here -- this Activity's manifest entry already declares `excludeFromRecents=true`
@@ -202,7 +202,7 @@ class CallEndActivity : ComponentActivity() {
          * `FLAG_ACTIVITY_NO_ANIMATION` (an incoming-call-style instant appearance, not a normal
          * windowed transition) have no manifest equivalent, so both are set explicitly. */
         fun start(context: Context, session: CallSession) {
-            // Backstop -- PhoneStateReceiver and CallEndTriggerService already stop earlier with
+            // Backstop -- PhoneStateReceiver and CallEndLauncher already stop earlier with
             // the overlay/call-end flag off.
             if (!OverlayFeatureFlag.isEnabled()) return
             val intent = Intent(context, CallEndActivity::class.java)

@@ -285,10 +285,6 @@
     <!-- Notification channels -->
     <string name="channel_incoming_messages">Incoming messages</string>
     <string name="channel_send_failures">Send failures</string>
-    <string name="channel_call_monitor">Call monitoring</string>
-
-    <!-- CallEndTriggerService notifications -->
-    <string name="call_monitor_notification_title">Listening for call-end</string>
 
     <!-- Incoming-message notification -->
     <string name="notification_mms_photo_placeholder">Photo</string>

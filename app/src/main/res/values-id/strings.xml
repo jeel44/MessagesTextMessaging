@@ -258,10 +258,6 @@
     <!-- Notification channels -->
     <string name="channel_incoming_messages">Pesan masuk</string>
     <string name="channel_send_failures">Kirim kegagalan</string>
-    <string name="channel_call_monitor">Pemantauan panggilan</string>
-
-    <!-- CallEndTriggerService notifications -->
-    <string name="call_monitor_notification_title">Mendengarkan panggilan berakhir</string>
 
     <!-- Incoming-message notification -->
     <string name="notification_mms_photo_placeholder">Foto</string>

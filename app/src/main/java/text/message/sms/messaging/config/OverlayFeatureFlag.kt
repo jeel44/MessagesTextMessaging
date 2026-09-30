@@ -14,7 +14,7 @@ private const val TAG = "OverlayFeatureFlag"
  *   screen opens after each call.
  * - false: overlay + call-end disabled -- onboarding skips OverlayPermission (Welcome goes
  *   straight to SetDefaultSms), the overlay permission is never requested, and
- *   PhoneStateReceiver/CallEndTriggerService/CallEndActivity never show the call-end screen.
+ *   PhoneStateReceiver/CallEndLauncher/CallEndActivity never show the call-end screen.
  */
 internal const val OVERLAY_AND_CALL_END_KEY = "overlay_and_call_end_enabled"
 
@@ -98,7 +98,7 @@ private object RemoteConfigOverlayFlagSource : OverlayFlagSource {
 
 /**
  * The single read every call site goes through. A plain object rather than a Hilt singleton, so
- * the manifest receiver, the call-end service, CallEndActivity's static launcher and Compose all
+ * the manifest receiver, the call-end launcher, CallEndActivity's static launcher and Compose all
  * read it the same way, with nothing to inject.
  *
  * Firebase Remote Config is the only source. FirebaseApp is initialized by Firebase's own

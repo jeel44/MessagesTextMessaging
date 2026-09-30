@@ -12,11 +12,11 @@ import androidx.core.net.toUri
  *
  * Requested during onboarding, by [text.message.sms.messaging.ui.screens.permissions
  * .OverlayPermissionScreen]. Used two ways: [text.message.sms.messaging.service
- * .CallEndTriggerService] checks [isGranted]'s underlying [android.provider.Settings
+ * .CallEndLauncher] checks [isGranted]'s underlying [android.provider.Settings
  * .canDrawOverlays] at call-end time, launching [text.message.sms.messaging.ui.screens.callend
  * .CallEndActivity] directly only if it's true; and [BackgroundActivityLaunchOverlay] spends the
- * permission on an actual transient 1x1 overlay window, attached around each background launch
- * this app makes, as a background-activity-launch (BAL) exemption independent of the first check.
+ * permission on an actual transient 1x1 overlay window, attached around that launch,
+ * as a background-activity-launch (BAL) exemption independent of the first check.
  */
 object OverlayPermissionGuard {
 

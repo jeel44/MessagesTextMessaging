@@ -257,10 +257,6 @@
     <!-- Notification channels -->
     <string name="channel_incoming_messages">الرسائل الواردة</string>
     <string name="channel_send_failures">إرسال الفشل</string>
-    <string name="channel_call_monitor">مراقبة المكالمات</string>
-
-    <!-- CallEndTriggerService notifications -->
-    <string name="call_monitor_notification_title">الاستماع لنهاية المكالمة</string>
 
     <!-- Incoming-message notification -->
     <string name="notification_mms_photo_placeholder">صورة</string>

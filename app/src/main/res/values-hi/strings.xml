@@ -257,10 +257,6 @@
     <!-- Notification channels -->
     <string name="channel_incoming_messages">आने वाले संदेश</string>
     <string name="channel_send_failures">विफलताएँ भेजें</string>
-    <string name="channel_call_monitor">कॉल मॉनिटरिंग</string>
-
-    <!-- CallEndTriggerService notifications -->
-    <string name="call_monitor_notification_title">कॉल-एंड के लिए सुन रहा हूँ</string>
 
     <!-- Incoming-message notification -->
     <string name="notification_mms_photo_placeholder">तस्वीर</string>

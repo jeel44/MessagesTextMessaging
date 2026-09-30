@@ -30,20 +30,15 @@ class NotificationChannels @Inject constructor(
                 NotificationManager.IMPORTANCE_DEFAULT,
             ),
         )
-        // Silent/low-importance -- required by the platform for any foreground service, but this
-        // one has nothing worth interrupting the user for; see CallEndTriggerService.
-        notificationManager.createNotificationChannel(
-            NotificationChannel(
-                CALL_MONITOR,
-                context.getString(text.message.sms.messaging.R.string.channel_call_monitor),
-                NotificationManager.IMPORTANCE_LOW,
-            ),
-        )
+        // Belonged to the per-call foreground service the call-end screen used to be launched
+        // from; nothing posts to it any more, so drop it from installs that already created it
+        // (a no-op everywhere else).
+        notificationManager.deleteNotificationChannel(LEGACY_CALL_MONITOR)
     }
 
     companion object {
         const val INCOMING_MESSAGES: String = "incoming_messages"
         const val SEND_FAILURES: String = "send_failures"
-        const val CALL_MONITOR: String = "call_monitor"
+        private const val LEGACY_CALL_MONITOR: String = "call_monitor"
     }
 }

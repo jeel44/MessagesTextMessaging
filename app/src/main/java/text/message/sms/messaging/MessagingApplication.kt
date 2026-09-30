@@ -158,7 +158,7 @@ class MessagingApplication : Application(), Configuration.Provider {
         }
         ColdStartTracer.mark("Application.onCreate:afterContactObserverRegisterAndSyncLaunch")
 
-        // Call monitoring (PhoneStateReceiver/CallEndTriggerService) needs no bootstrap here --
+        // Call monitoring (PhoneStateReceiver/CallEndLauncher) needs no bootstrap here --
         // PhoneStateReceiver is a manifest-registered receiver on the exempted PHONE_STATE
         // implicit broadcast, so the OS cold-starts the process and dispatches straight to it
         // whenever a call's state changes; nothing needs to already be running beforehand.

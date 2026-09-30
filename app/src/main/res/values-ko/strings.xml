@@ -257,10 +257,6 @@
     <!-- Notification channels -->
     <string name="channel_incoming_messages">수신 메시지</string>
     <string name="channel_send_failures">전송 실패</string>
-    <string name="channel_call_monitor">통화 모니터링</string>
-
-    <!-- CallEndTriggerService notifications -->
-    <string name="call_monitor_notification_title">통화 종료 듣기</string>
 
     <!-- Incoming-message notification -->
     <string name="notification_mms_photo_placeholder">사진</string>

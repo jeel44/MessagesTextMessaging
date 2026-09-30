@@ -258,10 +258,6 @@
     <!-- Notification channels -->
     <string name="channel_incoming_messages">Messaggi in arrivo</string>
     <string name="channel_send_failures">Invia fallimenti</string>
-    <string name="channel_call_monitor">Monitoraggio delle chiamate</string>
-
-    <!-- CallEndTriggerService notifications -->
-    <string name="call_monitor_notification_title">Ascolto di fine chiamata</string>
 
     <!-- Incoming-message notification -->
     <string name="notification_mms_photo_placeholder">Foto</string>

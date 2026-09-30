@@ -63,8 +63,8 @@ import text.message.sms.messaging.ui.theme.AppTheme
  * The call-end screen: header for the call just finished, quick-launch tiles into third-party chat
  * apps, a 3-tab body (List/Archive/More), and an ad slot (see [CallEndAdSlot]). Reached from an
  * actually-ended call, detected by [text.message.sms.messaging.service.CallStateMonitor] and
- * delivered via [text.message.sms.messaging.service.CallEndTriggerService]'s full-screen-intent
- * notification.
+ * launched by [text.message.sms.messaging.service.CallEndLauncher] into
+ * [CallEndActivity].
  */
 @Composable
 fun CallEndScreen(

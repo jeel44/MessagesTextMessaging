@@ -257,10 +257,6 @@
     <!-- Notification channels -->
     <string name="channel_incoming_messages">Eingehende Nachrichten</string>
     <string name="channel_send_failures">Fehler senden</string>
-    <string name="channel_call_monitor">Anrufüberwachung</string>
-
-    <!-- CallEndTriggerService notifications -->
-    <string name="call_monitor_notification_title">Warten auf Anrufende</string>
 
     <!-- Incoming-message notification -->
     <string name="notification_mms_photo_placeholder">Foto</string>
