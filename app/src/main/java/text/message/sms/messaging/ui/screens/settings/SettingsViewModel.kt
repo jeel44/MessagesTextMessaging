@@ -1,6 +1,7 @@
 package text.message.sms.messaging.ui.screens.settings
 
 import android.app.Activity
+import android.content.Context
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -27,6 +28,7 @@ import text.message.sms.messaging.domain.model.SimInfo
 import text.message.sms.messaging.domain.usecase.ExportBackup
 import text.message.sms.messaging.domain.usecase.ImportBackup
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
+import text.message.sms.messaging.util.ExternalLinks
 import javax.inject.Inject
 
 /** Whether a backup export/import is in flight, so [SettingsScreen] can show progress and the
@@ -58,7 +60,16 @@ class SettingsViewModel @Inject constructor(
     private val simRepository: SimRepository,
     private val onboardingPreferences: OnboardingPreferences,
     private val adConsentManager: AdConsentManager,
+    private val externalLinks: ExternalLinks,
 ) : ViewModel() {
+
+    /** The About section's Rate the app / Privacy policy / Help & feedback rows -- see
+     * [ExternalLinks]. [context] is the screen's own, never retained here. */
+    internal fun openPlayStoreListing(context: Context) = externalLinks.openPlayStoreListing(context)
+
+    internal fun openPrivacyPolicy(context: Context) = externalLinks.openPrivacyPolicy(context)
+
+    internal fun composeFeedbackEmail(context: Context) = externalLinks.composeFeedbackEmail(context)
 
     /** Whether the About section shows the "Privacy options" row -- UMP requires that entry point
      * only for users in regions where ad consent can be changed later (EEA/UK). */

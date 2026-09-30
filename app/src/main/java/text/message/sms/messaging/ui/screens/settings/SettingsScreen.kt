@@ -298,14 +298,8 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_app_version_title),
                     trailing = SettingsTrailing.Value(rememberAppVersionName()),
                 ),
-                SettingsRow(
-                    icon = SettingsIcon.Drawable(R.drawable.ic_rate),
-                    title = stringResource(R.string.settings_rate_app_title),
-                ),
-                SettingsRow(
-                    icon = SettingsIcon.Drawable(R.drawable.ic_privacy),
-                    title = stringResource(R.string.settings_privacy_policy_title),
-                ),
+                rateAppRow(onClick = { viewModel.openPlayStoreListing(context) }),
+                privacyPolicyRow(onClick = { viewModel.openPrivacyPolicy(context) }),
                 // UMP's consent-change entry point -- only shown where it's required (EEA/UK).
                 if (adPrivacyOptionsRequired) {
                     SettingsRow(
@@ -317,10 +311,7 @@ fun SettingsScreen(
                 } else {
                     null
                 },
-                SettingsRow(
-                    icon = SettingsIcon.Drawable(R.drawable.ic_feedback),
-                    title = stringResource(R.string.settings_help_feedback_title),
-                ),
+                helpFeedbackRow(onClick = { viewModel.composeFeedbackEmail(context) }),
             ),
         ),
     )
@@ -420,9 +411,34 @@ private fun languageSummary(languageTag: String?): String {
     return option.displayName
 }
 
-private data class SettingsSection(val title: String, val rows: List<SettingsRow>)
+/** The About section's three hand-off rows (Play Store, browser, email -- see
+ * [text.message.sms.messaging.util.ExternalLinks]). Their own factories, and [SettingsList] and
+ * the row types `internal`, so `SettingsAboutLinksTest` can render and tap exactly the rows
+ * [SettingsScreen] shows without needing its ViewModel. */
+@Composable
+internal fun rateAppRow(onClick: () -> Unit): SettingsRow = SettingsRow(
+    icon = SettingsIcon.Drawable(R.drawable.ic_rate),
+    title = stringResource(R.string.settings_rate_app_title),
+    onClick = onClick,
+)
 
-private data class SettingsRow(
+@Composable
+internal fun privacyPolicyRow(onClick: () -> Unit): SettingsRow = SettingsRow(
+    icon = SettingsIcon.Drawable(R.drawable.ic_privacy),
+    title = stringResource(R.string.settings_privacy_policy_title),
+    onClick = onClick,
+)
+
+@Composable
+internal fun helpFeedbackRow(onClick: () -> Unit): SettingsRow = SettingsRow(
+    icon = SettingsIcon.Drawable(R.drawable.ic_feedback),
+    title = stringResource(R.string.settings_help_feedback_title),
+    onClick = onClick,
+)
+
+internal data class SettingsSection(val title: String, val rows: List<SettingsRow>)
+
+internal data class SettingsRow(
     val icon: SettingsIcon,
     val title: String,
     val summary: String? = null,
@@ -434,12 +450,12 @@ private data class SettingsRow(
 /** Row icons are a mix of Material [ImageVector]s (rows not covered by the Flaticon set yet) and
  * raster [Drawable] icons ([DrawableRes] webp assets) -- the latter need [Icon]'s `painter`
  * overload instead of `imageVector` so the same tint logic still applies to both. */
-private sealed interface SettingsIcon {
+internal sealed interface SettingsIcon {
     data class Vector(val imageVector: ImageVector) : SettingsIcon
     data class Drawable(@DrawableRes val resId: Int) : SettingsIcon
 }
 
-private sealed interface SettingsTrailing {
+internal sealed interface SettingsTrailing {
     data object None : SettingsTrailing
     data class Value(val text: String) : SettingsTrailing
     data class Swatch(val color: Color) : SettingsTrailing
@@ -447,7 +463,7 @@ private sealed interface SettingsTrailing {
 }
 
 @Composable
-private fun SettingsList(sections: List<SettingsSection>, modifier: Modifier = Modifier) {
+internal fun SettingsList(sections: List<SettingsSection>, modifier: Modifier = Modifier) {
     LazyColumn(modifier = modifier) {
         sections.forEachIndexed { index, section ->
             item(key = "header_${section.title}") {
