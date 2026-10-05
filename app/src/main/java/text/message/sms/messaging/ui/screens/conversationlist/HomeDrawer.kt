@@ -2,7 +2,9 @@ package text.message.sms.messaging.ui.screens.conversationlist
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,7 +13,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Archive
@@ -39,7 +44,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.R
@@ -98,23 +105,28 @@ internal fun HomeDrawer(
         drawerContent = {
             ModalDrawerSheet(modifier = Modifier.testTag(HomeDrawerSheetTag)) {
                 HomeDrawerHeader()
-                DrawerItem(Icons.Outlined.Archive, stringResource(R.string.screen_archived)) {
-                    Analytics.drawerItemOpened(DrawerItem.ARCHIVED)
-                    navigate(onArchivedClick)
+                // Scrolls only when it must (huge font scale, short screen), so the footer stays put.
+                Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                    DrawerItem(Icons.Outlined.Archive, stringResource(R.string.screen_archived)) {
+                        Analytics.drawerItemOpened(DrawerItem.ARCHIVED)
+                        navigate(onArchivedClick)
+                    }
+                    DrawerItemDivider()
+                    DrawerItem(Icons.Outlined.Block, stringResource(R.string.screen_blocked)) {
+                        Analytics.drawerItemOpened(DrawerItem.BLOCKED)
+                        navigate(onBlockedClick)
+                    }
+                    DrawerItemDivider()
+                    DrawerItem(Icons.Outlined.Schedule, stringResource(R.string.drawer_scheduled)) {
+                        Analytics.drawerItemOpened(DrawerItem.SCHEDULED)
+                        navigate(onScheduledClick)
+                    }
+                    DrawerItemDivider()
+                    DrawerItem(Icons.Outlined.Language, stringResource(R.string.settings_language_title)) {
+                        Analytics.drawerItemOpened(DrawerItem.LANGUAGE)
+                        navigate(onLanguageClick)
+                    }
                 }
-                DrawerItem(Icons.Outlined.Block, stringResource(R.string.screen_blocked)) {
-                    Analytics.drawerItemOpened(DrawerItem.BLOCKED)
-                    navigate(onBlockedClick)
-                }
-                DrawerItem(Icons.Outlined.Schedule, stringResource(R.string.drawer_scheduled)) {
-                    Analytics.drawerItemOpened(DrawerItem.SCHEDULED)
-                    navigate(onScheduledClick)
-                }
-                DrawerItem(Icons.Outlined.Language, stringResource(R.string.settings_language_title)) {
-                    Analytics.drawerItemOpened(DrawerItem.LANGUAGE)
-                    navigate(onLanguageClick)
-                }
-                Spacer(modifier = Modifier.weight(1f))
                 HomeDrawerFooter()
             }
         },
@@ -130,67 +142,80 @@ internal fun HomeDrawer(
  * shows -- the launcher icon's layers are still the template placeholder) beside the app name and
  * a subtitle. The name is `app_launcher_name`, untranslated "Messages", not `app_name`, which is
  * "#Messages" and translated per locale.
+ *
+ * The sheet's default window insets already clear the status bar; the extra top margin is on top of
+ * that.
  */
 @Composable
 private fun HomeDrawerHeader() {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dp)
+            .padding(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 12.dp)
             .testTag(HomeDrawerHeaderTag),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(20.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Image(
                 painter = painterResource(R.drawable.ic_splash_logo),
                 contentDescription = null,
                 modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(10.dp)),
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(16.dp)),
             )
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(
                     text = stringResource(R.string.app_launcher_name),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Medium),
                 )
                 Text(
                     text = stringResource(R.string.drawer_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
         }
     }
 }
 
-/** A plain rounded row: icon, label, and a chevron that flips in RTL. Never selected, no badges. */
+private val DrawerItemHorizontalPadding = 16.dp
+private val DrawerItemIconContainerSize = 44.dp
+private val DrawerItemIconGap = 16.dp
+
+/** A full-width row: the icon in an accent circle, the label, and a chevron that flips in RTL.
+ * Never selected, no badges. */
 @Composable
 private fun DrawerItem(icon: ImageVector, label: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp)
-            .clip(RoundedCornerShape(12.dp))
             .clickable(role = Role.Button, onClick = onClick)
-            .heightIn(min = 48.dp)
-            .padding(horizontal = 16.dp, vertical = 11.dp),
+            .heightIn(min = 68.dp)
+            .padding(horizontal = DrawerItemHorizontalPadding, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.width(16.dp))
+        Box(
+            modifier = Modifier
+                .size(DrawerItemIconContainerSize)
+                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+        Spacer(modifier = Modifier.width(DrawerItemIconGap))
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.Medium),
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
@@ -198,15 +223,26 @@ private fun DrawerItem(icon: ImageVector, label: String, onClick: () -> Unit) {
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             modifier = Modifier
-                .size(20.dp)
+                .size(24.dp)
                 .testTag(HomeDrawerChevronTag),
-            tint = MaterialTheme.colorScheme.outline,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
         )
     }
 }
 
+/** A hairline between rows, starting where the label does so it reads as one list. */
+@Composable
+private fun DrawerItemDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = DrawerItemHorizontalPadding + DrawerItemIconContainerSize + DrawerItemIconGap),
+        thickness = Dp.Hairline,
+        color = MaterialTheme.colorScheme.outlineVariant,
+    )
+}
+
 /** Not tappable: "App version" with the value beside it, as Settings' About row shows it. Read
- * from [BuildConfig.VERSION_NAME], so it's always the version this build was stamped with. */
+ * from [BuildConfig.VERSION_NAME], so it's always the version this build was stamped with. The sheet's
+ * default window insets keep it above the navigation bar. */
 @Composable
 private fun HomeDrawerFooter() {
     Column {
@@ -215,7 +251,7 @@ private fun HomeDrawerFooter() {
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(HomeDrawerVersionTag)
-                .padding(horizontal = 28.dp, vertical = 16.dp),
+                .padding(horizontal = DrawerItemHorizontalPadding, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.view.View
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.rememberDrawerState
@@ -12,9 +13,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -30,10 +33,14 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -85,6 +92,16 @@ class HomeDrawerTest {
         composeRule.onNodeWithText("#Messages").assertDoesNotExist()
         // The rest of the drawer really is German, so this isn't passing on an English fallback.
         composeRule.onNodeWithText(german.getString(R.string.settings_app_version_title)).assertIsDisplayed()
+        // German labels run longest; none of them may clip at the larger row size.
+        assertDrawerContentUnclipped(
+            headerSubtitle = german.getString(R.string.drawer_subtitle),
+            labels = listOf(
+                R.string.screen_archived,
+                R.string.screen_blocked,
+                R.string.drawer_scheduled,
+                R.string.settings_language_title,
+            ).map(german::getString),
+        )
     }
 
     @Test
@@ -111,6 +128,28 @@ class HomeDrawerTest {
             assertTrue("chevron $i mirrored", chevrons[i].pointsLeft())
         }
         assertDrawerContentUnclipped(headerSubtitle = strings.getString(R.string.drawer_subtitle), labels = labels)
+    }
+
+    /** At font scale 1.5 on a short window the rows overflow: the footer must stay pinned on screen
+     * and the last row must still be reachable by scrolling, then tappable. */
+    @Test
+    fun largeFontScale_footerStaysOnScreenAndLastRowIsReachable() {
+        setDrawer(fontScale = 1.5f, height = 480.dp)
+        openFromHamburger()
+
+        val sheet = composeRule.onNodeWithTag(HomeDrawerSheetTag).getUnclippedBoundsInRoot()
+        val footer = composeRule.onNodeWithTag(HomeDrawerVersionTag).assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertTrue("footer inside sheet", footer.top >= sheet.top && footer.bottom <= sheet.bottom)
+        composeRule.onNodeWithText(BuildConfig.VERSION_NAME).assertIsDisplayed()
+
+        val language = composeRule.onNodeWithText("Language").performScrollTo().assertIsDisplayed()
+        assertTrue("last row above the footer", language.getUnclippedBoundsInRoot().bottom <= footer.top)
+        composeRule.onNodeWithTag(HomeDrawerVersionTag).assertIsDisplayed()
+
+        language.performClick()
+        composeRule.waitForIdle()
+        assertEquals(1, clicks.getValue("language"))
+        assertTrue(drawerState.isClosed)
     }
 
     @Test
@@ -250,20 +289,24 @@ class HomeDrawerTest {
         return (leftmost..leftmost + 1).any { x -> (midY - 1..midY + 1).any { y -> inked(x, y) } }
     }
 
-    private fun setDrawer(darkTheme: Boolean = false, locale: Locale? = null) {
+    private fun setDrawer(darkTheme: Boolean = false, locale: Locale? = null, fontScale: Float? = null, height: Dp? = null) {
         composeRule.setContent {
             drawerState = rememberDrawerState(DrawerValue.Closed)
-            Localized(locale) {
-                AppTheme(darkTheme = darkTheme) {
-                    HomeDrawer(
-                        drawerState = drawerState,
-                        enabled = !selectionMode,
-                        onArchivedClick = { clicks["archived"] = clicks.getValue("archived") + 1 },
-                        onBlockedClick = { clicks["blocked"] = clicks.getValue("blocked") + 1 },
-                        onScheduledClick = { clicks["scheduled"] = clicks.getValue("scheduled") + 1 },
-                        onLanguageClick = { clicks["language"] = clicks.getValue("language") + 1 },
-                    ) { openDrawer ->
-                        ConversationListTopBar(onMenuClick = openDrawer, onSearchClick = {}, onSettingsClick = {})
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale ?: density.fontScale)) {
+                Localized(locale) {
+                    AppTheme(darkTheme = darkTheme) {
+                        HomeDrawer(
+                            drawerState = drawerState,
+                            modifier = if (height != null) Modifier.height(height) else Modifier,
+                            enabled = !selectionMode,
+                            onArchivedClick = { clicks["archived"] = clicks.getValue("archived") + 1 },
+                            onBlockedClick = { clicks["blocked"] = clicks.getValue("blocked") + 1 },
+                            onScheduledClick = { clicks["scheduled"] = clicks.getValue("scheduled") + 1 },
+                            onLanguageClick = { clicks["language"] = clicks.getValue("language") + 1 },
+                        ) { openDrawer ->
+                            ConversationListTopBar(onMenuClick = openDrawer, onSearchClick = {}, onSettingsClick = {})
+                        }
                     }
                 }
             }
