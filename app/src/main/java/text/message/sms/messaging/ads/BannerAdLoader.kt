@@ -9,6 +9,8 @@ import com.google.android.gms.ads.LoadAdError
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import text.message.sms.messaging.analytics.AdFormat
+import text.message.sms.messaging.analytics.Analytics
 
 /** A single banner slot's state -- [Loading] until [BannerAdLoader] settles on [Loaded] or
  * [Failed] (the slot then collapses entirely). */
@@ -43,6 +45,8 @@ internal enum class BannerRequestStatus { Idle, InFlight, Loaded, Failed }
 internal class BannerAdLoader(
     private val context: Context,
     private val adUnitId: String,
+    /** For [Analytics] only -- which slot this is. */
+    private val placement: AdPlacement,
     private val adSize: AdSize,
     private val onSettled: (BannerAdState) -> Unit = {},
     private val onRequestFinished: (loaded: Boolean) -> Unit = {},
@@ -94,6 +98,10 @@ internal class BannerAdLoader(
         view.adUnitId = adUnitId
         view.setAdSize(adSize)
         view.adListener = object : AdListener() {
+            override fun onAdImpression() {
+                Analytics.adShown(placement, AdFormat.BANNER)
+            }
+
             override fun onAdLoaded() {
                 _requestStatus.value = BannerRequestStatus.Loaded
                 onRequestFinished(true)
@@ -104,6 +112,7 @@ internal class BannerAdLoader(
             }
 
             override fun onAdFailedToLoad(adError: LoadAdError) {
+                Analytics.adFailed(placement, AdFormat.BANNER)
                 _requestStatus.value = BannerRequestStatus.Failed
                 onRequestFinished(false)
                 // A failed *refresh* keeps showing the previous creative -- only a failed initial

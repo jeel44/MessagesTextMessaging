@@ -42,9 +42,11 @@ playServicesAds = "25.5.0"
 # pulls 4.0.0 in transitively -- see AdConsentManager.
 userMessagingPlatform = "4.0.0"
 
-# Firebase -- Remote Config only (the overlay/call-end flag, see OverlayFeatureFlag). No Analytics.
+# Firebase -- Remote Config (the overlay/call-end flag, see OverlayFeatureFlag), Analytics and
+# Crashlytics (consent-gated, see FirebaseCollectionController).
 googleServices = "4.5.0"
 firebaseBom = "34.19.0"
+firebaseCrashlyticsPlugin = "3.0.8"
 
 # Kotlin libraries
 coroutines = "1.11.0"
@@ -114,6 +116,8 @@ google-ump = { group = "com.google.android.ump", name = "user-messaging-platform
 # Firebase (version comes from the BOM)
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-config = { group = "com.google.firebase", name = "firebase-config" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 
 # Kotlin libraries
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
@@ -137,4 +141,5 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 room = { id = "androidx.room", version.ref = "room" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" }
 androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "androidxBenchmark" }

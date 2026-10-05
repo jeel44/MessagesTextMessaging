@@ -27,6 +27,7 @@ import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.ads.AdConsentState
 import text.message.sms.messaging.ads.HomeBannerAdManager
+import text.message.sms.messaging.analytics.Analytics
 import text.message.sms.messaging.data.local.datastore.SwipeActionPreference
 import text.message.sms.messaging.data.local.datastore.SwipeActionPreferences
 import text.message.sms.messaging.data.local.provider.ProviderChangeObserver
@@ -394,6 +395,7 @@ class ConversationListViewModel @Inject constructor(
     internal fun archiveConversation(conversation: Conversation) {
         viewModelScope.launch {
             markArchivedUseCase(listOf(conversation.threadId))
+            Analytics.conversationArchived()
             _events.emit(ConversationListEvent.Archived(conversation))
         }
     }
@@ -437,6 +439,7 @@ class ConversationListViewModel @Inject constructor(
         if (ids.isEmpty()) return
         viewModelScope.launch {
             markArchivedUseCase(ids)
+            Analytics.conversationArchived()
             _events.emit(ConversationListEvent.SelectionArchived(ids))
             clearSelection()
         }
@@ -498,6 +501,7 @@ class ConversationListViewModel @Inject constructor(
         if (ids.isEmpty()) return
         viewModelScope.launch {
             val outcome = markBlockedUseCase(ids)
+            if (outcome.blockedThreadIds.isNotEmpty()) Analytics.numberBlocked()
             if (outcome.skippedGroupThreadIds.isNotEmpty()) {
                 _events.emit(ConversationListEvent.SelectionBlockSkippedGroups(outcome.skippedGroupThreadIds.size))
             }

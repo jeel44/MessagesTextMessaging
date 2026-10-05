@@ -11,6 +11,8 @@ import com.google.android.gms.ads.nativead.NativeAd
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import text.message.sms.messaging.analytics.AdFormat
+import text.message.sms.messaging.analytics.Analytics
 
 /** The call-end screen's ad slot state -- [Loading] until [CallEndAdLoader] settles on exactly one
  * of [NativeLoaded], [BannerLoaded], or [Failed] (both formats failed to load; the slot then
@@ -62,9 +64,14 @@ internal class CallEndAdLoader(private val context: Context) {
             .forNativeAd { nativeAd -> _state.value = CallEndAdState.NativeLoaded(nativeAd) }
             .withAdListener(
                 object : AdListener() {
+                    override fun onAdImpression() {
+                        Analytics.adShown(AdPlacement.CALL_END_NATIVE, AdFormat.NATIVE)
+                    }
+
                     // Native failed -- fall back to the banner rather than settling on Failed
                     // directly; only a banner failure too collapses the slot.
                     override fun onAdFailedToLoad(adError: LoadAdError) {
+                        Analytics.adFailed(AdPlacement.CALL_END_NATIVE, AdFormat.NATIVE)
                         loadBanner()
                     }
                 },
@@ -77,6 +84,7 @@ internal class CallEndAdLoader(private val context: Context) {
         val loader = BannerAdLoader(
             context = context,
             adUnitId = AdUnitIds.CALL_END_BANNER,
+            placement = AdPlacement.CALL_END_BANNER,
             adSize = AdSize.MEDIUM_RECTANGLE,
             onSettled = { bannerState ->
                 _state.value = when (bannerState) {

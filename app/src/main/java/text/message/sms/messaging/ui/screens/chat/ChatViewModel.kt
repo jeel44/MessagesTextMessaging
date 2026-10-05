@@ -25,9 +25,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.ads.AdConsentState
+import text.message.sms.messaging.ads.AdPlacement
 import text.message.sms.messaging.ads.AdUnitIds
 import text.message.sms.messaging.ads.NativeAdLoader
 import text.message.sms.messaging.ads.NativeAdState
+import text.message.sms.messaging.analytics.Analytics
 import text.message.sms.messaging.data.local.datastore.SimPreferences
 import text.message.sms.messaging.data.local.datastore.SimSendPreference
 import text.message.sms.messaging.data.local.telephony.SimRepository
@@ -230,7 +232,7 @@ class ChatViewModel @Inject constructor(
      * retry after a failed first load (see [NativeAdLoader]) -- and only once [ChatScreen] sees
      * [chatMode] settle on [ChatMode.NON_PERSONAL] and calls [startNativeAd], so a personal
      * thread never requests one. Opening another thread is a new ViewModel, and so a new ad. */
-    private val nativeAdLoader = NativeAdLoader(context, AdUnitIds.CHAT_NATIVE)
+    private val nativeAdLoader = NativeAdLoader(context, AdUnitIds.CHAT_NATIVE, AdPlacement.CHAT_NATIVE)
     internal val nativeAdState: StateFlow<NativeAdState> = nativeAdLoader.state
 
     private var nativeAdStarted = false
@@ -348,9 +350,11 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             if (blocking) {
                 val outcome = markBlocked(listOf(threadId))
+                if (outcome.blockedThreadIds.isNotEmpty()) Analytics.numberBlocked()
                 if (outcome.blockedThreadIds.isNotEmpty()) _events.emit(ChatEvent.LeaveConversation)
             } else {
-                markUnblocked(listOf(threadId))
+                val outcome = markUnblocked(listOf(threadId))
+                if (outcome.unblockedThreadIds.isNotEmpty()) Analytics.numberUnblocked()
             }
         }
     }
@@ -361,6 +365,7 @@ class ChatViewModel @Inject constructor(
         val archiving = conversation.value?.isArchived != true
         viewModelScope.launch {
             if (archiving) markArchived(listOf(threadId)) else markUnarchived(listOf(threadId))
+            if (archiving) Analytics.conversationArchived()
             if (archiving) _events.emit(ChatEvent.LeaveConversation)
         }
     }

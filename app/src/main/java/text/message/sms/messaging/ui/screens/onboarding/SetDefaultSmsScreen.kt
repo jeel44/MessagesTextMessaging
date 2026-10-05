@@ -51,7 +51,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.withResumed
 import text.message.sms.messaging.R
+import text.message.sms.messaging.ads.AdPlacement
 import text.message.sms.messaging.ads.AdUnitIds
+import text.message.sms.messaging.analytics.Analytics
 import text.message.sms.messaging.service.DefaultSmsAppGuard
 import text.message.sms.messaging.ui.components.ShineButton
 import text.message.sms.messaging.ui.components.ads.BannerAdWithShimmer
@@ -184,6 +186,7 @@ fun SetDefaultSmsScreen(
     val roleRequestLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
     ) {
+        Analytics.defaultSmsResult(granted = guard.isDefault)
         if (guard.isDefault) {
             permissionLauncher.launch(postRoleGrantPermissions())
         } else {
@@ -203,7 +206,10 @@ fun SetDefaultSmsScreen(
         },
         onOpenSettings = { context.openAppSettings() },
         modifier = modifier,
-        bannerSlot = { BannerAdWithShimmer(adUnitId = AdUnitIds.SET_DEFAULT_SMS_BANNER) },
+        bannerSlot = { BannerAdWithShimmer(
+                adUnitId = AdUnitIds.SET_DEFAULT_SMS_BANNER,
+                placement = AdPlacement.SET_DEFAULT_SMS_BANNER,
+            ) },
     )
 }
 

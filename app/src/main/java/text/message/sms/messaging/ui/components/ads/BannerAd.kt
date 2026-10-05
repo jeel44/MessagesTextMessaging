@@ -39,6 +39,7 @@ import dagger.hilt.android.EntryPointAccessors
 import text.message.sms.messaging.ads.AdConsentEntryPoint
 import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.ads.AdConsentState
+import text.message.sms.messaging.ads.AdPlacement
 import text.message.sms.messaging.ads.BannerAdLoader
 import text.message.sms.messaging.ads.BannerAdState
 
@@ -57,14 +58,14 @@ private const val SHIMMER_SWEEP_DURATION_MILLIS = 1400
  * Google's adaptive-banner guidance calls for anyway.
  */
 @Composable
-internal fun BannerAdWithShimmer(adUnitId: String, modifier: Modifier = Modifier) {
+internal fun BannerAdWithShimmer(adUnitId: String, placement: AdPlacement, modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth().animateContentSize()) {
         val context = LocalContext.current
         val widthDp = maxWidth.value.toInt()
         val adSize = remember(widthDp) {
             AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, widthDp)
         }
-        val loader = remember(adUnitId, adSize) { BannerAdLoader(context, adUnitId, adSize) }
+        val loader = remember(adUnitId, adSize) { BannerAdLoader(context, adUnitId, placement, adSize) }
         val consentManager = remember(context) {
             EntryPointAccessors.fromApplication(context.applicationContext, AdConsentEntryPoint::class.java)
                 .adConsentManager()

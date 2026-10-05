@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.ads.AdConsentState
+import text.message.sms.messaging.ads.AdPlacement
 import text.message.sms.messaging.ads.AdUnitIds
 import text.message.sms.messaging.ads.FullScreenAdGate
 import text.message.sms.messaging.ads.InterstitialAdLoader
@@ -56,7 +57,12 @@ class SetDefaultSmsViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val interstitialLoader =
-        InterstitialAdLoader(context, AdUnitIds.SET_DEFAULT_SMS_INTERSTITIAL, fullScreenAdGate)
+        InterstitialAdLoader(
+            context,
+            AdUnitIds.SET_DEFAULT_SMS_INTERSTITIAL,
+            fullScreenAdGate,
+            AdPlacement.SET_DEFAULT_SMS_INTERSTITIAL,
+        )
     private var interstitialPreloadStarted = false
     private var advanced = false
 

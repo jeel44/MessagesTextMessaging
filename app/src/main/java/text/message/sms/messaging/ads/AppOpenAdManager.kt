@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.MainActivity
+import text.message.sms.messaging.analytics.AdFormat
+import text.message.sms.messaging.analytics.Analytics
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import text.message.sms.messaging.data.local.datastore.OnboardingStep
 import javax.inject.Inject
@@ -200,6 +202,10 @@ class AppOpenAdManager @Inject constructor(
             }
         }
         ready.ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+            override fun onAdImpression() {
+                Analytics.adShown(AdPlacement.APP_OPEN, AdFormat.APP_OPEN)
+            }
+
             override fun onAdDismissedFullScreenContent() {
                 debugLog("dismissed")
                 finishOnce()
@@ -207,6 +213,7 @@ class AppOpenAdManager @Inject constructor(
 
             override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                 debugLog("failed to show: ${adError.code} ${adError.message}")
+                Analytics.adFailed(AdPlacement.APP_OPEN, AdFormat.APP_OPEN)
                 finishOnce()
             }
         }
@@ -325,6 +332,7 @@ class AppOpenAdManager @Inject constructor(
 
                 override fun onAdFailedToLoad(adError: LoadAdError) {
                     debugLog("failed to load: ${adError.code} ${adError.message}")
+                    Analytics.adFailed(AdPlacement.APP_OPEN, AdFormat.APP_OPEN)
                     loadState.value = LoadState.Failed
                 }
             },

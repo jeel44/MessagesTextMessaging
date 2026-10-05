@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import text.message.sms.messaging.analytics.Analytics
 import text.message.sms.messaging.domain.model.BlockedNumber
 import text.message.sms.messaging.domain.repository.BlockedNumberRepository
 import text.message.sms.messaging.domain.repository.ContactRepository
@@ -52,7 +53,11 @@ class BlockedViewModel @Inject constructor(
     internal val unblocked: SharedFlow<UnblockedNumber> = _unblocked.asSharedFlow()
 
     internal fun unblock(number: BlockedNumber) {
-        viewModelScope.launch { _unblocked.emit(unblockNumber(number)) }
+        viewModelScope.launch {
+            val unblocked = unblockNumber(number)
+            Analytics.numberUnblocked()
+            _unblocked.emit(unblocked)
+        }
     }
 
     internal fun undoUnblock(unblocked: UnblockedNumber) {

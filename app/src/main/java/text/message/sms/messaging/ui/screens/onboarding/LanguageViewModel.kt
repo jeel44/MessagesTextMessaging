@@ -17,11 +17,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.ads.AdConsentState
+import text.message.sms.messaging.ads.AdPlacement
 import text.message.sms.messaging.ads.AdUnitIds
 import text.message.sms.messaging.ads.FullScreenAdGate
 import text.message.sms.messaging.ads.InterstitialAdLoader
 import text.message.sms.messaging.ads.NativeAdLoader
 import text.message.sms.messaging.ads.NativeAdState
+import text.message.sms.messaging.analytics.Analytics
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import text.message.sms.messaging.domain.usecase.SyncMessages
 import javax.inject.Inject
@@ -57,11 +59,11 @@ class LanguageViewModel @Inject constructor(
     fullScreenAdGate: FullScreenAdGate,
 ) : ViewModel() {
 
-    private val nativeAdLoader = NativeAdLoader(context, AdUnitIds.LANGUAGE_NATIVE)
+    private val nativeAdLoader = NativeAdLoader(context, AdUnitIds.LANGUAGE_NATIVE, AdPlacement.LANGUAGE_NATIVE)
     internal val nativeAdState: StateFlow<NativeAdState> = nativeAdLoader.state
 
     private val interstitialLoader =
-        InterstitialAdLoader(context, AdUnitIds.LANGUAGE_INTERSTITIAL, fullScreenAdGate)
+        InterstitialAdLoader(context, AdUnitIds.LANGUAGE_INTERSTITIAL, fullScreenAdGate, AdPlacement.LANGUAGE_INTERSTITIAL)
 
     private var adsStarted = false
     private var applyPressed = false
@@ -171,6 +173,7 @@ class LanguageViewModel @Inject constructor(
         val language = selectedLanguage.value ?: return
         if (applyPressed) return
         applyPressed = true
+        Analytics.languageSelected(language.id)
         // The show below waits on DataStore writes -- hold off a warm-resume App Open until then.
         interstitialLoader.commitToShow()
         viewModelScope.launch {

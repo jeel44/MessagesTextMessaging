@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import text.message.sms.messaging.BuildConfig
+import text.message.sms.messaging.analytics.AdFormat
+import text.message.sms.messaging.analytics.Analytics
 
 /** A single native slot's state -- [Loading] until the first load settles on [Loaded] or [Failed]
  * (the slot then collapses entirely). A [NativeAdLoader.refresh] never moves it back to [Loading]
@@ -40,6 +42,8 @@ internal sealed interface NativeAdState {
 internal class NativeAdLoader(
     private val context: Context,
     private val adUnitId: String,
+    /** For [Analytics] only -- which slot this is. */
+    private val placement: AdPlacement,
 ) {
 
     private val _state = MutableStateFlow<NativeAdState>(NativeAdState.Loading)
@@ -94,8 +98,13 @@ internal class NativeAdLoader(
             }
             .withAdListener(
                 object : AdListener() {
+                    override fun onAdImpression() {
+                        Analytics.adShown(placement, AdFormat.NATIVE)
+                    }
+
                     override fun onAdFailedToLoad(adError: LoadAdError) {
                         if (destroyed) return
+                        Analytics.adFailed(placement, AdFormat.NATIVE)
                         debugLog("failed to load (refresh=$refreshing): ${adError.code} ${adError.message}")
                         refreshing = false
                         // A failed refresh keeps the current ad; only a failed first load collapses.

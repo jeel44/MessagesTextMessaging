@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import text.message.sms.messaging.BuildConfig
+import text.message.sms.messaging.analytics.AdFormat
+import text.message.sms.messaging.analytics.Analytics
 
 /** A single interstitial's state -- [Idle] until [InterstitialAdLoader.start], then [Loading]
  * until it settles on [Ready] or [Failed]; [Shown] once [InterstitialAdLoader.showIfReady] has
@@ -48,6 +50,8 @@ internal class InterstitialAdLoader(
     private val context: Context,
     private val adUnitId: String,
     private val fullScreenAdGate: FullScreenAdGate,
+    /** For [Analytics] only -- which slot this is. */
+    private val placement: AdPlacement,
 ) {
 
     private val _state = MutableStateFlow<InterstitialAdState>(InterstitialAdState.Idle)
@@ -73,6 +77,7 @@ internal class InterstitialAdLoader(
                 override fun onAdFailedToLoad(adError: LoadAdError) {
                     if (destroyed) return
                     debugLog("failed to load: ${adError.code} ${adError.message}")
+                    Analytics.adFailed(placement, AdFormat.INTERSTITIAL)
                     _state.value = InterstitialAdState.Failed
                 }
             },
@@ -115,6 +120,10 @@ internal class InterstitialAdLoader(
             }
         }
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+            override fun onAdImpression() {
+                Analytics.adShown(placement, AdFormat.INTERSTITIAL)
+            }
+
             override fun onAdDismissedFullScreenContent() {
                 debugLog("dismissed")
                 finishOnce()
@@ -122,6 +131,7 @@ internal class InterstitialAdLoader(
 
             override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                 debugLog("failed to show: ${adError.code} ${adError.message}")
+                Analytics.adFailed(placement, AdFormat.INTERSTITIAL)
                 finishOnce()
             }
         }

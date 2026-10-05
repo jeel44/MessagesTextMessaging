@@ -1,5 +1,6 @@
 package text.message.sms.messaging.domain.usecase
 
+import text.message.sms.messaging.analytics.Analytics
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.model.MessageFolder
 import text.message.sms.messaging.domain.repository.ConversationRepository
@@ -30,6 +31,7 @@ class ScheduleMessage @Inject constructor(
         )
 
         transmitter.schedule(message, params.sendAtMillis)
+        Analytics.messageScheduled()
         return message
     }
 

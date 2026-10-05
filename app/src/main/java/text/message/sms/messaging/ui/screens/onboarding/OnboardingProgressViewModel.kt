@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import text.message.sms.messaging.analytics.Analytics
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import text.message.sms.messaging.data.local.datastore.OnboardingStep
 import javax.inject.Inject
@@ -31,6 +32,7 @@ internal class OnboardingProgressViewModel @Inject constructor(
         if (advancing?.isActive == true) return
         advancing = viewModelScope.launch {
             onboardingPreferences.setCurrentStep(next)
+            Analytics.onboardingStep(next)
             navigate()
         }
     }

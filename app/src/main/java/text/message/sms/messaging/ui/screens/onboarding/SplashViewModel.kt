@@ -21,6 +21,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.ads.AdConsentState
+import text.message.sms.messaging.ads.AdPlacement
 import text.message.sms.messaging.ads.AdUnitIds
 import text.message.sms.messaging.ads.AppOpenAdManager
 import text.message.sms.messaging.ads.NativeAdLoader
@@ -94,7 +95,7 @@ internal class SplashViewModel @Inject constructor(
      * doesn't shift on the frame Splash navigates away. */
     val adSectionVisible: StateFlow<Boolean> = _adSectionVisible.asStateFlow()
 
-    private val nativeAdLoader = NativeAdLoader(context, AdUnitIds.SPLASH_NATIVE)
+    private val nativeAdLoader = NativeAdLoader(context, AdUnitIds.SPLASH_NATIVE, AdPlacement.SPLASH_NATIVE)
     private val nativeTimedOut = MutableStateFlow(false)
 
     /** The compact slot's state -- [NativeAdState.Failed] (collapsed) for good once the native

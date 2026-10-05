@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.R
+import text.message.sms.messaging.analytics.Analytics
+import text.message.sms.messaging.analytics.DrawerItem
 
 internal const val HomeDrawerSheetTag = "home_drawer_sheet"
 internal const val HomeDrawerVersionTag = "home_drawer_version"
@@ -89,12 +91,15 @@ internal fun HomeDrawer(
             ModalDrawerSheet(modifier = Modifier.testTag(HomeDrawerSheetTag)) {
                 HomeDrawerHeader()
                 DrawerItem(Icons.Outlined.Archive, stringResource(R.string.screen_archived)) {
+                    Analytics.drawerItemOpened(DrawerItem.ARCHIVED)
                     navigate(onArchivedClick)
                 }
                 DrawerItem(Icons.Outlined.Block, stringResource(R.string.screen_blocked)) {
+                    Analytics.drawerItemOpened(DrawerItem.BLOCKED)
                     navigate(onBlockedClick)
                 }
                 DrawerItem(Icons.Outlined.Language, stringResource(R.string.settings_language_title)) {
+                    Analytics.drawerItemOpened(DrawerItem.LANGUAGE)
                     navigate(onLanguageClick)
                 }
                 Spacer(modifier = Modifier.weight(1f))

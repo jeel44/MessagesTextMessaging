@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import text.message.sms.messaging.analytics.Analytics
 import text.message.sms.messaging.domain.model.Attachment
 import text.message.sms.messaging.domain.model.Conversation
 import text.message.sms.messaging.domain.repository.AttachmentRepository
@@ -76,6 +77,7 @@ class ConversationInfoViewModel @Inject constructor(
         val archiving = conversation.value?.isArchived != true
         viewModelScope.launch {
             if (archiving) markArchived(listOf(threadId)) else markUnarchived(listOf(threadId))
+            if (archiving) Analytics.conversationArchived()
             if (archiving) _events.emit(ConversationInfoEvent.LeaveConversation)
         }
     }
@@ -97,9 +99,11 @@ class ConversationInfoViewModel @Inject constructor(
         viewModelScope.launch {
             if (blocking) {
                 val outcome = markBlocked(listOf(threadId))
+                if (outcome.blockedThreadIds.isNotEmpty()) Analytics.numberBlocked()
                 if (outcome.blockedThreadIds.isNotEmpty()) _events.emit(ConversationInfoEvent.LeaveConversation)
             } else {
-                markUnblocked(listOf(threadId))
+                val outcome = markUnblocked(listOf(threadId))
+                if (outcome.unblockedThreadIds.isNotEmpty()) Analytics.numberUnblocked()
             }
         }
     }

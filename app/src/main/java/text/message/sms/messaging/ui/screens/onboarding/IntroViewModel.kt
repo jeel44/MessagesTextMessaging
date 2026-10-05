@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.BuildConfig
+import text.message.sms.messaging.ads.AdPlacement
+import text.message.sms.messaging.analytics.Analytics
 import text.message.sms.messaging.config.IntroAdConfig
 import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.ads.AdConsentState
@@ -58,10 +60,10 @@ internal class IntroViewModel @Inject constructor(
     private val fullScreenAdGate: FullScreenAdGate,
 ) : ViewModel() {
 
-    private val nativeAdLoader = NativeAdLoader(context, AdUnitIds.INTRO_NATIVE)
+    private val nativeAdLoader = NativeAdLoader(context, AdUnitIds.INTRO_NATIVE, AdPlacement.INTRO_NATIVE)
     val nativeAdState: StateFlow<NativeAdState> = nativeAdLoader.state
 
-    private val fullScreenNativeLoader = NativeAdLoader(context, AdUnitIds.INTRO_NATIVE_FULLSCREEN)
+    private val fullScreenNativeLoader = NativeAdLoader(context, AdUnitIds.INTRO_NATIVE_FULLSCREEN, AdPlacement.INTRO_NATIVE_FULLSCREEN)
 
     private var fullScreenInGate = false
     private var fullScreenDisplayed = false
@@ -95,11 +97,12 @@ internal class IntroViewModel @Inject constructor(
     val fullScreenAdvancePending: StateFlow<Boolean> = fullScreenNative.advancePending
 
     private val interstitialLoader =
-        InterstitialAdLoader(context, AdUnitIds.INTRO_INTERSTITIAL, fullScreenAdGate)
+        InterstitialAdLoader(context, AdUnitIds.INTRO_INTERSTITIAL, fullScreenAdGate, AdPlacement.INTRO_INTERSTITIAL)
 
     private var adsStarted = false
     private var finishPressed = false
     private var settledPage = 0
+    private val viewedSlides = mutableSetOf<Int>()
 
     init {
         viewModelScope.launch {
@@ -198,6 +201,7 @@ internal class IntroViewModel @Inject constructor(
      * Both flags live in [savedStateHandle], like Language's, so rotation or process death
      * mid-screen doesn't re-arm the refresh. */
     fun onPageSettled(page: Int) {
+        if (viewedSlides.add(page)) Analytics.introSlideViewed(page)
         settledPage = page
         markSlide2AdSeenIfShowing()
         if (page != IntroPageCount - 1) return

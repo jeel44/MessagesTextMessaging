@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.room)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.androidx.baselineprofile)
 }
 
@@ -75,6 +76,13 @@ android {
         // See useTestAds above.
         buildConfigField("boolean", "USE_TEST_ADS", useTestAds.toString())
         manifestPlaceholders["admobAppId"] = if (useTestAds) admobTestAppId else admobRealAppId
+
+        // Analytics/Crashlytics: off in debug, consent-gated otherwise (see the manifest's
+        // firebase_* meta-data and FirebaseCollectionController). Debug overrides both below.
+        manifestPlaceholders["firebaseAnalyticsDeactivated"] = "false"
+        // The adb-triggered Crashlytics test crash in MainActivity -- benchmark only (below), never
+        // in a build that ships.
+        buildConfigField("boolean", "CRASHLYTICS_TEST_CRASH", "false")
     }
 
     signingConfigs {
@@ -92,6 +100,9 @@ android {
         debug {
             buildConfigField("String", "UMP_DEBUG_GEOGRAPHY", "\"${localProperty("ump.debugGeography")}\"")
             buildConfigField("String", "UMP_TEST_DEVICE_HASHED_ID", "\"${localProperty("ump.testDeviceHashedId")}\"")
+            // Permanently deactivates Analytics in debug, so test runs never reach the data.
+            // Crashlytics is kept off in code (FirebaseCollectionController).
+            manifestPlaceholders["firebaseAnalyticsDeactivated"] = "true"
         }
         release {
             if (hasReleaseSigning) {
@@ -113,6 +124,9 @@ android {
             isDebuggable = false
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
+            // `adb shell am start -n text.message.sms.messaging/.MainActivity --ez
+            // crashlytics_test_crash true` -- see MainActivity.
+            buildConfigField("boolean", "CRASHLYTICS_TEST_CRASH", "true")
         }
     }
 
@@ -180,9 +194,13 @@ dependencies {
     implementation(libs.google.ump)
 
     // Remote Config -- the overlay/call-end flag's only source, see OverlayFeatureFlag. Reads
-    // app/google-services.json (google-services plugin). No Analytics, no other Firebase product.
+    // app/google-services.json (google-services plugin).
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.config)
+    // Analytics + Crashlytics -- collection off in debug and consent-gated in release, see
+    // FirebaseCollectionController. Events only through the allowlist in analytics/Analytics.kt.
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
 
     // Dependency injection
     implementation(libs.hilt.android)

@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import text.message.sms.messaging.R
+import text.message.sms.messaging.ads.AdPlacement
 import text.message.sms.messaging.ads.AdUnitIds
 import text.message.sms.messaging.ui.components.ShineButton
 import text.message.sms.messaging.ui.components.ads.BannerAdWithShimmer
@@ -86,7 +87,7 @@ fun WelcomeScreen(
     WelcomeScreenContent(
         onContinueClick = { callPhonePermissionLauncher.launch(Manifest.permission.CALL_PHONE) },
         modifier = modifier,
-        bannerSlot = { BannerAdWithShimmer(adUnitId = AdUnitIds.WELCOME_BANNER) },
+        bannerSlot = { BannerAdWithShimmer(adUnitId = AdUnitIds.WELCOME_BANNER, placement = AdPlacement.WELCOME_BANNER) },
     )
 }
 

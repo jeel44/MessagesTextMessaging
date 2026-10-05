@@ -117,6 +117,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         ColdStartTracer.mark("MainActivity.onCreate:start")
+        // Crashlytics verification, benchmark builds only (BuildConfig.CRASHLYTICS_TEST_CRASH is
+        // false in debug and release): `adb shell am start -n
+        // text.message.sms.messaging/.MainActivity --ez crashlytics_test_crash true`. The report
+        // goes out on the next launch, once consent allows Crashlytics.
+        if (BuildConfig.CRASHLYTICS_TEST_CRASH && intent.getBooleanExtra(EXTRA_CRASHLYTICS_TEST_CRASH, false)) {
+            throw RuntimeException("Crashlytics test crash")
+        }
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         ColdStartTracer.mark("MainActivity.onCreate:afterSuper")
@@ -291,5 +298,6 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_THREAD_ID: String = "extra_thread_id"
         const val EXTRA_OPEN_CONTACTS: String = "extra_open_contacts"
         const val EXTRA_COMING_SOON_FEATURE: String = "extra_coming_soon_feature"
+        private const val EXTRA_CRASHLYTICS_TEST_CRASH: String = "crashlytics_test_crash"
     }
 }

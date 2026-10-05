@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.ads.AppOpenAdManager
+import text.message.sms.messaging.analytics.FirebaseCollectionController
 import text.message.sms.messaging.config.OverlayFeatureFlag
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
@@ -69,6 +70,9 @@ class MessagingApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var appOpenAdManager: AppOpenAdManager
+
+    @Inject
+    internal lateinit var firebaseCollectionController: FirebaseCollectionController
 
     @Inject
     @ApplicationScope
@@ -135,6 +139,10 @@ class MessagingApplication : Application(), Configuration.Provider {
         // either way, so it never blocks first frame.
         adConsentManager.initializeAdsIfAllowed()
         ColdStartTracer.mark("Application.onCreate:afterMobileAdsInitialize")
+
+        // Analytics/Crashlytics stay off until the same UMP consent result decides them (never
+        // on in debug). Returns immediately; the Firebase work runs on applicationScope.
+        firebaseCollectionController.start()
 
         // App-wide foreground/background observation for the App Open ad. Registering requests
         // nothing: the manager loads only once a MainActivity exists and consent allows it, so a

@@ -73,6 +73,7 @@ internal class HomeBannerAdManager(
         newLoader = BannerAdLoader(
             context,
             AdUnitIds.HOME_BANNER,
+            AdPlacement.HOME_BANNER,
             adSize,
             onRequestFinished = { loaded -> onRequestFinished(newLoader, loaded) },
         )
