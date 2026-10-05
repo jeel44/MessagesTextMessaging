@@ -190,6 +190,7 @@
     <string name="scheduled_edit_change_time">Change time</string>
     <string name="scheduled_edit_save">Save</string>
     <string name="drawer_scheduled">Scheduled</string>
+    <string name="drawer_subtitle">SMS and MMS</string>
     <string name="scheduled_list_title">Scheduled messages</string>
     <string name="scheduled_list_empty">No scheduled messages</string>
     <string name="scheduled_list_delete">Delete</string>

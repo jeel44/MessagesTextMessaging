@@ -2,15 +2,18 @@ package text.message.sms.messaging.ui.screens.conversationlist
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Language
@@ -22,8 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,6 +37,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.BuildConfig
@@ -44,10 +48,12 @@ import text.message.sms.messaging.analytics.DrawerItem
 
 internal const val HomeDrawerSheetTag = "home_drawer_sheet"
 internal const val HomeDrawerVersionTag = "home_drawer_version"
+internal const val HomeDrawerHeaderTag = "home_drawer_header"
+internal const val HomeDrawerChevronTag = "home_drawer_chevron"
 
 /**
- * The inbox's side drawer: Archived, Blocked, Scheduled and Language (Settings' mode of it), with the app
- * name up top and the version pinned at the bottom. No ads, badges or counts.
+ * The inbox's side drawer: Archived, Blocked, Scheduled and Language (Settings' mode of it), with an
+ * app-name card up top and the version pinned at the bottom. No ads, badges or counts.
  *
  * [enabled] false (the inbox's multi-select mode) makes [content]'s `openDrawer` a no-op and
  * closes the drawer if it's somehow open, so selection and the drawer never overlap.
@@ -119,41 +125,84 @@ internal fun HomeDrawer(
     }
 }
 
-/** The brand mark (the same `ic_splash_logo` Splash shows -- the launcher icon's layers are still
- * the template placeholder) beside the app name. */
+/**
+ * A soft card in the accent container color: the brand mark (the same `ic_splash_logo` Splash
+ * shows -- the launcher icon's layers are still the template placeholder) beside the app name and
+ * a subtitle. The name is `app_launcher_name`, untranslated "Messages", not `app_name`, which is
+ * "#Messages" and translated per locale.
+ */
 @Composable
 private fun HomeDrawerHeader() {
-    Row(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 28.dp, end = 16.dp, top = 24.dp, bottom = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(12.dp)
+            .testTag(HomeDrawerHeaderTag),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
     ) {
-        Image(
-            painter = painterResource(R.drawable.ic_splash_logo),
-            contentDescription = null,
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(10.dp)),
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Image(
+                painter = painterResource(R.drawable.ic_splash_logo),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp)),
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = stringResource(R.string.app_launcher_name),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = stringResource(R.string.drawer_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
     }
 }
 
+/** A plain rounded row: icon, label, and a chevron that flips in RTL. Never selected, no badges. */
 @Composable
 private fun DrawerItem(icon: ImageVector, label: String, onClick: () -> Unit) {
-    NavigationDrawerItem(
-        label = { Text(label) },
-        icon = { Icon(imageVector = icon, contentDescription = null) },
-        selected = false,
-        onClick = onClick,
-        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(role = Role.Button, onClick = onClick)
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 16.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            modifier = Modifier
+                .size(20.dp)
+                .testTag(HomeDrawerChevronTag),
+            tint = MaterialTheme.colorScheme.outline,
+        )
+    }
 }
 
 /** Not tappable: "App version" with the value beside it, as Settings' About row shows it. Read
@@ -161,7 +210,7 @@ private fun DrawerItem(icon: ImageVector, label: String, onClick: () -> Unit) {
 @Composable
 private fun HomeDrawerFooter() {
     Column {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
