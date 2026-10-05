@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">#Messages</string>
+    <!-- Home-screen launcher label only. A brand name: not translated. -->
+    <string name="app_launcher_name" translatable="false">Messages</string>
 
     <!-- Onboarding -->
     <string name="splash_tagline">Simple. Fast. Secure.</string>

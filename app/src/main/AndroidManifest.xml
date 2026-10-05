@@ -130,9 +130,13 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />
 
+        <!-- Labelled separately from <application>: the launcher (and Recents, via this task's
+             root Activity) show "Messages", while system screens that show the application label
+             (default-SMS role dialog, Default apps, App info) keep @string/app_name. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:label="@string/app_launcher_name"
             android:configChanges="locale|layoutDirection"
             android:theme="@style/Theme.App.Starting"
             android:windowSoftInputMode="adjustResize">
