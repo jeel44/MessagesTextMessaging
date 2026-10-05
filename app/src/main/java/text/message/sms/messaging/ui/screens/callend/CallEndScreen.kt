@@ -70,6 +70,7 @@ import text.message.sms.messaging.ui.theme.AppTheme
 fun CallEndScreen(
     onConversationClick: (threadId: Long) -> Unit,
     onViewContactsClick: () -> Unit,
+    onScheduledMessagesClick: () -> Unit,
     onMessagesClick: () -> Unit,
     onComingSoonClick: (featureTitle: String) -> Unit,
     modifier: Modifier = Modifier,
@@ -92,6 +93,7 @@ fun CallEndScreen(
         onTabSelected = viewModel::onTabSelected,
         onConversationClick = onConversationClick,
         onViewContactsClick = onViewContactsClick,
+        onScheduledMessagesClick = onScheduledMessagesClick,
         onMessagesClick = onMessagesClick,
         onComingSoonClick = onComingSoonClick,
         modifier = modifier,
@@ -110,6 +112,7 @@ internal fun CallEndScreenContent(
     onTabSelected: (CallEndTab) -> Unit,
     onConversationClick: (threadId: Long) -> Unit,
     onViewContactsClick: () -> Unit,
+    onScheduledMessagesClick: () -> Unit,
     onMessagesClick: () -> Unit,
     onComingSoonClick: (featureTitle: String) -> Unit,
     modifier: Modifier = Modifier,
@@ -152,6 +155,7 @@ internal fun CallEndScreenContent(
                 archivedConversations = archivedConversations,
                 onConversationClick = onConversationClick,
                 onViewContactsClick = onViewContactsClick,
+                onScheduledMessagesClick = onScheduledMessagesClick,
                 onMessagesClick = onMessagesClick,
                 onComingSoonClick = onComingSoonClick,
                 modifier = Modifier
@@ -384,6 +388,7 @@ private fun CallEndBody(
     archivedConversations: List<Conversation>,
     onConversationClick: (threadId: Long) -> Unit,
     onViewContactsClick: () -> Unit,
+    onScheduledMessagesClick: () -> Unit,
     onMessagesClick: () -> Unit,
     onComingSoonClick: (featureTitle: String) -> Unit,
     modifier: Modifier = Modifier,
@@ -405,6 +410,7 @@ private fun CallEndBody(
             )
             CallEndTab.MORE -> MoreTabBody(
                 onViewContactsClick = onViewContactsClick,
+                onScheduledMessagesClick = onScheduledMessagesClick,
                 onMessagesClick = onMessagesClick,
                 onComingSoonClick = onComingSoonClick,
             )
@@ -441,6 +447,7 @@ private fun ConversationsTabList(
 @Composable
 private fun MoreTabBody(
     onViewContactsClick: () -> Unit,
+    onScheduledMessagesClick: () -> Unit,
     onMessagesClick: () -> Unit,
     onComingSoonClick: (featureTitle: String) -> Unit,
     modifier: Modifier = Modifier,
@@ -462,7 +469,7 @@ private fun MoreTabBody(
         MoreMenuRow(
             iconRes = R.drawable.ic_menu_schedule,
             title = scheduleTitle,
-            onClick = { onComingSoonClick(scheduleTitle) },
+            onClick = onScheduledMessagesClick,
         )
         MoreMenuRow(
             iconRes = R.drawable.ic_menu_backup,
@@ -597,6 +604,7 @@ internal fun CallEndScreenPreview() {
             onTabSelected = {},
             onConversationClick = {},
             onViewContactsClick = {},
+            onScheduledMessagesClick = {},
             onMessagesClick = {},
             onComingSoonClick = {},
         )

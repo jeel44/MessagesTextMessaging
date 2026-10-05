@@ -363,4 +363,40 @@
     <!-- ComingSoonScreen stub -->
     <string name="coming_soon_title">%1$sarrive bientôt</string>
     <string name="coming_soon_body">Nous travaillons toujours sur cette fonctionnalité. Revenez dans une prochaine mise à jour.</string>
+
+    <!-- Scheduled messages (English placeholders, to translate) -->
+    <string name="schedule_dialog_title">Schedule message</string>
+    <string name="schedule_option_in_one_hour">In 1 hour</string>
+    <string name="schedule_option_tomorrow">Tomorrow, %1$s</string>
+    <string name="schedule_option_pick">Pick date and time</string>
+    <string name="schedule_dialog_hint">Sent at about this time.</string>
+    <string name="schedule_dialog_next">Next</string>
+    <string name="schedule_dialog_set">Set</string>
+    <string name="schedule_error_too_soon">Pick a time at least 1 minute from now.</string>
+    <string name="schedule_unavailable_group">Scheduling isn\'t available for group conversations.</string>
+    <string name="schedule_unavailable_attachment">Scheduled messages are text only. Remove the attachment to schedule.</string>
+    <string name="schedule_limit_reached">You can have up to %1$d scheduled messages. Send or cancel one first.</string>
+    <string name="schedule_rejected_empty">Type a message to schedule.</string>
+    <string name="schedule_rejected_not_pending">This message was already sent or cancelled.</string>
+    <string name="composer_scheduled_for">Scheduled for %1$s</string>
+    <string name="composer_clear_schedule">Remove scheduled time</string>
+    <string name="chat_schedule_send">Schedule</string>
+    <string name="scheduled_bubble_pending">Scheduled · %1$s</string>
+    <string name="scheduled_bubble_failed">Not sent · was due %1$s</string>
+    <string name="scheduled_bubble_icon_description">Scheduled message</string>
+    <string name="scheduled_actions_title">Scheduled message</string>
+    <string name="scheduled_action_edit">Edit</string>
+    <string name="scheduled_action_send_now">Send now</string>
+    <string name="scheduled_action_cancel">Cancel message</string>
+    <string name="scheduled_edit_title">Edit scheduled message</string>
+    <string name="scheduled_edit_change_time">Change time</string>
+    <string name="scheduled_edit_save">Save</string>
+    <string name="scheduled_list_title">Scheduled messages</string>
+    <string name="scheduled_list_empty">No scheduled messages</string>
+    <string name="scheduled_list_delete">Delete</string>
+    <string name="scheduled_list_status_failed">Not sent</string>
+    <string name="scheduled_notification_failed_title">Scheduled message not sent</string>
+    <string name="scheduled_notification_failed_text">It couldn\'t be sent. Open the conversation to send it now or cancel it.</string>
+    <string name="scheduled_notification_missed_title">Scheduled message missed</string>
+    <string name="scheduled_notification_missed_text">It couldn\'t go out within an hour of its time, so it wasn\'t sent. Open the conversation to send it now or cancel it.</string>
 </resources>

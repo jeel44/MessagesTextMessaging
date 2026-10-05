@@ -48,6 +48,15 @@ import text.message.sms.messaging.domain.usecase.MarkUnblocked
 import text.message.sms.messaging.domain.usecase.MarkUnpinned
 import text.message.sms.messaging.domain.usecase.ResolveSendSubscription
 import text.message.sms.messaging.domain.usecase.SendMessage
+import text.message.sms.messaging.domain.model.SchedulingRules
+import text.message.sms.messaging.domain.repository.ScheduledMessageRepository
+import text.message.sms.messaging.domain.usecase.CancelQueuedMessage
+import text.message.sms.messaging.domain.usecase.EditScheduledMessage
+import text.message.sms.messaging.domain.usecase.ScheduleMessage
+import text.message.sms.messaging.domain.usecase.ScheduleRejection
+import text.message.sms.messaging.domain.usecase.ScheduleResult
+import text.message.sms.messaging.domain.usecase.ScheduledSendTrigger
+import text.message.sms.messaging.domain.usecase.SendScheduledMessage
 import text.message.sms.messaging.domain.usecase.SendSubscriptionResult
 import text.message.sms.messaging.domain.repository.IncomingMessageNotifier
 import text.message.sms.messaging.domain.usecase.SyncThreadPriority
@@ -106,6 +115,14 @@ internal sealed interface ChatEvent {
      * was removed too (see [ChatViewModel.deleteSelected]), so [ChatScreen] navigates back out. */
     data object ThreadDeleted : ChatEvent
 
+    /** The schedule button (or the attachment panel's Schedule item) passed its checks -- open
+     * [ScheduleMessageDialog]. */
+    data object OpenScheduleDialog : ChatEvent
+
+    /** Scheduling isn't possible here, or a schedule/edit was refused -- [ChatScreen] explains
+     * why in a toast. */
+    data class ScheduleRejected(val reason: ScheduleRejection) : ChatEvent
+
     /** The top bar's overflow menu archived or blocked this thread -- either way it just left the
      * main list, so staying on its chat screen would show a broken or pointless view, same as
      * [text.message.sms.messaging.ui.screens.conversationinfo.ConversationInfoViewModel
@@ -116,7 +133,13 @@ internal sealed interface ChatEvent {
 
 /** A send the user asked for but that's waiting on [ChatViewModel.simPickerVisible] to resolve
  * which SIM to use -- held rather than lost while the picker is up. */
-private data class PendingSend(val addresses: Set<String>, val body: String, val attachmentUri: String?)
+private data class PendingSend(
+    val addresses: Set<String>,
+    val body: String,
+    val attachmentUri: String?,
+    /** Set when this is a scheduled send rather than an immediate one. */
+    val sendAtMillis: Long? = null,
+)
 
 /**
  * Backs [ChatScreen]. [messages] is a live view over [MessageRepository.observeThread] --
@@ -142,6 +165,11 @@ class ChatViewModel @Inject constructor(
     private val markUnblocked: MarkUnblocked,
     private val markArchived: MarkArchived,
     private val markUnarchived: MarkUnarchived,
+    private val scheduleMessage: ScheduleMessage,
+    private val editScheduledMessage: EditScheduledMessage,
+    private val sendScheduledMessage: SendScheduledMessage,
+    private val cancelQueuedMessage: CancelQueuedMessage,
+    private val scheduledMessageRepository: ScheduledMessageRepository,
     simPreferences: SimPreferences,
     private val adConsentManager: AdConsentManager,
     @param:ApplicationContext context: Context,
@@ -267,6 +295,16 @@ class ChatViewModel @Inject constructor(
     val simPickerVisible: StateFlow<Boolean> = _simPickerVisible.asStateFlow()
 
     private var pendingSend: PendingSend? = null
+
+    private val _scheduledSendAt = MutableStateFlow<Long?>(null)
+
+    /** The composer's chosen send time -- non-null turns Send into Schedule (see [send]). */
+    val scheduledSendAt: StateFlow<Long?> = _scheduledSendAt.asStateFlow()
+
+    /** messageId -> send time for this thread's scheduled messages (pending, failed or missed),
+     * which [ChatScreen] renders as scheduled bubbles. */
+    val scheduledSendTimes: StateFlow<Map<Long, Long>> = scheduledMessageRepository.observeSendTimes(threadId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     /** [Set] of selected message ids -- non-empty exactly when the screen is in multi-select
      * mode. Lives here (not `SavedStateHandle`) the same way [messageText]/[pendingAttachmentUri]
@@ -516,11 +554,13 @@ class ChatViewModel @Inject constructor(
             ?: messages.value.firstOrNull { it.address != null }?.address?.let(::setOf)
             ?: return
 
+        // A scheduled send resolves its SIM now, through the same flow as an immediate one.
+        val send = PendingSend(addresses, body, attachmentUri, _scheduledSendAt.value)
         viewModelScope.launch {
             when (val result = resolveSendSubscription(threadId)) {
-                is SendSubscriptionResult.Resolved -> doSend(addresses, body, attachmentUri, result.subscriptionId)
+                is SendSubscriptionResult.Resolved -> doSend(send, result.subscriptionId)
                 is SendSubscriptionResult.FellBack -> {
-                    doSend(addresses, body, attachmentUri, result.subscriptionId)
+                    doSend(send, result.subscriptionId)
                     val slotNumber = activeSims.value.firstOrNull { it.subscriptionId == result.subscriptionId }
                         ?.slotNumber ?: 1
                     _events.emit(ChatEvent.SimFallback(slotNumber))
@@ -528,7 +568,7 @@ class ChatViewModel @Inject constructor(
                 SendSubscriptionResult.NeedsUserChoice -> {
                     // Text/attachment stay exactly as the user left them -- nothing is cleared,
                     // and nothing sends, until onSimPicked resolves this.
-                    pendingSend = PendingSend(addresses, body, attachmentUri)
+                    pendingSend = send
                     _simPickerVisible.value = true
                 }
             }
@@ -552,7 +592,7 @@ class ChatViewModel @Inject constructor(
             val send = pendingSend
             if (send != null) {
                 pendingSend = null
-                doSend(send.addresses, send.body, send.attachmentUri, sim.subscriptionId)
+                doSend(send, sim.subscriptionId)
             }
         }
     }
@@ -564,19 +604,83 @@ class ChatViewModel @Inject constructor(
         pendingSend = null
     }
 
-    private suspend fun doSend(addresses: Set<String>, body: String, attachmentUri: String?, subscriptionId: Int) {
+    private suspend fun doSend(send: PendingSend, subscriptionId: Int) {
+        if (send.sendAtMillis != null) {
+            doSchedule(send, send.sendAtMillis, subscriptionId)
+            return
+        }
         sendMessage(
             SendMessage.Params(
-                addresses = addresses,
-                body = body,
+                addresses = send.addresses,
+                body = send.body,
                 threadId = threadId,
                 subscriptionId = subscriptionId,
-                attachmentUris = listOfNotNull(attachmentUri),
+                attachmentUris = listOfNotNull(send.attachmentUri),
             ),
         )
         _messageText.value = ""
         _pendingAttachmentUri.value = null
         _events.emit(ChatEvent.MessageSent)
+    }
+
+    private suspend fun doSchedule(send: PendingSend, sendAtMillis: Long, subscriptionId: Int) {
+        val result = scheduleMessage(
+            ScheduleMessage.Params(
+                addresses = send.addresses,
+                body = send.body,
+                sendAtMillis = sendAtMillis,
+                threadId = threadId,
+                subscriptionId = subscriptionId,
+                attachmentUris = listOfNotNull(send.attachmentUri),
+            ),
+        )
+        when (result) {
+            is ScheduleResult.Scheduled -> {
+                _messageText.value = ""
+                _scheduledSendAt.value = null
+                _events.emit(ChatEvent.MessageSent)
+            }
+            // Text, attachment and chosen time stay as they were, so the user can fix and retry.
+            is ScheduleResult.Rejected -> _events.emit(ChatEvent.ScheduleRejected(result.reason))
+        }
+    }
+
+    /** The composer's Schedule button and the attachment panel's Schedule item. v1 is text-only
+     * and one-to-one, so a group thread or a pending attachment is refused up front, as is a
+     * full queue; otherwise [ChatScreen] opens the time picker. */
+    fun onScheduleClick() {
+        viewModelScope.launch {
+            val reason = when {
+                conversation.value?.isGroup == true -> ScheduleRejection.GROUP_THREAD
+                _pendingAttachmentUri.value != null -> ScheduleRejection.ATTACHMENTS
+                scheduledMessageRepository.countPending() >= SchedulingRules.MAX_PENDING -> ScheduleRejection.LIMIT_REACHED
+                else -> null
+            }
+            _events.emit(if (reason != null) ChatEvent.ScheduleRejected(reason) else ChatEvent.OpenScheduleDialog)
+        }
+    }
+
+    fun onScheduledTimePicked(sendAtMillis: Long) {
+        _scheduledSendAt.value = sendAtMillis
+    }
+
+    fun clearScheduledTime() {
+        _scheduledSendAt.value = null
+    }
+
+    fun editScheduled(messageId: Long, body: String, sendAtMillis: Long) {
+        viewModelScope.launch {
+            val result = editScheduledMessage(messageId, body, sendAtMillis)
+            if (result is ScheduleResult.Rejected) _events.emit(ChatEvent.ScheduleRejected(result.reason))
+        }
+    }
+
+    fun sendScheduledNow(messageId: Long) {
+        viewModelScope.launch { sendScheduledMessage(messageId, ScheduledSendTrigger.SEND_NOW) }
+    }
+
+    fun cancelScheduled(messageId: Long) {
+        viewModelScope.launch { cancelQueuedMessage(messageId) }
     }
 }
 

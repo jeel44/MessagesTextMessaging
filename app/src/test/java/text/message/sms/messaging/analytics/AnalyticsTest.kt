@@ -35,6 +35,9 @@ class AnalyticsTest {
         Analytics.numberUnblocked()
         Analytics.conversationArchived()
         Analytics.messageScheduled()
+        Analytics.scheduledCancelled()
+        Analytics.scheduledSendNow()
+        Analytics.scheduledFailed()
         Analytics.adShown(AdPlacement.HOME_BANNER, AdFormat.BANNER)
         Analytics.adFailed(AdPlacement.APP_OPEN, AdFormat.APP_OPEN)
 
@@ -49,6 +52,9 @@ class AnalyticsTest {
                 "number_unblocked" to emptyMap(),
                 "conversation_archived" to emptyMap(),
                 "message_scheduled" to emptyMap(),
+                "scheduled_cancelled" to emptyMap(),
+                "scheduled_send_now" to emptyMap(),
+                "scheduled_failed" to emptyMap(),
                 "ad_shown" to mapOf("placement" to "home_banner", "format" to "banner"),
                 "ad_failed" to mapOf("placement" to "app_open", "format" to "app_open"),
             ),

@@ -107,6 +107,26 @@ interface MessageDao {
     @Query("UPDATE messages SET delivery_state = :state, error_code = :errorCode WHERE id = :id")
     suspend fun setDeliveryState(id: Long, state: DeliveryState, errorCode: Int)
 
+    /** A scheduled message's claim: moves it to OUTBOX/SENDING, stamped with the real send time,
+     * only if it's still in one of [fromFolders] (enum names). Returns the rows changed -- 0 means
+     * another caller claimed it first (or it's gone), and the caller must not send it. */
+    @Query(
+        """
+        UPDATE messages
+        SET folder = 'OUTBOX', delivery_state = 'SENDING', error_code = 0,
+            sent_at = :nowMillis, received_at = :nowMillis
+        WHERE id = :id AND folder IN (:fromFolders)
+        """
+    )
+    suspend fun claimScheduled(id: Long, fromFolders: List<String>, nowMillis: Long): Int
+
+    @Query("UPDATE messages SET folder = 'FAILED', delivery_state = 'FAILED', error_code = :errorCode WHERE id = :id")
+    suspend fun markScheduledFailed(id: Long, errorCode: Int)
+
+    /** Returns the rows changed -- 0 once the message has left QUEUED. */
+    @Query("UPDATE messages SET body = :body WHERE id = :id AND folder = 'QUEUED'")
+    suspend fun updateQueuedBody(id: Long, body: String): Int
+
     @Query("UPDATE messages SET provider_id = :providerId WHERE id = :id")
     suspend fun setProviderId(id: Long, providerId: Long)
 

@@ -8,11 +8,17 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import java.time.Clock
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object CoroutinesModule {
+
+    /** Wall-clock time for scheduling (see ScheduleMessage/SendScheduledMessage) -- a parameter,
+     * not System.currentTimeMillis(), so tests can fix "now". */
+    @Provides
+    fun provideClock(): Clock = Clock.systemDefaultZone()
 
     @Provides
     @IoDispatcher

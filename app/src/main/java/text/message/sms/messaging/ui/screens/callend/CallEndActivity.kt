@@ -162,6 +162,9 @@ class CallEndActivity : ComponentActivity() {
                                 onMessagesClick = {
                                     handOffToMainActivity {}
                                 },
+                                onScheduledMessagesClick = {
+                                    handOffToMainActivity { putExtra(MainActivity.EXTRA_OPEN_SCHEDULED, true) }
+                                },
                                 onComingSoonClick = { featureTitle ->
                                     handOffToMainActivity { putExtra(MainActivity.EXTRA_COMING_SOON_FEATURE, featureTitle) }
                                 },

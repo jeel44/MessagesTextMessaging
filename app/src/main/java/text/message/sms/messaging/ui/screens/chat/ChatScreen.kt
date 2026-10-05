@@ -148,7 +148,10 @@ import text.message.sms.messaging.domain.model.Conversation
 import text.message.sms.messaging.domain.model.DeliveryState
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.model.MessageChannel
+import text.message.sms.messaging.domain.model.MessageFolder
+import text.message.sms.messaging.domain.model.SchedulingRules
 import text.message.sms.messaging.domain.model.SimInfo
+import text.message.sms.messaging.domain.usecase.ScheduleRejection
 import text.message.sms.messaging.ui.components.AppBackButton
 import text.message.sms.messaging.ui.components.MessageBubble
 import text.message.sms.messaging.ui.components.SelectionMenuItem
@@ -271,6 +274,8 @@ fun ChatScreen(
     val simPickerVisible by viewModel.simPickerVisible.collectAsStateWithLifecycle()
     val selectedIds by viewModel.selectedIds.collectAsStateWithLifecycle()
     val isSelectionMode = selectedIds.isNotEmpty()
+    val scheduledSendAt by viewModel.scheduledSendAt.collectAsStateWithLifecycle()
+    val scheduledSendTimes by viewModel.scheduledSendTimes.collectAsStateWithLifecycle()
 
     // A stable-identity State handle for the message list below, so toggling one message's
     // selection doesn't force every visible ChatMessageRow to re-execute -- see ChatMessageRow's
@@ -285,6 +290,9 @@ fun ChatScreen(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showBlockConfirm by remember { mutableStateOf(false) }
     var detailsMessageId by remember { mutableStateOf<Long?>(null) }
+    var showScheduleDialog by remember { mutableStateOf(false) }
+    var scheduledActionsMessageId by remember { mutableStateOf<Long?>(null) }
+    var editingScheduledMessageId by remember { mutableStateOf<Long?>(null) }
 
     // System back and the selection top bar's close icon both exit selection mode first, rather
     // than leaving the screen -- only a second back press (with selection already cleared) really
@@ -319,9 +327,8 @@ fun ChatScreen(
         contract = ActivityResultContracts.TakePicture(),
     ) { success -> if (success) pendingCameraUri?.let { viewModel.onAttachmentSelected(it.toString()) } }
 
-    // Nothing in the attachment picker's "coming soon" list is wired up yet -- the composer's new
-    // Schedule button reuses this exact stub rather than getting its own, so both affordances stay
-    // in sync once real scheduling ships.
+    // Files, location and contact in the attachment picker aren't wired up yet. (Schedule is --
+    // both it and the composer's Schedule button go through viewModel.onScheduleClick.)
     val onDeferredAttachmentAction = {
         Toast.makeText(context, R.string.chat_attachment_coming_soon, Toast.LENGTH_SHORT).show()
     }
@@ -383,6 +390,12 @@ fun ChatScreen(
 
                 ChatEvent.ThreadDeleted -> onBack()
 
+                ChatEvent.OpenScheduleDialog -> showScheduleDialog = true
+
+                is ChatEvent.ScheduleRejected -> {
+                    Toast.makeText(context, scheduleRejectionText(context, event.reason), Toast.LENGTH_LONG).show()
+                }
+
                 ChatEvent.LeaveConversation -> onBack()
             }
         }
@@ -437,7 +450,11 @@ fun ChatScreen(
                     onRemoveAttachment = viewModel::clearAttachment,
                     onAttachClick = { showAttachmentSheet = true },
                     onSendClick = viewModel::send,
-                    onScheduleClick = onDeferredAttachmentAction,
+                    onScheduleClick = viewModel::onScheduleClick,
+                    scheduledLabel = scheduledSendAt?.let { at ->
+                        stringResource(R.string.composer_scheduled_for, formatScheduleTime(context, at))
+                    },
+                    onClearSchedule = viewModel::clearScheduledTime,
                     isDualSim = activeSims.size >= 2,
                     simIndicatorSlot = simIndicatorSlot,
                     onSimIndicatorClick = viewModel::onSimBadgeClick,
@@ -473,6 +490,8 @@ fun ChatScreen(
                     onToggleSelection = viewModel::toggleSelection,
                     onStartSelection = viewModel::startSelection,
                     threadId = viewModel.threadId,
+                    scheduledSendTimes = scheduledSendTimes,
+                    onScheduledMessageClick = { scheduledActionsMessageId = it.id },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
@@ -535,6 +554,54 @@ fun ChatScreen(
                 showAttachmentSheet = false
                 onDeferredAttachmentAction()
             },
+            onScheduleClick = {
+                showAttachmentSheet = false
+                viewModel.onScheduleClick()
+            },
+        )
+    }
+
+    if (showScheduleDialog) {
+        ScheduleMessageDialog(
+            onDismiss = { showScheduleDialog = false },
+            onConfirm = { sendAt ->
+                showScheduleDialog = false
+                viewModel.onScheduledTimePicked(sendAt)
+            },
+        )
+    }
+
+    val actionsMessage = scheduledActionsMessageId?.let { id -> messages.firstOrNull { it.id == id } }
+    if (actionsMessage != null) {
+        ScheduledMessageActionsDialog(
+            canEdit = actionsMessage.folder == MessageFolder.QUEUED,
+            onEdit = {
+                scheduledActionsMessageId = null
+                editingScheduledMessageId = actionsMessage.id
+            },
+            onSendNow = {
+                scheduledActionsMessageId = null
+                viewModel.sendScheduledNow(actionsMessage.id)
+            },
+            onCancelMessage = {
+                scheduledActionsMessageId = null
+                viewModel.cancelScheduled(actionsMessage.id)
+            },
+            onDismiss = { scheduledActionsMessageId = null },
+        )
+    }
+
+    val editingMessage = editingScheduledMessageId?.let { id -> messages.firstOrNull { it.id == id } }
+    val editingSendAt = editingMessage?.let { scheduledSendTimes[it.id] }
+    if (editingMessage != null && editingSendAt != null) {
+        EditScheduledMessageDialog(
+            initialBody = editingMessage.body,
+            initialSendAtMillis = editingSendAt,
+            onSave = { body, sendAt ->
+                editingScheduledMessageId = null
+                viewModel.editScheduled(editingMessage.id, body, sendAt)
+            },
+            onDismiss = { editingScheduledMessageId = null },
         )
     }
 
@@ -605,6 +672,8 @@ internal fun ChatMessageList(
     onToggleSelection: (Long) -> Unit = {},
     onStartSelection: (Long) -> Unit = {},
     threadId: Long = -1L,
+    scheduledSendTimes: Map<Long, Long> = emptyMap(),
+    onScheduledMessageClick: (Message) -> Unit = {},
 ) {
     var hasCompletedInitialComposition by remember { mutableStateOf(false) }
     var hasLoggedFirstLayout by remember { mutableStateOf(false) }
@@ -713,6 +782,8 @@ internal fun ChatMessageList(
                     selectedIds = selectedIds,
                     onToggleSelection = { onToggleSelection(item.message.id) },
                     onStartSelection = { onStartSelection(item.message.id) },
+                    scheduledSendAt = scheduledSendTimes[item.message.id],
+                    onScheduledClick = { onScheduledMessageClick(item.message) },
                 )
             }
         }
@@ -1141,6 +1212,8 @@ private fun ChatMessageRow(
     selectedIds: State<Set<Long>> = remember { mutableStateOf(emptySet()) },
     onToggleSelection: () -> Unit = {},
     onStartSelection: () -> Unit = {},
+    scheduledSendAt: Long? = null,
+    onScheduledClick: () -> Unit = {},
 ) {
     // Reads selectedIds.value inside derivedStateOf rather than as a plain Boolean parameter, so
     // this row only recomposes when its own membership actually flips -- not on every selection
@@ -1155,6 +1228,12 @@ private fun ChatMessageRow(
                 .padding(top = if (isFirstInRun) 8.dp else 4.dp),
             horizontalArrangement = if (message.isOutgoing) Arrangement.End else Arrangement.Start,
         ) {
+            // A pending, failed or missed scheduled message shows its time and opens Edit /
+            // Send now / Cancel on tap. Once claimed (OUTBOX) it's a normal "Sending..." bubble.
+            val scheduledState = scheduledSendAt?.takeIf {
+                message.folder == MessageFolder.QUEUED || message.folder == MessageFolder.FAILED
+            }
+            val context = LocalContext.current
             MessageBubble(
                 text = message.body,
                 isOutgoing = message.isOutgoing,
@@ -1166,6 +1245,16 @@ private fun ChatMessageRow(
                 isSelected = isSelected,
                 onToggleSelection = onToggleSelection,
                 onStartSelection = onStartSelection,
+                scheduledCaption = scheduledState?.let { at ->
+                    val time = formatScheduleTime(context, at)
+                    if (message.folder == MessageFolder.FAILED) {
+                        stringResource(R.string.scheduled_bubble_failed, time)
+                    } else {
+                        stringResource(R.string.scheduled_bubble_pending, time)
+                    }
+                },
+                scheduleFailed = scheduledState != null && message.folder == MessageFolder.FAILED,
+                onClick = if (scheduledState != null) onScheduledClick else null,
             )
         }
 
@@ -1295,6 +1384,8 @@ internal fun ChatComposer(
     simIndicatorSlot: Int? = null,
     onSimIndicatorClick: () -> Unit = {},
     modifier: Modifier = Modifier,
+    scheduledLabel: String? = null,
+    onClearSchedule: () -> Unit = {},
 ) {
     val isLight = isLightChatTheme()
     val neutralFill = if (isLight) ChatNeutralFill else MaterialTheme.colorScheme.surfaceContainerHigh
@@ -1327,6 +1418,13 @@ internal fun ChatComposer(
         tonalElevation = 0.dp,
     ) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            if (scheduledLabel != null) {
+                ScheduledComposerBar(
+                    label = scheduledLabel,
+                    onClear = onClearSchedule,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
             if (pendingAttachmentUri != null) {
                 AttachmentPreview(
                     uri = pendingAttachmentUri,
@@ -1472,9 +1570,12 @@ internal fun ChatComposer(
                         disabledContentColor = sendContentColor,
                     ),
                 ) {
+                    // With a time chosen, Send becomes Schedule.
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = stringResource(R.string.chat_send),
+                        imageVector = if (scheduledLabel != null) Icons.Filled.Schedule else Icons.AutoMirrored.Filled.Send,
+                        contentDescription = stringResource(
+                            if (scheduledLabel != null) R.string.chat_schedule_send else R.string.chat_send,
+                        ),
                         modifier = Modifier.size(22.dp),
                     )
                 }
@@ -1800,6 +1901,7 @@ private fun AttachmentSheet(
     onGalleryClick: () -> Unit,
     onCameraClick: () -> Unit,
     onDeferredClick: () -> Unit,
+    onScheduleClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val sheetState = rememberModalBottomSheetState()
@@ -1822,7 +1924,7 @@ private fun AttachmentSheet(
                 AttachmentOptionSpec(Icons.AutoMirrored.Filled.InsertDriveFile, R.string.chat_attachment_files, onDeferredClick),
                 AttachmentOptionSpec(Icons.Filled.LocationOn, R.string.chat_attachment_location, onDeferredClick),
                 AttachmentOptionSpec(Icons.Filled.Person, R.string.chat_attachment_contact, onDeferredClick),
-                AttachmentOptionSpec(Icons.Filled.Schedule, R.string.chat_attachment_schedule, onDeferredClick),
+                AttachmentOptionSpec(Icons.Filled.Schedule, R.string.chat_attachment_schedule, onScheduleClick),
             )
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
@@ -1970,4 +2072,15 @@ private fun createCameraCaptureUri(context: Context): Uri {
     val dir = File(context.cacheDir, "camera").apply { mkdirs() }
     val file = File(dir, "capture_${System.currentTimeMillis()}.jpg")
     return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
+
+/** The toast for a refused schedule -- see [ChatEvent.ScheduleRejected]. */
+private fun scheduleRejectionText(context: Context, reason: ScheduleRejection): String = when (reason) {
+    ScheduleRejection.GROUP_THREAD, ScheduleRejection.MULTIPLE_RECIPIENTS ->
+        context.getString(R.string.schedule_unavailable_group)
+    ScheduleRejection.ATTACHMENTS -> context.getString(R.string.schedule_unavailable_attachment)
+    ScheduleRejection.EMPTY_TEXT -> context.getString(R.string.schedule_rejected_empty)
+    ScheduleRejection.TOO_SOON -> context.getString(R.string.schedule_error_too_soon)
+    ScheduleRejection.LIMIT_REACHED -> context.getString(R.string.schedule_limit_reached, SchedulingRules.MAX_PENDING)
+    ScheduleRejection.NOT_PENDING -> context.getString(R.string.schedule_rejected_not_pending)
 }

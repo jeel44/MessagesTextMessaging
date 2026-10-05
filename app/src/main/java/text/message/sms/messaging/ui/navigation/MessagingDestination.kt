@@ -90,6 +90,10 @@ sealed class MessagingDestination(val route: String) {
      * [text.message.sms.messaging.ui.screens.contactslist.ContactsListScreen]. */
     data object ContactsList : MessagingDestination("contacts")
 
+    /** Every scheduled message, all threads, off the call-end screen's "Schedule message" entry --
+     * see [text.message.sms.messaging.ui.screens.scheduled.ScheduledMessagesScreen]. */
+    data object ScheduledMessages : MessagingDestination("scheduled")
+
     /** Carries a full [CallSession] as primitive query args -- the same "plain primitives in the
      * route" approach [Chat] already uses for its [ARG_THREAD_ID], just spread across more of
      * them. [ARG_PHONE_NUMBER] alone is nullable/best-effort, matching [CallSession.phoneNumber]

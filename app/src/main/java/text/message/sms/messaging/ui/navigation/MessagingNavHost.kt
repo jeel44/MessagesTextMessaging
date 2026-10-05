@@ -29,6 +29,7 @@ import text.message.sms.messaging.ui.screens.callend.ComingSoonScreen
 import text.message.sms.messaging.ui.screens.chat.ChatScreen
 import text.message.sms.messaging.ui.screens.chat.MediaViewerScreen
 import text.message.sms.messaging.ui.screens.contactslist.ContactsListScreen
+import text.message.sms.messaging.ui.screens.scheduled.ScheduledMessagesScreen
 import text.message.sms.messaging.ui.screens.conversationinfo.ConversationInfoScreen
 import text.message.sms.messaging.ui.screens.conversationlist.ConversationListScreen
 import text.message.sms.messaging.ui.screens.newmessage.NewMessageScreen
@@ -322,6 +323,15 @@ fun MessagingNavHost(
         composable(MessagingDestination.ContactsList.route) {
             ContactsListScreen(
                 onBack = navController::popBackStack,
+            )
+        }
+
+        composable(MessagingDestination.ScheduledMessages.route) {
+            ScheduledMessagesScreen(
+                onBack = navController::popBackStack,
+                onConversationClick = { threadId ->
+                    navController.navigate(MessagingDestination.Chat.routeFor(threadId))
+                },
             )
         }
 

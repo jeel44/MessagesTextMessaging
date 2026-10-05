@@ -12,12 +12,13 @@ interface MessageTransmitter {
      * built into a PDU and handed to the carrier's MMSC via `SmsManager`. */
     suspend fun transmit(message: Message)
 
-    /** Drops a message that is still waiting out its scheduled-send delay. */
+    /** Drops a message's scheduled send: cancels its job and deletes its schedule row. */
     suspend fun cancelPending(messageId: Long)
 
     /**
      * Registers [message] (already persisted, folder [text.message.sms.messaging.domain.model.MessageFolder.QUEUED])
-     * to be handed to [transmit] at [sendAtMillis].
+     * to be handed to [transmit] at [sendAtMillis]: writes (or, for an edit, updates in place) the
+     * schedule row first, then replaces the job -- so a job can never run without its row.
      *
      * Takes the already-created message rather than its raw fields (addresses/body/subscription)
      * so the same id can later be passed to [cancelPending] -- the original `Unit`-returning
@@ -26,13 +27,7 @@ interface MessageTransmitter {
      */
     suspend fun schedule(message: Message, sendAtMillis: Long)
 
-    /** Sends every scheduled message whose time has passed but that, for some reason, no
-     * scheduler job is going to pick up (e.g. app data was cleared and reinstalled). Under
-     * normal operation the scheduler drives this itself; see the WorkManager note on the
-     * implementation for why. */
-    suspend fun dispatchDue(nowMillis: Long)
-
-    /** Re-verifies every still-pending scheduled send has a live scheduler job, re-registering
-     * one for any that don't. */
+    /** Re-verifies every still-pending (QUEUED) scheduled send has a live scheduler job,
+     * re-registering one for any that don't. Never sends anything itself. */
     suspend fun rearmAlarms()
 }

@@ -24,6 +24,12 @@ import text.message.sms.messaging.domain.repository.MessageRepository
 import text.message.sms.messaging.domain.repository.MessageTransmitter
 import text.message.sms.messaging.domain.repository.SyncRepository
 import text.message.sms.messaging.service.DefaultIncomingMessageNotifier
+import text.message.sms.messaging.data.repository.LocalScheduledMessageRepository
+import text.message.sms.messaging.domain.repository.ScheduledMessageRepository
+import text.message.sms.messaging.domain.repository.ScheduledSendNotifier
+import text.message.sms.messaging.domain.repository.SendEnvironment
+import text.message.sms.messaging.service.DeviceSendEnvironment
+import text.message.sms.messaging.service.ScheduledSendNotifications
 import javax.inject.Singleton
 
 /** Binds every domain interface to its data-layer implementation. */
@@ -76,4 +82,18 @@ abstract class RepositoryModule {
     abstract fun bindIncomingMessageNotifier(
         impl: DefaultIncomingMessageNotifier,
     ): IncomingMessageNotifier
+
+    @Binds
+    @Singleton
+    abstract fun bindScheduledMessageRepository(
+        impl: LocalScheduledMessageRepository,
+    ): ScheduledMessageRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSendEnvironment(impl: DeviceSendEnvironment): SendEnvironment
+
+    @Binds
+    @Singleton
+    abstract fun bindScheduledSendNotifier(impl: ScheduledSendNotifications): ScheduledSendNotifier
 }

@@ -108,6 +108,7 @@ class MainActivity : ComponentActivity() {
 
     private var pendingThreadId by mutableStateOf<Long?>(null)
     private var pendingOpenContacts by mutableStateOf(false)
+    private var pendingOpenScheduled by mutableStateOf(false)
     private var pendingComingSoonFeature by mutableStateOf<String?>(null)
     private var keepSystemSplashOnScreen by mutableStateOf(true)
 
@@ -131,6 +132,7 @@ class MainActivity : ComponentActivity() {
         wasDefaultSmsApp = defaultSmsAppGuard.isDefault
         pendingThreadId = intent.threadIdExtra()
         pendingOpenContacts = intent.getBooleanExtra(EXTRA_OPEN_CONTACTS, false)
+        pendingOpenScheduled = intent.getBooleanExtra(EXTRA_OPEN_SCHEDULED, false)
         pendingComingSoonFeature = intent.getStringExtra(EXTRA_COMING_SOON_FEATURE)
         isDeepLinkLaunch = intent.hasDeepLinkExtra()
 
@@ -235,6 +237,14 @@ class MainActivity : ComponentActivity() {
                             pendingOpenContacts = false
                         }
 
+                        LaunchedEffect(pendingOpenScheduled) {
+                            if (!pendingOpenScheduled) return@LaunchedEffect
+                            navController.currentBackStackEntryFlow
+                                .first { it.destination.route == MessagingDestination.ConversationList.route }
+                            navController.navigate(MessagingDestination.ScheduledMessages.route)
+                            pendingOpenScheduled = false
+                        }
+
                         LaunchedEffect(pendingComingSoonFeature) {
                             val featureTitle = pendingComingSoonFeature ?: return@LaunchedEffect
                             navController.currentBackStackEntryFlow
@@ -261,6 +271,7 @@ class MainActivity : ComponentActivity() {
         if (intent.hasDeepLinkExtra()) appOpenAdManager.suppressNextForegroundAd()
         intent.threadIdExtra()?.let { pendingThreadId = it }
         if (intent.getBooleanExtra(EXTRA_OPEN_CONTACTS, false)) pendingOpenContacts = true
+        if (intent.getBooleanExtra(EXTRA_OPEN_SCHEDULED, false)) pendingOpenScheduled = true
         intent.getStringExtra(EXTRA_COMING_SOON_FEATURE)?.let { pendingComingSoonFeature = it }
     }
 
@@ -270,6 +281,7 @@ class MainActivity : ComponentActivity() {
     private fun Intent.hasDeepLinkExtra(): Boolean =
         threadIdExtra() != null ||
             getBooleanExtra(EXTRA_OPEN_CONTACTS, false) ||
+            getBooleanExtra(EXTRA_OPEN_SCHEDULED, false) ||
             getStringExtra(EXTRA_COMING_SOON_FEATURE) != null
 
     /** Every Activity launch from this Activity funnels through here -- `startActivity` (including
@@ -297,6 +309,7 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_THREAD_ID: String = "extra_thread_id"
         const val EXTRA_OPEN_CONTACTS: String = "extra_open_contacts"
+        const val EXTRA_OPEN_SCHEDULED: String = "extra_open_scheduled"
         const val EXTRA_COMING_SOON_FEATURE: String = "extra_coming_soon_feature"
         private const val EXTRA_CRASHLYTICS_TEST_CRASH: String = "crashlytics_test_crash"
     }

@@ -8,15 +8,24 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -26,6 +35,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,6 +97,9 @@ fun MessageBubble(
     isSelected: Boolean = false,
     onToggleSelection: () -> Unit = {},
     onStartSelection: () -> Unit = {},
+    scheduledCaption: String? = null,
+    scheduleFailed: Boolean = false,
+    onClick: (() -> Unit)? = null,
 ) {
     val isLight = isLightChatTheme()
     val targetContainerColor = when {
@@ -134,7 +147,7 @@ fun MessageBubble(
                 // no-op and taps on a link are handled entirely by that link's own listener
                 // (gated on isSelectionMode below), leaving normal-mode link taps unchanged.
                 .combinedClickable(
-                    onClick = { if (isSelectionMode) onToggleSelection() },
+                    onClick = { if (isSelectionMode) onToggleSelection() else onClick?.invoke() },
                     onLongClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         if (isSelectionMode) onToggleSelection() else onStartSelection()
@@ -206,7 +219,10 @@ fun MessageBubble(
             }
         }
 
-        if (isLastInRun && isOutgoing) {
+        if (scheduledCaption != null) {
+            // Every scheduled bubble carries its own time, not just the last of a run.
+            ScheduledCaption(text = scheduledCaption, failed = scheduleFailed)
+        } else if (isLastInRun && isOutgoing) {
             val status = outgoingStatusCaption(deliveryState)
             if (status != null) {
                 val captionColor = if (isLight) ChatDateSeparatorGray else MaterialTheme.colorScheme.onSurfaceVariant
@@ -227,6 +243,30 @@ fun MessageBubble(
  * theme keeps following [MaterialTheme.colorScheme] as usual. */
 @Composable
 private fun isLightChatTheme(): Boolean = MaterialTheme.colorScheme.background.luminance() > 0.5f
+
+/** A scheduled message's caption: a clock (or, once it failed or was missed, an error icon) and
+ * its time. Theme colors only, so it reads the same in light and dark. */
+@Composable
+private fun ScheduledCaption(text: String, failed: Boolean) {
+    val color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .padding(top = 4.dp, start = 4.dp, end = 4.dp)
+            .testTag(ScheduledCaptionTestTag),
+    ) {
+        Icon(
+            imageVector = if (failed) Icons.Outlined.ErrorOutline else Icons.Filled.Schedule,
+            contentDescription = stringResource(R.string.scheduled_bubble_icon_description),
+            tint = color,
+            modifier = Modifier.size(14.dp),
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = text, style = MaterialTheme.typography.labelSmall.copy(fontSize = 13.sp), color = color)
+    }
+}
+
+const val ScheduledCaptionTestTag: String = "scheduled_bubble_caption"
 
 @Composable
 private fun AttachmentChip(attachment: Attachment, contentColor: Color) {

@@ -26,8 +26,8 @@ import text.message.sms.messaging.data.work.ScheduledSendWorker
 import text.message.sms.messaging.domain.model.Attachment
 import text.message.sms.messaging.domain.model.Message
 import text.message.sms.messaging.domain.model.MessageChannel
-import text.message.sms.messaging.domain.repository.MessageRepository
 import text.message.sms.messaging.domain.repository.MessageTransmitter
+import java.time.Clock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,7 +41,7 @@ class TelephonyMessageTransmitter @Inject constructor(
     private val contentResolver: ContentResolver,
     private val workManager: WorkManager,
     private val scheduledMessageDao: ScheduledMessageDao,
-    private val messageRepository: MessageRepository,
+    private val clock: Clock,
 ) : MessageTransmitter {
 
     override suspend fun transmit(message: Message) {
@@ -84,30 +84,25 @@ class TelephonyMessageTransmitter @Inject constructor(
         scheduledMessageDao.delete(messageId)
     }
 
+    /** Row first, then the job: a job that starts the instant it's enqueued always finds its row.
+     * An edit updates the same row in place (keeping its creation time) and REPLACEs the job. */
     override suspend fun schedule(message: Message, sendAtMillis: Long) {
-        enqueue(message.id, sendAtMillis)
+        val existing = scheduledMessageDao.find(message.id)
         scheduledMessageDao.upsert(
             ScheduledMessageEntity(
                 messageId = message.id,
                 sendAtMillis = sendAtMillis,
                 workName = workNameFor(message.id),
+                createdAtMillis = existing?.createdAtMillis ?: clock.millis(),
             ),
         )
+        enqueue(message.id, sendAtMillis)
     }
 
-    /** Safety net for anything WorkManager's own persistence didn't end up dispatching --
-     * normal operation never reaches here, see the class doc on [ScheduledSendWorker]. */
-    override suspend fun dispatchDue(nowMillis: Long) {
-        scheduledMessageDao.findDue(nowMillis).forEach { scheduled ->
-            workManager.cancelUniqueWork(scheduled.workName)
-            val message = messageRepository.findById(scheduled.messageId)
-            if (message != null) transmit(message)
-            scheduledMessageDao.delete(scheduled.messageId)
-        }
-    }
-
+    /** Only still-QUEUED messages: a failed or missed one keeps its row for the UI but must never
+     * be sent again without the user asking. */
     override suspend fun rearmAlarms() {
-        scheduledMessageDao.findAll().forEach { scheduled ->
+        scheduledMessageDao.findAllPending().forEach { scheduled ->
             val hasLiveWork = workManager.getWorkInfosForUniqueWorkFlow(scheduled.workName)
                 .first()
                 .any { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING }
@@ -116,7 +111,7 @@ class TelephonyMessageTransmitter @Inject constructor(
     }
 
     private fun enqueue(messageId: Long, sendAtMillis: Long) {
-        val delay = (sendAtMillis - System.currentTimeMillis()).coerceAtLeast(0L)
+        val delay = (sendAtMillis - clock.millis()).coerceAtLeast(0L)
         val request = OneTimeWorkRequestBuilder<ScheduledSendWorker>()
             .setInitialDelay(delay, java.util.concurrent.TimeUnit.MILLISECONDS)
             .setInputData(workDataOf(ScheduledSendWorker.KEY_MESSAGE_ID to messageId))

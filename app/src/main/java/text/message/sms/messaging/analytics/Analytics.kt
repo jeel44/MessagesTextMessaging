@@ -49,6 +49,13 @@ internal object Analytics {
 
     fun messageScheduled() = log(AnalyticsEvent.MESSAGE_SCHEDULED)
 
+    fun scheduledCancelled() = log(AnalyticsEvent.SCHEDULED_CANCELLED)
+
+    fun scheduledSendNow() = log(AnalyticsEvent.SCHEDULED_SEND_NOW)
+
+    /** A scheduled message failed or was missed. */
+    fun scheduledFailed() = log(AnalyticsEvent.SCHEDULED_FAILED)
+
     /** An ad recorded an impression. Placement and format only -- never anything from the ad. */
     fun adShown(placement: AdPlacement, format: AdFormat) = logAd(AnalyticsEvent.AD_SHOWN, placement, format)
 
@@ -86,6 +93,9 @@ internal enum class AnalyticsEvent(val eventName: String, val allowedParams: Set
     NUMBER_UNBLOCKED("number_unblocked", emptySet()),
     CONVERSATION_ARCHIVED("conversation_archived", emptySet()),
     MESSAGE_SCHEDULED("message_scheduled", emptySet()),
+    SCHEDULED_CANCELLED("scheduled_cancelled", emptySet()),
+    SCHEDULED_SEND_NOW("scheduled_send_now", emptySet()),
+    SCHEDULED_FAILED("scheduled_failed", emptySet()),
     AD_SHOWN("ad_shown", setOf(AnalyticsParam.PLACEMENT, AnalyticsParam.FORMAT)),
     AD_FAILED("ad_failed", setOf(AnalyticsParam.PLACEMENT, AnalyticsParam.FORMAT)),
 }

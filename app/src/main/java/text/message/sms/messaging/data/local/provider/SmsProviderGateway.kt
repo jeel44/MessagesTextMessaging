@@ -54,6 +54,30 @@ class SmsProviderGateway @Inject constructor(
         )
     }
 
+    /** Updates a scheduled message's provider row -- only the fields given. */
+    fun updateScheduled(
+        providerId: Long,
+        body: String? = null,
+        folder: MessageFolder? = null,
+        dateMillis: Long? = null,
+    ) {
+        val values = ContentValues().apply {
+            body?.let { put(Telephony.Sms.BODY, it) }
+            folder?.let { put(Telephony.Sms.TYPE, it.providerValue) }
+            dateMillis?.let {
+                put(Telephony.Sms.DATE, it)
+                put(Telephony.Sms.DATE_SENT, it)
+            }
+        }
+        if (values.size() == 0) return
+        contentResolver.update(
+            Telephony.Sms.CONTENT_URI,
+            values,
+            "${Telephony.Sms._ID} = ?",
+            arrayOf(providerId.toString()),
+        )
+    }
+
     /** Marks every unread row in [threadId] read in the system provider -- the incoming-message
      * notification's "Mark as read" action calls this alongside the local
      * [text.message.sms.messaging.domain.usecase.MarkRead] write (which only ever touches this
