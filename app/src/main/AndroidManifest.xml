@@ -278,6 +278,19 @@
             android:taskAffinity="${applicationId}.callend"
             android:theme="@style/Theme.Messaging" />
 
+        <!-- Call screening: declaring a CallScreeningService is what makes this app eligible for
+             RoleManager.ROLE_CALL_SCREENING. Exported for Telecom to bind, and only Telecom can:
+             BIND_SCREENING_SERVICE is a system-only permission. Allows every call for now; see
+             CallScreeningServiceImpl. -->
+        <service
+            android:name=".service.CallScreeningServiceImpl"
+            android:exported="true"
+            android:permission="android.permission.BIND_SCREENING_SERVICE">
+            <intent-filter>
+                <action android:name="android.telecom.CallScreeningService" />
+            </intent-filter>
+        </service>
+
         <!--
           Requirement 4 of 4: respond to a call declined with a canned reply. QUICK_RESPONSE is
           the equivalent action older dialers send.
