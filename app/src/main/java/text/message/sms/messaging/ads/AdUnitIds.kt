@@ -72,6 +72,14 @@ internal object AdUnitIds {
     /** Interstitial shown on Intro's last "Get started", before onboarding completes. */
     val INTRO_INTERSTITIAL: String get() = AdPlacement.INTRO_INTERSTITIAL.adUnitId()
 
+    /** Interstitial shown before a chat opens from the inbox, on the visits
+     * [ChatInterstitialConfig.CYCLE] marks [ChatVisitAd.ENTER_AD] (see [ChatInterstitialManager]). */
+    val CHAT_ENTER_INTERSTITIAL: String get() = AdPlacement.CHAT_ENTER_INTERSTITIAL.adUnitId()
+
+    /** Interstitial shown over the inbox after leaving a chat, on the visits
+     * [ChatInterstitialConfig.CYCLE] marks [ChatVisitAd.EXIT_AD] (see [ChatInterstitialManager]). */
+    val CHAT_EXIT_INTERSTITIAL: String get() = AdPlacement.CHAT_EXIT_INTERSTITIAL.adUnitId()
+
     /** App Open ad -- shown only over Splash, as the last step of a launch (see [AppOpenAdManager]). */
     val APP_OPEN: String get() = AdPlacement.APP_OPEN.adUnitId()
 
@@ -117,6 +125,8 @@ internal enum class AdPlacement(val testId: String, val realId: String) {
     INTRO_NATIVE_FULLSCREEN(GoogleTestAdUnits.NATIVE_VIDEO, "REPLACE_ME_INTRO_NATIVE_FULLSCREEN"),
     INTRO_INTERSTITIAL(GoogleTestAdUnits.INTERSTITIAL, "REPLACE_ME_INTRO_INTERSTITIAL"),
     APP_OPEN(GoogleTestAdUnits.APP_OPEN, "REPLACE_ME_APP_OPEN"),
+    CHAT_ENTER_INTERSTITIAL(GoogleTestAdUnits.INTERSTITIAL, "REPLACE_ME_CHAT_ENTER_INTERSTITIAL"),
+    CHAT_EXIT_INTERSTITIAL(GoogleTestAdUnits.INTERSTITIAL, "REPLACE_ME_CHAT_EXIT_INTERSTITIAL"),
 }
 
 /** The prefix of a real ID that hasn't been filled in yet. */

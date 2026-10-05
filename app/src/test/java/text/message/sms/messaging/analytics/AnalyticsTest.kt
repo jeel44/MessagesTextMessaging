@@ -63,6 +63,19 @@ class AnalyticsTest {
     }
 
     @Test
+    fun `chat interstitials log their own placement values`() {
+        assertTrue(Analytics.adShown(AdPlacement.CHAT_ENTER_INTERSTITIAL, AdFormat.INTERSTITIAL))
+        assertTrue(Analytics.adFailed(AdPlacement.CHAT_EXIT_INTERSTITIAL, AdFormat.INTERSTITIAL))
+        assertEquals(
+            listOf(
+                "ad_shown" to mapOf("placement" to "chat_enter_interstitial", "format" to "interstitial"),
+                "ad_failed" to mapOf("placement" to "chat_exit_interstitial", "format" to "interstitial"),
+            ),
+            logged,
+        )
+    }
+
+    @Test
     fun `every placement and enum value passes validation`() {
         AdPlacement.entries.forEach { placement ->
             AdFormat.entries.forEach { format -> assertTrue(Analytics.adShown(placement, format)) }

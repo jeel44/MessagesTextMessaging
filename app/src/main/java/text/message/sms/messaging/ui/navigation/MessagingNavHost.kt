@@ -2,6 +2,7 @@ package text.message.sms.messaging.ui.navigation
 
 import android.os.SystemClock
 import android.util.Log
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -12,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -20,6 +23,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import text.message.sms.messaging.BuildConfig
+import text.message.sms.messaging.ads.ChatEntrySource
 import text.message.sms.messaging.config.OverlayFeatureFlag
 import text.message.sms.messaging.data.local.datastore.OnboardingStep
 import text.message.sms.messaging.data.local.datastore.applyOverlayFlag
@@ -76,6 +80,24 @@ fun MessagingNavHost(
     // Activity-scoped (this is outside NavHost, so the owner is the Activity), so a step write
     // isn't cancelled by the navigation it precedes.
     val onboardingProgress: OnboardingProgressViewModel = hiltViewModel()
+    val chatInterstitials = hiltViewModel<ChatInterstitialViewModel>().manager
+    val activity = LocalActivity.current
+    ChatInterstitialLeaveWatcher(navController, chatInterstitials, activity)
+
+    /** Opens [threadId]'s chat from [entry]'s screen through the chat interstitial cycle. Only a
+     * tap on the screen actually on top counts -- a stray second tap during the transition just
+     * navigates, as before. */
+    fun openChatFrom(entry: NavBackStackEntry, source: ChatEntrySource, threadId: Long) {
+        val navigate = {
+            navController.navigate(MessagingDestination.Chat.routeFor(threadId))
+            navController.currentBackStackEntry?.id
+        }
+        if (navController.currentBackStackEntry !== entry) {
+            navigate()
+            return
+        }
+        chatInterstitials.openChat(source, activity, entry.id, navigate)
+    }
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     if (BuildConfig.DEBUG) {
         LaunchedEffect(currentRoute) {
@@ -179,11 +201,14 @@ fun MessagingNavHost(
             )
         }
 
-        composable(MessagingDestination.ConversationList.route) {
+        composable(MessagingDestination.ConversationList.route) { entry ->
+            // Preloads the chat interstitial the cycle needs next while the inbox is on screen.
+            LifecycleResumeEffect(chatInterstitials) {
+                chatInterstitials.onInboxVisible()
+                onPauseOrDispose { chatInterstitials.onInboxHidden() }
+            }
             ConversationListScreen(
-                onConversationClick = { threadId ->
-                    navController.navigate(MessagingDestination.Chat.routeFor(threadId))
-                },
+                onConversationClick = { threadId -> openChatFrom(entry, ChatEntrySource.INBOX, threadId) },
                 onNewMessageClick = {
                     navController.navigate(MessagingDestination.NewMessage.routeFor())
                 },
@@ -210,12 +235,10 @@ fun MessagingNavHost(
             )
         }
 
-        composable(MessagingDestination.Archived.route) {
+        composable(MessagingDestination.Archived.route) { entry ->
             ArchivedScreen(
                 onBack = navController::popBackStack,
-                onConversationClick = { threadId ->
-                    navController.navigate(MessagingDestination.Chat.routeFor(threadId))
-                },
+                onConversationClick = { threadId -> openChatFrom(entry, ChatEntrySource.ARCHIVED, threadId) },
             )
         }
 
@@ -298,12 +321,10 @@ fun MessagingNavHost(
             )
         }
 
-        composable(MessagingDestination.Search.route) {
+        composable(MessagingDestination.Search.route) { entry ->
             SearchScreen(
                 onBack = navController::popBackStack,
-                onResultClick = { threadId ->
-                    navController.navigate(MessagingDestination.Chat.routeFor(threadId))
-                },
+                onResultClick = { threadId -> openChatFrom(entry, ChatEntrySource.SEARCH, threadId) },
             )
         }
 
