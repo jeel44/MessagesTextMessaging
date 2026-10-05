@@ -112,7 +112,7 @@ internal enum class AnalyticsParam(val key: String, val numeric: Boolean = false
     FORMAT("format"),
 }
 
-internal enum class DrawerItem { ARCHIVED, BLOCKED, LANGUAGE }
+internal enum class DrawerItem { ARCHIVED, BLOCKED, SCHEDULED, LANGUAGE }
 
 internal enum class AdFormat { NATIVE, BANNER, INTERSTITIAL, APP_OPEN }
 

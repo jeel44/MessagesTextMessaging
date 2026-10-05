@@ -180,6 +180,7 @@ fun ConversationListScreen(
     onSettingsClick: () -> Unit,
     onArchivedClick: () -> Unit,
     onBlockedClick: () -> Unit,
+    onScheduledClick: () -> Unit,
     onLanguageClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ConversationListViewModel = hiltViewModel(),
@@ -309,6 +310,7 @@ fun ConversationListScreen(
         enabled = !isSelectionMode,
         onArchivedClick = onArchivedClick,
         onBlockedClick = onBlockedClick,
+        onScheduledClick = onScheduledClick,
         onLanguageClick = onLanguageClick,
         modifier = modifier,
     ) { openDrawer ->

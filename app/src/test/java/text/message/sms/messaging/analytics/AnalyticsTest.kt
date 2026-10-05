@@ -72,6 +72,16 @@ class AnalyticsTest {
     }
 
     @Test
+    fun `the drawer's Scheduled item logs item=scheduled`() {
+        assertTrue(Analytics.drawerItemOpened(DrawerItem.SCHEDULED))
+        assertEquals(listOf("drawer_item_opened" to mapOf("item" to "scheduled")), logged)
+        assertEquals(
+            listOf("archived", "blocked", "scheduled", "language"),
+            DrawerItem.entries.map { it.name.lowercase() },
+        )
+    }
+
+    @Test
     fun `a key not allowed on the event is rejected and nothing is sent`() {
         assertFalse(Analytics.log(AnalyticsEvent.NUMBER_BLOCKED, AnalyticsParam.STEP to "welcome"))
         assertFalse(Analytics.log(AnalyticsEvent.LANGUAGE_SELECTED, AnalyticsParam.PLACEMENT to "en"))

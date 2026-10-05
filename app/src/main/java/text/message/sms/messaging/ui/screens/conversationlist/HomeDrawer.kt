@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
@@ -45,7 +46,7 @@ internal const val HomeDrawerSheetTag = "home_drawer_sheet"
 internal const val HomeDrawerVersionTag = "home_drawer_version"
 
 /**
- * The inbox's side drawer: Archived, Blocked and Language (Settings' mode of it), with the app
+ * The inbox's side drawer: Archived, Blocked, Scheduled and Language (Settings' mode of it), with the app
  * name up top and the version pinned at the bottom. No ads, badges or counts.
  *
  * [enabled] false (the inbox's multi-select mode) makes [content]'s `openDrawer` a no-op and
@@ -65,6 +66,7 @@ internal fun HomeDrawer(
     enabled: Boolean,
     onArchivedClick: () -> Unit,
     onBlockedClick: () -> Unit,
+    onScheduledClick: () -> Unit,
     onLanguageClick: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable (openDrawer: () -> Unit) -> Unit,
@@ -97,6 +99,10 @@ internal fun HomeDrawer(
                 DrawerItem(Icons.Outlined.Block, stringResource(R.string.screen_blocked)) {
                     Analytics.drawerItemOpened(DrawerItem.BLOCKED)
                     navigate(onBlockedClick)
+                }
+                DrawerItem(Icons.Outlined.Schedule, stringResource(R.string.drawer_scheduled)) {
+                    Analytics.drawerItemOpened(DrawerItem.SCHEDULED)
+                    navigate(onScheduledClick)
                 }
                 DrawerItem(Icons.Outlined.Language, stringResource(R.string.settings_language_title)) {
                     Analytics.drawerItemOpened(DrawerItem.LANGUAGE)

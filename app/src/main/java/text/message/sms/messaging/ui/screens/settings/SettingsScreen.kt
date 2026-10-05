@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.PrivacyTip
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -88,6 +89,7 @@ import java.util.Locale
 fun SettingsScreen(
     onBack: () -> Unit,
     onLanguageClick: () -> Unit,
+    onScheduledMessagesClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -257,6 +259,7 @@ fun SettingsScreen(
                         trailing = SettingsTrailing.Toggle(quickReplyEnabled) { quickReplyEnabled = it },
                     ),
                 )
+                add(scheduledMessagesRow(onClick = onScheduledMessagesClick))
             },
         ),
         SettingsSection(
@@ -415,6 +418,14 @@ private fun languageSummary(languageTag: String?): String {
  * [text.message.sms.messaging.util.ExternalLinks]). Their own factories, and [SettingsList] and
  * the row types `internal`, so `SettingsAboutLinksTest` can render and tap exactly the rows
  * [SettingsScreen] shows without needing its ViewModel. */
+/** General's "Scheduled messages" row -- opens the same list as the drawer's Scheduled item. */
+@Composable
+internal fun scheduledMessagesRow(onClick: () -> Unit): SettingsRow = SettingsRow(
+    icon = SettingsIcon.Vector(Icons.Filled.Schedule),
+    title = stringResource(R.string.scheduled_list_title),
+    onClick = onClick,
+)
+
 @Composable
 internal fun rateAppRow(onClick: () -> Unit): SettingsRow = SettingsRow(
     icon = SettingsIcon.Drawable(R.drawable.ic_rate),

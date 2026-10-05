@@ -199,6 +199,9 @@ fun MessagingNavHost(
                 onBlockedClick = {
                     navController.navigate(MessagingDestination.Blocked.route)
                 },
+                onScheduledClick = {
+                    navController.navigate(MessagingDestination.ScheduledMessages.route)
+                },
                 // Settings' mode of the picker (back arrow, pops back here on confirm) -- never
                 // onboarding's Language route, which moves on to Intro.
                 onLanguageClick = {
@@ -309,6 +312,9 @@ fun MessagingNavHost(
                 onBack = navController::popBackStack,
                 onLanguageClick = {
                     navController.navigate(MessagingDestination.LanguageSettings.route)
+                },
+                onScheduledMessagesClick = {
+                    navController.navigate(MessagingDestination.ScheduledMessages.route)
                 },
             )
         }

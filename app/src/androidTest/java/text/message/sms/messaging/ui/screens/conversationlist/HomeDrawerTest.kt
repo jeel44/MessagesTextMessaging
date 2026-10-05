@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -27,7 +28,7 @@ import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.ui.theme.AppTheme
 
 /**
- * [HomeDrawer] around the inbox's real [ConversationListTopBar], so "open" goes through the actual
+ * [HomeDrawer] (Archived, Blocked, Scheduled, Language) around the inbox's real [ConversationListTopBar], so "open" goes through the actual
  * hamburger. Drives [HomeDrawer] rather than the full inbox, whose Hilt ViewModel this module has
  * no test harness for -- [ConversationListScreen] passes `enabled = !isSelectionMode`, which
  * [selectionMode] stands in for here.
@@ -40,7 +41,7 @@ class HomeDrawerTest {
 
     private lateinit var drawerState: DrawerState
     private var selectionMode by mutableStateOf(false)
-    private val clicks = mutableMapOf("archived" to 0, "blocked" to 0, "language" to 0)
+    private val clicks = mutableMapOf("archived" to 0, "blocked" to 0, "scheduled" to 0, "language" to 0)
 
     @Test
     fun lightTheme_hamburgerOpensDrawerWithItemsAndVersion() = opensWithItemsAndVersion(darkTheme = false)
@@ -55,7 +56,24 @@ class HomeDrawerTest {
     fun blocked_navigatesAndCloses() = itemNavigatesAndCloses("Blocked", "blocked")
 
     @Test
+    fun scheduled_navigatesAndCloses() = itemNavigatesAndCloses("Scheduled", "scheduled")
+
+    @Test
     fun language_navigatesAndCloses() = itemNavigatesAndCloses("Language", "language")
+
+    @Test
+    fun items_areArchivedBlockedScheduledLanguage_inThatOrder() {
+        setDrawer()
+        openFromHamburger()
+
+        val tops = listOf("Archived", "Blocked", "Scheduled", "Language").map { label ->
+            composeRule.onNodeWithText(label).getUnclippedBoundsInRoot().top
+        }
+        assertEquals(tops.sorted(), tops)
+        assertEquals("four distinct rows", 4, tops.toSet().size)
+        // The version footer stays pinned below every item.
+        assertTrue(composeRule.onNodeWithTag(HomeDrawerVersionTag).getUnclippedBoundsInRoot().top > tops.last())
+    }
 
     @Test
     fun backClosesTheDrawer() {
@@ -103,6 +121,7 @@ class HomeDrawerTest {
         composeRule.onNodeWithText("#Messages").assertIsDisplayed()
         composeRule.onNodeWithText("Archived").assertIsDisplayed()
         composeRule.onNodeWithText("Blocked").assertIsDisplayed()
+        composeRule.onNodeWithText("Scheduled").assertIsDisplayed()
         composeRule.onNodeWithText("Language").assertIsDisplayed()
         composeRule.onNodeWithText("App version").assertIsDisplayed()
         composeRule.onNodeWithText(BuildConfig.VERSION_NAME).assertIsDisplayed()
@@ -115,7 +134,7 @@ class HomeDrawerTest {
         composeRule.onNodeWithText(label).performClick()
         composeRule.waitForIdle()
 
-        assertEquals(mapOf("archived" to 0, "blocked" to 0, "language" to 0) + (key to 1), clicks)
+        assertEquals(mapOf("archived" to 0, "blocked" to 0, "scheduled" to 0, "language" to 0) + (key to 1), clicks)
         assertTrue(drawerState.isClosed)
         composeRule.onNodeWithTag(HomeDrawerSheetTag).assertIsNotDisplayed()
     }
@@ -136,6 +155,7 @@ class HomeDrawerTest {
                     enabled = !selectionMode,
                     onArchivedClick = { clicks["archived"] = clicks.getValue("archived") + 1 },
                     onBlockedClick = { clicks["blocked"] = clicks.getValue("blocked") + 1 },
+                    onScheduledClick = { clicks["scheduled"] = clicks.getValue("scheduled") + 1 },
                     onLanguageClick = { clicks["language"] = clicks.getValue("language") + 1 },
                 ) { openDrawer ->
                     ConversationListTopBar(onMenuClick = openDrawer, onSearchClick = {}, onSettingsClick = {})
