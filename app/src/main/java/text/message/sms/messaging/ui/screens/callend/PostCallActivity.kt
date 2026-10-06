@@ -13,7 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import text.message.sms.messaging.BuildConfig
-import text.message.sms.messaging.config.OverlayFeatureFlag
+import text.message.sms.messaging.config.CallEndFeatureFlag
 import text.message.sms.messaging.domain.model.CallDirection
 import text.message.sms.messaging.domain.model.CallOutcome
 import text.message.sms.messaging.domain.model.CallSession
@@ -79,8 +79,8 @@ class PostCallActivity : ComponentActivity() {
         }
         if (BuildConfig.DEBUG) logAllExtras(intent)
 
-        if (!OverlayFeatureFlag.isEnabled()) {
-            log("overlay/call-end feature flag is off, finishing")
+        if (!CallEndFeatureFlag.isEnabled()) {
+            log("call-end feature flag is off, finishing")
             finish()
             return
         }

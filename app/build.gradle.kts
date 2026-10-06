@@ -193,7 +193,7 @@ dependencies {
     // Ad consent (GDPR/US-state messages) -- gates every ad request, see AdConsentManager
     implementation(libs.google.ump)
 
-    // Remote Config -- the overlay/call-end flag's only source, see OverlayFeatureFlag. Reads
+    // Remote Config -- the call-end flag's only source, see CallEndFeatureFlag. Reads
     // app/google-services.json (google-services plugin).
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.config)

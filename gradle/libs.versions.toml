@@ -42,7 +42,7 @@ playServicesAds = "25.5.0"
 # pulls 4.0.0 in transitively -- see AdConsentManager.
 userMessagingPlatform = "4.0.0"
 
-# Firebase -- Remote Config (the overlay/call-end flag, see OverlayFeatureFlag), Analytics and
+# Firebase -- Remote Config (the call-end flag, see CallEndFeatureFlag), Analytics and
 # Crashlytics (consent-gated, see FirebaseCollectionController).
 googleServices = "4.5.0"
 firebaseBom = "34.19.0"

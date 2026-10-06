@@ -17,7 +17,7 @@ import kotlinx.coroutines.runBlocking
 import text.message.sms.messaging.ads.AdConsentManager
 import text.message.sms.messaging.ads.AppOpenAdManager
 import text.message.sms.messaging.analytics.FirebaseCollectionController
-import text.message.sms.messaging.config.OverlayFeatureFlag
+import text.message.sms.messaging.config.CallEndFeatureFlag
 import text.message.sms.messaging.data.local.datastore.OnboardingPreferences
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
 import text.message.sms.messaging.data.local.provider.ContactChangeObserver
@@ -149,10 +149,10 @@ class MessagingApplication : Application(), Configuration.Provider {
         // process started for an incoming SMS or a call never makes an ad request.
         appOpenAdManager.register(this)
 
-        // Overlay/call-end flag: off the main thread, snapshot this session's value, then fetch
-        // Remote Config for the next one. Before the early return below, so it runs in every
-        // process, including one started for a call or an incoming SMS.
-        applicationScope.launch { OverlayFeatureFlag.snapshotThenFetch() }
+        // Call-end flag: off the main thread, snapshot this session's value, then fetch Remote
+        // Config for the next one. Before the early return below, so it runs in every process,
+        // including one started for POST_CALL or an incoming SMS.
+        applicationScope.launch { CallEndFeatureFlag.snapshotThenFetch() }
 
         // READ_CONTACTS is a separate runtime permission from the default-SMS-app role SMS/MMS
         // sync below depends on, so it gets its own check rather than being folded into

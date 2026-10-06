@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import text.message.sms.messaging.MainActivity
 import text.message.sms.messaging.ads.AdConsentManager
-import text.message.sms.messaging.config.OverlayFeatureFlag
+import text.message.sms.messaging.config.CallEndFeatureFlag
 import text.message.sms.messaging.data.local.datastore.ThemeMode
 import text.message.sms.messaging.data.local.datastore.ThemePreferences
 import text.message.sms.messaging.domain.model.CallDirection
@@ -214,8 +214,8 @@ class CallEndActivity : ComponentActivity() {
          * would mean swapping the session, contact, tab and ad state inside a live ViewModel.) */
         fun start(context: Context, session: CallSession) {
             // Backstop -- PhoneStateReceiver and CallEndLauncher already stop earlier with
-            // the overlay/call-end flag off.
-            if (!OverlayFeatureFlag.isEnabled()) return
+            // the call-end flag off.
+            if (!CallEndFeatureFlag.isEnabled()) return
             val intent = Intent(context, CallEndActivity::class.java)
                 .addFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK or

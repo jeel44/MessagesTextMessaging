@@ -24,9 +24,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import text.message.sms.messaging.BuildConfig
 import text.message.sms.messaging.ads.ChatEntrySource
-import text.message.sms.messaging.config.OverlayFeatureFlag
+import text.message.sms.messaging.config.CallEndFeatureFlag
 import text.message.sms.messaging.data.local.datastore.OnboardingStep
-import text.message.sms.messaging.data.local.datastore.applyOverlayFlag
+import text.message.sms.messaging.data.local.datastore.applyCallEndFlag
 import text.message.sms.messaging.ui.screens.archived.ArchivedScreen
 import text.message.sms.messaging.ui.screens.blocked.BlockedScreen
 import text.message.sms.messaging.ui.screens.callend.ComingSoonScreen
@@ -156,9 +156,8 @@ fun MessagingNavHost(
         composable(MessagingDestination.Welcome.route) {
             WelcomeScreen(
                 onContinue = {
-                    // CallScreeningRole, or straight to SetDefaultSms with the overlay/call-end
-                    // flag off.
-                    val next = applyOverlayFlag(OnboardingStep.CALL_SCREENING, OverlayFeatureFlag.isEnabled())
+                    // CallScreeningRole, or straight to SetDefaultSms with the call-end flag off.
+                    val next = applyCallEndFlag(OnboardingStep.CALL_SCREENING, CallEndFeatureFlag.isEnabled())
                     onboardingProgress.advanceTo(next) {
                         navController.navigate(next.route()) {
                             popUpTo(MessagingDestination.Welcome.route) { inclusive = true }
@@ -176,7 +175,7 @@ fun MessagingNavHost(
                     }
                 }
             }
-            if (OverlayFeatureFlag.isEnabled()) {
+            if (CallEndFeatureFlag.isEnabled()) {
                 CallScreeningRoleScreen(onDone = onCallScreeningDone)
             } else {
                 // Backstop only -- Welcome and Splash never route here with the flag off. Moves
