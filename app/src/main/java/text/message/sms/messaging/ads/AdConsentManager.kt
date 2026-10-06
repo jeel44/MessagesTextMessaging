@@ -86,6 +86,7 @@ class AdConsentManager @Inject constructor(
     }
 
     fun gatherConsent(activity: Activity) {
+        installDecorOnMainThread(activity)
         consentInformation.requestConsentInfoUpdate(
             activity,
             requestParameters(),
@@ -107,6 +108,7 @@ class AdConsentManager @Inject constructor(
     }
 
     fun refreshConsentInfo(activity: Activity) {
+        installDecorOnMainThread(activity)
         consentInformation.requestConsentInfoUpdate(
             activity,
             requestParameters(),
@@ -126,6 +128,19 @@ class AdConsentManager @Inject constructor(
             if (formError != null) logError("privacy options form", formError)
             settle()
         }
+    }
+
+    /**
+     * UMP reads the activity's `window.decorView` from its own background thread. If the window
+     * has no decor yet, that read is what builds it -- off the main thread, racing the caller's
+     * `setContent`, which can then find the decor already assigned but its `android.R.id.content`
+     * container not yet inflated, and crash on it (seen in CallEndActivity, launched from
+     * PostCallActivity into a warm process). Building it here first, on the main thread, leaves
+     * UMP only ever reading a finished decor. Must run before any `requestWindowFeature` the
+     * caller makes -- neither caller makes one.
+     */
+    private fun installDecorOnMainThread(activity: Activity) {
+        activity.window.decorView
     }
 
     private fun settle() {
