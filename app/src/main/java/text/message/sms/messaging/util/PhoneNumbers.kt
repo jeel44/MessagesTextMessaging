@@ -1,5 +1,7 @@
 package text.message.sms.messaging.util
 
+import java.util.Locale
+
 /**
  * Address helpers. Carriers echo numbers back in inconsistent formats, so every lookup key
  * is reduced to digits before it is compared or stored.
@@ -43,15 +45,30 @@ object PhoneNumbers {
      * unblocking all share. Real numbers match by [areEquivalent], so `+91 98765 43210`,
      * `09876543210` and `9876543210` are one sender. A short code only matches the exact same
      * digits (its trailing digits say nothing about a different, longer number), and an
-     * alphanumeric sender id only the same id, ignoring case and surrounding spaces -- [normalize]
-     * reduces every all-letter id to "", so comparing those by digits would match them all.
+     * alphanumeric sender id only the same [blockKey] -- so `VM-HDFCBK` and `AX-HDFCBK` are one
+     * sender, `HDFCBK` and `HDFCBC` are not.
      */
     fun isSameSender(first: String, second: String): Boolean = when {
-        !looksLikePhoneNumber(first) || !looksLikePhoneNumber(second) ->
-            first.isNotBlank() && first.trim().equals(second.trim(), ignoreCase = true)
+        !looksLikePhoneNumber(first) || !looksLikePhoneNumber(second) -> {
+            val key = blockKey(first)
+            key.isNotEmpty() && key == blockKey(second)
+        }
         isShortCode(first) || isShortCode(second) -> normalize(first) == normalize(second)
         else -> areEquivalent(first, second)
     }
+
+    /**
+     * The block list's stored key (`blocked_numbers.normalized_address`). A phone-shaped address
+     * is [normalize]d. Anything else is a sender id: trimmed, uppercased, and stripped of an Indian
+     * operator/region prefix (two letters and a hyphen, e.g. `VM-`, `AX-`, `JD-`), which varies by
+     * route for the same sender -- [normalize] would reduce every all-letter id to "".
+     */
+    fun blockKey(address: String): String =
+        if (looksLikePhoneNumber(address)) {
+            normalize(address)
+        } else {
+            address.trim().uppercase(Locale.ROOT).replaceFirst(OPERATOR_PREFIX, "")
+        }
 
     /** True for short codes, which cannot receive MMS and are never real contacts. */
     fun isShortCode(address: String): Boolean = normalize(address).length in 1..6
@@ -92,4 +109,7 @@ object PhoneNumbers {
         candidates.filterTo(mutableSetOf()) { candidate -> existing.none { areEquivalent(it, candidate) } }
 
     private val FORMATTING_CHARACTERS = charArrayOf(' ', '-', '(', ')', '.')
+
+    /** `VM-`, `AX-`, ... at the start of an (already uppercased) sender id. */
+    private val OPERATOR_PREFIX = Regex("^[A-Z]{2}-")
 }

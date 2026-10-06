@@ -12,6 +12,7 @@ import text.message.sms.messaging.data.local.db.MIGRATION_2_3
 import text.message.sms.messaging.data.local.db.MIGRATION_3_4
 import text.message.sms.messaging.data.local.db.MIGRATION_4_5
 import text.message.sms.messaging.data.local.db.MIGRATION_5_6
+import text.message.sms.messaging.data.local.db.MIGRATION_6_7
 import text.message.sms.messaging.data.local.db.MessagingDatabase
 import text.message.sms.messaging.data.local.db.dao.AttachmentDao
 import text.message.sms.messaging.data.local.db.dao.BlockedNumberDao
@@ -32,7 +33,7 @@ object DatabaseModule {
     fun provideDatabase(@ApplicationContext context: Context): MessagingDatabase =
         Room.databaseBuilder(context, MessagingDatabase::class.java, MessagingDatabase.NAME)
             // Foreign keys drive the cascade from a deleted thread to its messages and parts.
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
             .build()
 
     @Provides

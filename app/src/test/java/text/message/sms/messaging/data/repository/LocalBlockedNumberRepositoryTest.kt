@@ -57,6 +57,37 @@ class LocalBlockedNumberRepositoryTest {
     }
 
     @Test
+    fun twoDifferentAlphanumericSenders_areBothKept() = runTest {
+        repository.block(listOf("VM-HDFCBK"), BlockReason.MANUAL)
+        repository.block(listOf("AX-SBIBNK"), BlockReason.MANUAL)
+
+        assertEquals(setOf("VM-HDFCBK", "AX-SBIBNK"), dao.rows.map { it.address }.toSet())
+        assertTrue(gate.isBlocked("JD-HDFCBK"))
+        assertTrue(gate.isBlocked("SBIBNK"))
+    }
+
+    @Test
+    fun anAlphanumericSender_isBlockedWhateverItsOperatorPrefix() = runTest {
+        repository.block(listOf("VM-HDFCBK"), BlockReason.MANUAL)
+
+        assertTrue(gate.isBlocked("AX-HDFCBK"))
+        assertTrue(gate.isBlocked("HDFCBK"))
+        assertFalse(gate.isBlocked("HDFCBC"))
+    }
+
+    @Test
+    fun unblockingOneAlphanumericSender_leavesTheOtherBlocked() = runTest {
+        repository.block(listOf("VM-HDFCBK"), BlockReason.MANUAL)
+        repository.block(listOf("VM-SBIBNK"), BlockReason.MANUAL)
+
+        repository.unblock(listOf("AX-HDFCBK"))
+
+        assertFalse(gate.isBlocked("VM-HDFCBK"))
+        assertTrue(gate.isBlocked("VM-SBIBNK"))
+        assertEquals(listOf("VM-SBIBNK"), dao.rows.map { it.address })
+    }
+
+    @Test
     fun unblock_removesEveryEquivalentRow_soNoFormStaysBlocked() = runTest {
         repository.block(listOf("+919876543210"), BlockReason.MANUAL)
         repository.block(listOf("09876543210"), BlockReason.MANUAL)

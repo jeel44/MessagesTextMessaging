@@ -186,4 +186,24 @@ class PhoneNumbersTest {
         assertFalse(PhoneNumbers.isSameSender("AMAZON", "9876543210"))
         assertFalse(PhoneNumbers.isSameSender("", ""))
     }
+
+    @Test
+    fun `isSameSender ignores the operator prefix of an alphanumeric sender`() {
+        assertTrue(PhoneNumbers.isSameSender("VM-HDFCBK", "AX-HDFCBK"))
+        assertTrue(PhoneNumbers.isSameSender("JD-HDFCBK", "HDFCBK"))
+        assertFalse(PhoneNumbers.isSameSender("HDFCBK", "HDFCBC"))
+        assertFalse(PhoneNumbers.isSameSender("VM-HDFCBK", "VM-HDFCBC"))
+    }
+
+    @Test
+    fun `blockKey gives alphanumeric senders their own key and leaves numbers alone`() {
+        assertEquals("HDFCBK", PhoneNumbers.blockKey("VM-HDFCBK"))
+        assertEquals("HDFCBK", PhoneNumbers.blockKey(" ax-hdfcbk "))
+        assertEquals("HDFCBK", PhoneNumbers.blockKey("HDFCBK"))
+        assertEquals("AMAZON", PhoneNumbers.blockKey("AMAZON"))
+        // Only a leading two-letter route prefix is stripped.
+        assertEquals("ABC-HDFCBK", PhoneNumbers.blockKey("ABC-HDFCBK"))
+        assertEquals("+919876543210", PhoneNumbers.blockKey("+91 98765 43210"))
+        assertEquals("56161", PhoneNumbers.blockKey("56161"))
+    }
 }

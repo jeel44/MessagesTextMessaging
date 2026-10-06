@@ -19,6 +19,8 @@ data class BlockedNumberEntity(
     @ColumnInfo(name = "address")
     val address: String,
 
+    /** [text.message.sms.messaging.util.PhoneNumbers.blockKey] of [address] -- digits for a
+     * number, the uppercased, prefix-free id for an alphanumeric sender. */
     @ColumnInfo(name = "normalized_address")
     val normalizedAddress: String,
 

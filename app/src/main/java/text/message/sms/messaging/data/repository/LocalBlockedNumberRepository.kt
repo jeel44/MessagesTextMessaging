@@ -13,7 +13,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Room-backed [BlockedNumberRepository]. Rows are stored by [PhoneNumbers.normalize], but matched
+ * Room-backed [BlockedNumberRepository]. Rows are stored by [PhoneNumbers.blockKey], but matched
  * with [PhoneNumbers.isSameSender] in memory, so a number blocked as `+919876543210` also blocks
  * `09876543210` -- a lookup by the stored key alone would miss that.
  */
@@ -34,7 +34,7 @@ class LocalBlockedNumberRepository @Inject constructor(
             addresses.map { address ->
                 BlockedNumberEntity(
                     address = address,
-                    normalizedAddress = PhoneNumbers.normalize(address),
+                    normalizedAddress = PhoneNumbers.blockKey(address),
                     reason = reason,
                     blockedAtMillis = now,
                 )
@@ -48,6 +48,6 @@ class LocalBlockedNumberRepository @Inject constructor(
         val matching = blockedNumberDao.getAll()
             .filter { row -> addresses.any { PhoneNumbers.isSameSender(row.address, it) } }
             .map { it.normalizedAddress }
-        blockedNumberDao.delete(matching + addresses.map(PhoneNumbers::normalize))
+        blockedNumberDao.delete(matching + addresses.map(PhoneNumbers::blockKey))
     }
 }

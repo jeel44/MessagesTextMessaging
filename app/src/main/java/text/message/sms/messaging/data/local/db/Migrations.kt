@@ -2,6 +2,7 @@ package text.message.sms.messaging.data.local.db
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import text.message.sms.messaging.util.PhoneNumbers
 
 /**
  * v1 -> v2: adds the tables the sync and scheduled-send pipelines need, and fixes a latent bug
@@ -144,5 +145,42 @@ val MIGRATION_4_5: Migration = object : Migration(4, 5) {
 val MIGRATION_5_6: Migration = object : Migration(5, 6) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE conversations ADD COLUMN pinned_at INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+/**
+ * v6 -> v7: recomputes `blocked_numbers.normalized_address` with [PhoneNumbers.blockKey]. Until v6
+ * it was [PhoneNumbers.normalize] for every row, which reduces an alphanumeric sender id
+ * (`VM-HDFCBK`) to its digits -- usually "" -- so the unique index let only one such sender be
+ * blocked at a time. Phone-shaped rows keep the key they had. Rows whose new keys coincide (e.g.
+ * `VM-HDFCBK` and `AX-HDFCBK`, now one sender) collapse to the lowest id, matching
+ * [MIGRATION_1_2]/[MIGRATION_3_4]. Data only: the schema is unchanged, but the unique index is
+ * dropped and rebuilt around the rewrite so no intermediate state can trip it.
+ */
+val MIGRATION_6_7: Migration = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val keyById = linkedMapOf<Long, String>()
+        db.query("SELECT id, address FROM blocked_numbers ORDER BY id").use { cursor ->
+            while (cursor.moveToNext()) {
+                keyById[cursor.getLong(0)] = PhoneNumbers.blockKey(cursor.getString(1))
+            }
+        }
+        val keptIdByKey = linkedMapOf<String, Long>()
+        val duplicateIds = mutableListOf<Long>()
+        for ((id, key) in keyById) {
+            if (keptIdByKey.putIfAbsent(key, id) != null) duplicateIds += id
+        }
+
+        db.execSQL("DROP INDEX IF EXISTS `index_blocked_numbers_normalized_address`")
+        for (id in duplicateIds) {
+            db.execSQL("DELETE FROM blocked_numbers WHERE id = ?", arrayOf<Any>(id))
+        }
+        for ((key, id) in keptIdByKey) {
+            db.execSQL("UPDATE blocked_numbers SET normalized_address = ? WHERE id = ?", arrayOf<Any>(key, id))
+        }
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_blocked_numbers_normalized_address` " +
+                "ON `blocked_numbers` (`normalized_address`)",
+        )
     }
 }

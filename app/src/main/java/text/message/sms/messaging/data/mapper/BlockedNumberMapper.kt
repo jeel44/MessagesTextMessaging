@@ -14,7 +14,7 @@ fun BlockedNumberEntity.toDomain(): BlockedNumber = BlockedNumber(
 fun BlockedNumber.toEntity(): BlockedNumberEntity = BlockedNumberEntity(
     id = id,
     address = address,
-    normalizedAddress = PhoneNumbers.normalize(address),
+    normalizedAddress = PhoneNumbers.blockKey(address),
     reason = reason,
     blockedAtMillis = blockedAtMillis,
 )
