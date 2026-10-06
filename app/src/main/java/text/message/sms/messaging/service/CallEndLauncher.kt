@@ -60,7 +60,7 @@ class CallEndLauncher internal constructor(
     private val canDrawOverlays: () -> Boolean,
     private val isDeviceLocked: () -> Boolean,
     private val isCallInProgress: () -> Boolean,
-    private val tryClaimLaunch: () -> Boolean,
+    private val tryClaimLaunch: (phoneNumber: String?) -> Boolean,
     private val elapsedRealtime: () -> Long,
     private val launch: suspend (CallSession) -> Unit,
     private val log: (message: String, error: Throwable?) -> Unit,
@@ -126,7 +126,7 @@ class CallEndLauncher internal constructor(
         }
 
         // PostCallActivity already opened it for this call end.
-        if (!tryClaimLaunch()) {
+        if (!tryClaimLaunch(session.phoneNumber)) {
             log("call-end screen already shown for this call, not launching", null)
             return
         }

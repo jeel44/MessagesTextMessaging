@@ -95,7 +95,7 @@ class PostCallActivity : ComponentActivity() {
             val session = resolver.resolve(CallEndSignal(endedAt = endedAt, observedStartAt = null, observed = fallback))
             when {
                 session == null -> log("no session from the call log or the extras, finishing")
-                !callEndShownGate.tryClaim() -> log("call-end screen already shown for this call, finishing")
+                !callEndShownGate.tryClaim(session.phoneNumber) -> log("call-end screen already shown for this call, finishing")
                 else -> try {
                     log("starting CallEndActivity for $session")
                     CallEndActivity.start(this@PostCallActivity, session)

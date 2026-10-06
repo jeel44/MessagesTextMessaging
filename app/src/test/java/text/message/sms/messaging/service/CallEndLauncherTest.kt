@@ -60,7 +60,7 @@ class CallEndLauncherTest {
         canDrawOverlays = { overlayGranted },
         isDeviceLocked = { locked },
         isCallInProgress = callInProgress,
-        tryClaimLaunch = claimed,
+        tryClaimLaunch = { claimed() },
         elapsedRealtime = { currentTime },
         launch = { session ->
             launchFailure?.let { throw it }
