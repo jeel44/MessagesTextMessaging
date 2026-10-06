@@ -10,7 +10,9 @@ import javax.inject.Singleton
  * decided -- shared by every path that can insert a fresh incoming row: [ReceiveSms]/[ReceiveMms]'s
  * live receivers, and [text.message.sms.messaging.data.repository.TelephonySyncRepository]'s three
  * historical-backfill call sites (`prepareAndInsertSmsChunk`, `readAndPrepareMms`, the legacy
- * `syncSms`/`syncMms`).
+ * `syncSms`/`syncMms`). [text.message.sms.messaging.service.CallScreeningServiceImpl] asks
+ * [isBlocked] about incoming calls too, so calls and messages are blocked by the same rule
+ * ([text.message.sms.messaging.util.PhoneNumbers.isSameSender]).
  *
  * A blocked sender's message is still stored -- never dropped -- so that unblocking later restores
  * the whole conversation, messages included; the thread it resolved to is marked [markThreadsBlocked]

@@ -157,4 +157,33 @@ class PhoneNumbersTest {
 
         assertEquals(setOf("+15550109999"), newAddresses)
     }
+
+    @Test
+    fun `isSameSender matches an Indian number written with +91, a trunk 0 or plain 10 digits`() {
+        val forms = listOf("+91 98765 43210", "+919876543210", "09876543210", "9876543210", "098765-43210")
+        forms.forEach { a -> forms.forEach { b -> assertTrue("$a vs $b", PhoneNumbers.isSameSender(a, b)) } }
+    }
+
+    @Test
+    fun `isSameSender rejects a different number with a similar prefix`() {
+        assertFalse(PhoneNumbers.isSameSender("+919876543210", "9876543211"))
+    }
+
+    @Test
+    fun `isSameSender matches short codes only exactly`() {
+        assertTrue(PhoneNumbers.isSameSender("56161", "56161"))
+        assertFalse(PhoneNumbers.isSameSender("56161", "156161"))
+        // A long number ending in a short code's digits is not that short code.
+        assertFalse(PhoneNumbers.isSameSender("56161", "+919999956161"))
+    }
+
+    @Test
+    fun `isSameSender matches alphanumeric senders by the exact id, ignoring case`() {
+        assertTrue(PhoneNumbers.isSameSender("VM-AMAZON", "vm-amazon"))
+        assertTrue(PhoneNumbers.isSameSender(" AD-HDFCBK", "AD-HDFCBK"))
+        // normalize() turns both into "", which must not make them match.
+        assertFalse(PhoneNumbers.isSameSender("AMAZON", "FLIPKART"))
+        assertFalse(PhoneNumbers.isSameSender("AMAZON", "9876543210"))
+        assertFalse(PhoneNumbers.isSameSender("", ""))
+    }
 }

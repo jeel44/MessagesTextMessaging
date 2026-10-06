@@ -18,10 +18,10 @@ data class UnblockedNumber(
  * list: removes [BlockedNumber.address] from the block list, then clears `is_blocked` on every
  * blocked 1:1 thread with that number so it returns to the inbox.
  *
- * Threads match on [PhoneNumbers.normalize] -- the same exact match the block list itself and
- * [BlockedSenderGate] use -- rather than the looser [PhoneNumbers.areEquivalent], so a thread is
- * only restored when its number is genuinely the one no longer blocked. Group threads are never
- * blocked in the first place (see [MarkBlocked]), so they're left alone here too.
+ * Threads match on [PhoneNumbers.isSameSender] -- the same rule the block list and
+ * [BlockedSenderGate] use -- so a thread stored as `09876543210` comes back when `+919876543210`
+ * is unblocked, just as it was hidden by it. Group threads are never blocked in the first place
+ * (see [MarkBlocked]), so they're left alone here too.
  */
 class UnblockNumber @Inject constructor(
     private val conversationRepository: ConversationRepository,
@@ -29,11 +29,10 @@ class UnblockNumber @Inject constructor(
 ) : UseCase {
 
     suspend operator fun invoke(number: BlockedNumber): UnblockedNumber {
-        val normalized = PhoneNumbers.normalize(number.address)
         val threadIds = conversationRepository.getBlockedConversations().first()
             .filter { conversation ->
                 !conversation.isGroup &&
-                    conversation.recipients.any { PhoneNumbers.normalize(it.address) == normalized }
+                    conversation.recipients.any { PhoneNumbers.isSameSender(it.address, number.address) }
             }
             .map { it.threadId }
 

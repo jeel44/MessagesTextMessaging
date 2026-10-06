@@ -37,6 +37,7 @@ class AnalyticsTest {
         Analytics.drawerItemOpened(DrawerItem.BLOCKED)
         Analytics.numberBlocked()
         Analytics.numberUnblocked()
+        Analytics.callBlocked()
         Analytics.conversationArchived()
         Analytics.messageScheduled()
         Analytics.scheduledCancelled()
@@ -58,6 +59,7 @@ class AnalyticsTest {
                 "drawer_item_opened" to mapOf("item" to "blocked"),
                 "number_blocked" to emptyMap(),
                 "number_unblocked" to emptyMap(),
+                "call_blocked" to emptyMap(),
                 "conversation_archived" to emptyMap(),
                 "message_scheduled" to emptyMap(),
                 "scheduled_cancelled" to emptyMap(),

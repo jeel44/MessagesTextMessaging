@@ -45,6 +45,19 @@ class UnblockNumberTest {
     }
 
     @Test
+    fun unblock_restoresAThreadStoredInAnEquivalentFormat() = runTest {
+        val thread = testConversation(threadId = 1L, isBlocked = true).let {
+            it.copy(recipients = listOf(it.recipients.single().copy(address = "09876543210")))
+        }
+        val conversations = FakeConversationRepository(seed = listOf(thread))
+
+        val outcome = UnblockNumber(conversations, RecordingBlockedNumberRepository())(number("+919876543210"))
+
+        assertEquals(setOf(1L), outcome.restoredThreadIds)
+        assertFalse(conversations.findByThreadId(1L)!!.isBlocked)
+    }
+
+    @Test
     fun unblock_leavesGroupThreadsWithThatNumberAlone() = runTest {
         val conversations = FakeConversationRepository(
             seed = listOf(

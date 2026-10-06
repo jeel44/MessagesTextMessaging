@@ -17,10 +17,12 @@ import text.message.sms.messaging.config.CallEndFeatureFlag
 import text.message.sms.messaging.domain.model.CallDirection
 import text.message.sms.messaging.domain.model.CallOutcome
 import text.message.sms.messaging.domain.model.CallSession
+import text.message.sms.messaging.domain.usecase.BlockedSenderGate
 import text.message.sms.messaging.service.ContentResolverCallLogReader
 import text.message.sms.messaging.service.PostCallHistory
 import text.message.sms.messaging.service.PostCallInfo
 import text.message.sms.messaging.service.PostCallSessionResolver
+import text.message.sms.messaging.service.isBlockedCaller
 import javax.inject.Inject
 
 private const val TAG = "PostCallActivity"
@@ -67,6 +69,9 @@ class PostCallActivity : ComponentActivity() {
     @Inject
     lateinit var postCallHistory: PostCallHistory
 
+    @Inject
+    lateinit var blockedSenderGate: BlockedSenderGate
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) setShowWhenLocked(true)
@@ -90,6 +95,11 @@ class PostCallActivity : ComponentActivity() {
         log("call from extras: $call, fallback session: $fallback")
 
         lifecycleScope.launch {
+            if (skipsCallEndScreen(call?.number, blockedSenderGate::isBlocked)) {
+                log("caller is blocked, finishing without launching")
+                finish()
+                return@launch
+            }
             val session = if (call == null) {
                 null
             } else {
@@ -158,6 +168,19 @@ private fun readPostCallInfo(intent: Intent, endedAt: Long): PostCallInfo? = try
     Log.w(TAG, "POST_CALL extras unreadable", e)
     null
 }
+
+/**
+ * True when the call-end screen must not open because [number] is blocked. AOSP Telecom never
+ * sends `POST_CALL` for a call [text.message.sms.messaging.service.CallScreeningServiceImpl]
+ * rejected (it only names the post-call app on the allowed path), so this guards OEM builds that
+ * do, and a number blocked mid-call. Keyed on the number, not on `EXTRA_DISCONNECT_CAUSE`, since
+ * which cause such a build would send is unknown. Fails open, like the screening itself.
+ */
+internal suspend fun skipsCallEndScreen(number: String?, isBlocked: suspend (String) -> Boolean): Boolean =
+    isBlockedCaller(number, POST_CALL_BLOCK_CHECK_MILLIS, isBlocked)
+
+/** The [skipsCallEndScreen] check's share of [POST_CALL_CALL_LOG_WAIT_MILLIS]'s budget. */
+internal const val POST_CALL_BLOCK_CHECK_MILLIS = 500L
 
 /** The number in a `tel:` handle, or null if it isn't one or doesn't look like a phone number. */
 internal fun validPostCallNumber(scheme: String?, schemeSpecificPart: String?): String? {

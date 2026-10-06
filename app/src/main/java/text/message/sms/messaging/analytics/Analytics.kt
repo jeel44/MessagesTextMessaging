@@ -55,6 +55,9 @@ internal object Analytics {
 
     fun numberUnblocked() = log(AnalyticsEvent.NUMBER_UNBLOCKED)
 
+    /** An incoming call from a blocked number was rejected. Never the number itself. */
+    fun callBlocked() = log(AnalyticsEvent.CALL_BLOCKED)
+
     fun conversationArchived() = log(AnalyticsEvent.CONVERSATION_ARCHIVED)
 
     fun messageScheduled() = log(AnalyticsEvent.MESSAGE_SCHEDULED)
@@ -103,6 +106,7 @@ internal enum class AnalyticsEvent(val eventName: String, val allowedParams: Set
     DRAWER_ITEM_OPENED("drawer_item_opened", setOf(AnalyticsParam.ITEM)),
     NUMBER_BLOCKED("number_blocked", emptySet()),
     NUMBER_UNBLOCKED("number_unblocked", emptySet()),
+    CALL_BLOCKED("call_blocked", emptySet()),
     CONVERSATION_ARCHIVED("conversation_archived", emptySet()),
     MESSAGE_SCHEDULED("message_scheduled", emptySet()),
     SCHEDULED_CANCELLED("scheduled_cancelled", emptySet()),

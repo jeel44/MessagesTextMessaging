@@ -1,8 +1,12 @@
 package text.message.sms.messaging.ui.screens.callend
 
 import android.telecom.DisconnectCause
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import text.message.sms.messaging.domain.model.CallDirection
 import text.message.sms.messaging.domain.model.CallOutcome
@@ -71,5 +75,22 @@ class PostCallExtrasTest {
     @Test
     fun numberWithoutCause_isStillShown() {
         assertEquals("+15551234567", postCallFallbackSession("+15551234567", null, ENDED_AT)?.phoneNumber)
+    }
+
+    @Test
+    fun blockedCaller_skipsTheCallEndScreen() = runTest {
+        assertTrue(skipsCallEndScreen("+919876543210") { true })
+    }
+
+    @Test
+    fun allowedCaller_orNoNumber_stillOpensTheScreen() = runTest {
+        assertFalse(skipsCallEndScreen("+919876543210") { false })
+        assertFalse(skipsCallEndScreen(null) { throw AssertionError("no number, no lookup") })
+    }
+
+    @Test
+    fun failedOrSlowBlockCheck_stillOpensTheScreen() = runTest {
+        assertFalse(skipsCallEndScreen("+919876543210") { throw IllegalStateException("db closed") })
+        assertFalse(skipsCallEndScreen("+919876543210") { delay(POST_CALL_BLOCK_CHECK_MILLIS + 1); true })
     }
 }

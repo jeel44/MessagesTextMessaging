@@ -12,7 +12,11 @@ import text.message.sms.messaging.util.PhoneNumbers
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Room-backed [BlockedNumberRepository]. */
+/**
+ * Room-backed [BlockedNumberRepository]. Rows are stored by [PhoneNumbers.normalize], but matched
+ * with [PhoneNumbers.isSameSender] in memory, so a number blocked as `+919876543210` also blocks
+ * `09876543210` -- a lookup by the stored key alone would miss that.
+ */
 @Singleton
 class LocalBlockedNumberRepository @Inject constructor(
     private val blockedNumberDao: BlockedNumberDao,
@@ -22,7 +26,7 @@ class LocalBlockedNumberRepository @Inject constructor(
         blockedNumberDao.observeAll().map { rows -> rows.map { it.toDomain() } }
 
     override suspend fun isBlocked(address: String): Boolean =
-        blockedNumberDao.isBlocked(PhoneNumbers.normalize(address))
+        blockedNumberDao.getAll().any { PhoneNumbers.isSameSender(it.address, address) }
 
     override suspend fun block(addresses: Collection<String>, reason: BlockReason) {
         val now = System.currentTimeMillis()
@@ -38,7 +42,12 @@ class LocalBlockedNumberRepository @Inject constructor(
         )
     }
 
+    /** Removes every row [isBlocked] would match for [addresses], not just exact ones -- otherwise
+     * unblocking `09876543210` would leave a `+919876543210` row still blocking it. */
     override suspend fun unblock(addresses: Collection<String>) {
-        blockedNumberDao.delete(addresses.map(PhoneNumbers::normalize))
+        val matching = blockedNumberDao.getAll()
+            .filter { row -> addresses.any { PhoneNumbers.isSameSender(row.address, it) } }
+            .map { it.normalizedAddress }
+        blockedNumberDao.delete(matching + addresses.map(PhoneNumbers::normalize))
     }
 }

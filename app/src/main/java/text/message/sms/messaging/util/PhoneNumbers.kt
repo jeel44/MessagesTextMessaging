@@ -37,6 +37,22 @@ object PhoneNumbers {
         return a.isNotEmpty() && a == b
     }
 
+    /**
+     * True when [first] and [second] are the same sender for blocking -- the one rule the block
+     * list, [text.message.sms.messaging.domain.usecase.BlockedSenderGate] (SMS, MMS and calls) and
+     * unblocking all share. Real numbers match by [areEquivalent], so `+91 98765 43210`,
+     * `09876543210` and `9876543210` are one sender. A short code only matches the exact same
+     * digits (its trailing digits say nothing about a different, longer number), and an
+     * alphanumeric sender id only the same id, ignoring case and surrounding spaces -- [normalize]
+     * reduces every all-letter id to "", so comparing those by digits would match them all.
+     */
+    fun isSameSender(first: String, second: String): Boolean = when {
+        !looksLikePhoneNumber(first) || !looksLikePhoneNumber(second) ->
+            first.isNotBlank() && first.trim().equals(second.trim(), ignoreCase = true)
+        isShortCode(first) || isShortCode(second) -> normalize(first) == normalize(second)
+        else -> areEquivalent(first, second)
+    }
+
     /** True for short codes, which cannot receive MMS and are never real contacts. */
     fun isShortCode(address: String): Boolean = normalize(address).length in 1..6
 

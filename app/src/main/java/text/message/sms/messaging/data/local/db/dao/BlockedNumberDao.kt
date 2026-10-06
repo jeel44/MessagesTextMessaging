@@ -12,8 +12,10 @@ interface BlockedNumberDao {
     @Query("SELECT * FROM blocked_numbers ORDER BY blocked_at DESC")
     fun observeAll(): Flow<List<BlockedNumberEntity>>
 
-    @Query("SELECT EXISTS(SELECT 1 FROM blocked_numbers WHERE normalized_address = :normalizedAddress)")
-    suspend fun isBlocked(normalizedAddress: String): Boolean
+    /** Every row, read once -- the list is small, and matching happens in memory (see
+     * [text.message.sms.messaging.util.PhoneNumbers.isSameSender]). */
+    @Query("SELECT * FROM blocked_numbers")
+    suspend fun getAll(): List<BlockedNumberEntity>
 
     @Upsert
     suspend fun upsertAll(numbers: List<BlockedNumberEntity>)
