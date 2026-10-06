@@ -51,6 +51,7 @@ class CallEndLauncherTest {
         overlayGranted: Boolean = true,
         locked: Boolean = false,
         callInProgress: () -> Boolean = { false },
+        claimed: () -> Boolean = { true },
         launchFailure: Exception? = null,
         errors: MutableList<Throwable> = mutableListOf(),
     ) = CallEndLauncher(
@@ -59,6 +60,7 @@ class CallEndLauncherTest {
         canDrawOverlays = { overlayGranted },
         isDeviceLocked = { locked },
         isCallInProgress = callInProgress,
+        tryClaimLaunch = claimed,
         elapsedRealtime = { currentTime },
         launch = { session ->
             launchFailure?.let { throw it }
@@ -162,6 +164,15 @@ class CallEndLauncherTest {
         val launcher = launcher(launches, locked = false, callInProgress = { currentTime >= 500 })
 
         launcher.onCallEnded(signal)
+
+        assertTrue(launches.sessions.isEmpty())
+    }
+
+    @Test
+    fun callEndScreenAlreadyShownForThisCall_doesNotLaunch() = runTest {
+        val launches = Launches()
+
+        launcher(launches, claimed = { false }).onCallEnded(signal)
 
         assertTrue(launches.sessions.isEmpty())
     }

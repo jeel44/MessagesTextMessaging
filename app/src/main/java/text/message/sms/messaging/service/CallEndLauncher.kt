@@ -41,6 +41,10 @@ internal const val LAUNCH_DELAY_UNLOCKED_MILLIS = 1_000L
  * launch's exemption from the platform's background-activity-launch restrictions (see
  * [BackgroundActivityLaunchOverlay]); without it the platform would just drop the launch.
  *
+ * Call-screening role holders also get the screen from the system's `POST_CALL` launch of
+ * [text.message.sms.messaging.ui.screens.callend.PostCallActivity]; [CallEndShownGate], checked
+ * right before the launch, keeps a user with both from seeing it twice for one call.
+ *
  * Every step of the success path is logged under [BuildConfig.DEBUG] -- an earlier version of
  * this path had none, which made a real on-device failure (call detected fine, but no evidence
  * either way of whether [CallEndActivity.start] was ever actually reached) impossible to diagnose
@@ -56,6 +60,7 @@ class CallEndLauncher internal constructor(
     private val canDrawOverlays: () -> Boolean,
     private val isDeviceLocked: () -> Boolean,
     private val isCallInProgress: () -> Boolean,
+    private val tryClaimLaunch: () -> Boolean,
     private val elapsedRealtime: () -> Long,
     private val launch: suspend (CallSession) -> Unit,
     private val log: (message: String, error: Throwable?) -> Unit,
@@ -65,12 +70,14 @@ class CallEndLauncher internal constructor(
     constructor(
         @ApplicationContext context: Context,
         callStateMonitor: CallStateMonitor,
+        callEndShownGate: CallEndShownGate,
     ) : this(
         resolver = CallSessionResolver(ContentResolverCallLogReader(context)),
         isFlagEnabled = OverlayFeatureFlag::isEnabled,
         canDrawOverlays = { Settings.canDrawOverlays(context) },
         isDeviceLocked = { context.getSystemService(KeyguardManager::class.java)?.isKeyguardLocked == true },
         isCallInProgress = { callStateMonitor.isCallInProgress },
+        tryClaimLaunch = callEndShownGate::tryClaim,
         elapsedRealtime = SystemClock::elapsedRealtime,
         launch = { session ->
             BackgroundActivityLaunchOverlay.withVisibleOverlay(context) {
@@ -115,6 +122,12 @@ class CallEndLauncher internal constructor(
         // A new call started while this one's launch was pending -- don't open over its UI.
         if (isCallInProgress()) {
             log("another call is in progress, not launching", null)
+            return
+        }
+
+        // PostCallActivity already opened it for this call end.
+        if (!tryClaimLaunch()) {
+            log("call-end screen already shown for this call, not launching", null)
             return
         }
 

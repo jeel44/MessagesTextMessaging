@@ -190,11 +190,11 @@ class CallEndActivity : ComponentActivity() {
     }
 
     companion object {
-        /** Starts the call-end screen directly, bypassing any notification. Called only when
-         * [android.provider.Settings.canDrawOverlays] is true (see
-         * [text.message.sms.messaging.service.CallEndLauncher]) -- holding that permission
-         * is also what exempts this from the platform's background-activity-launch restrictions
-         * when started from the background.
+        /** Starts the call-end screen directly, bypassing any notification. Called from
+         * [text.message.sms.messaging.service.CallEndLauncher] only when
+         * [android.provider.Settings.canDrawOverlays] is true -- holding that permission is what
+         * exempts this from the platform's background-activity-launch restrictions when started
+         * from the background -- and from [PostCallActivity], which is in the foreground already.
          *
          * `FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS`/`FLAG_ACTIVITY_SINGLE_TOP` are deliberately not
          * added here -- this Activity's manifest entry already declares `excludeFromRecents=true`
