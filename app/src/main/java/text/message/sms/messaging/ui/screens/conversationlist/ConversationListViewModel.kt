@@ -46,6 +46,9 @@ import text.message.sms.messaging.domain.usecase.MarkUnread
 import text.message.sms.messaging.domain.usecase.MarkUnarchived
 import text.message.sms.messaging.domain.usecase.SyncContacts
 import text.message.sms.messaging.domain.usecase.SyncMessages
+import text.message.sms.messaging.analytics.CallScreeningSource
+import text.message.sms.messaging.service.CallScreeningRoleGuard
+import text.message.sms.messaging.service.CallScreeningRoleTracker
 import text.message.sms.messaging.service.DefaultSmsAppGuard
 import text.message.sms.messaging.util.isOtp
 import text.message.sms.messaging.util.isPersonal
@@ -161,7 +164,27 @@ class ConversationListViewModel @Inject constructor(
     private val markBlockedUseCase: MarkBlocked,
     private val markUnblockedUseCase: MarkUnblocked,
     adConsentManager: AdConsentManager,
+    private val callScreeningRoleGuard: CallScreeningRoleGuard,
+    private val callScreeningRoleTracker: CallScreeningRoleTracker,
 ) : ViewModel() {
+
+    /** The "caller info after calls is off" banner -- see [CallScreeningRoleTracker]. Decided once
+     * per process, the first time the inbox opens. */
+    internal val showCallScreeningReask: StateFlow<Boolean> = callScreeningRoleTracker.showReaskBanner
+
+    init {
+        callScreeningRoleTracker.checkOnce()
+    }
+
+    internal fun callScreeningRoleRequestIntent(): Intent? = callScreeningRoleGuard.buildRoleRequestIntent()
+
+    internal fun onCallScreeningRequestResult() =
+        callScreeningRoleTracker.onRoleRequestResult(CallScreeningSource.BANNER)
+
+    internal fun dismissCallScreeningReask() = callScreeningRoleTracker.onReaskDismissed()
+
+    /** Hides the banner if the role came back while the inbox was away. */
+    internal fun refreshCallScreeningReask() = callScreeningRoleTracker.onInboxResumed()
 
     /** Home's bottom banner and its refresh policy -- see [HomeBannerAdManager]. On this
      * ViewModel's scope, so its 30s timer runs from Home's first load for as long as Home exists. */

@@ -1,5 +1,9 @@
 package text.message.sms.messaging.ui.screens.conversationlist
 
+import text.message.sms.messaging.data.local.datastore.CallScreeningState
+import text.message.sms.messaging.data.local.datastore.CallScreeningStore
+import text.message.sms.messaging.service.CallScreeningRoleGuard
+import text.message.sms.messaging.service.CallScreeningRoleTracker
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -177,6 +181,24 @@ class ConversationListViewModelTest {
             markUnblockedUseCase = MarkUnblocked(conversationRepository, blockedNumberRepository),
             // Home's banner never gets a slot attached here (no screen), so it never requests.
             adConsentManager = AdConsentManager(context),
+            callScreeningRoleGuard = CallScreeningRoleGuard(context),
+            // Inert: the role never counts as available, so no banner and nothing stored.
+            callScreeningRoleTracker = CallScreeningRoleTracker(
+                store = object : CallScreeningStore {
+                    override suspend fun read() = CallScreeningState()
+                    override suspend fun markRoleSeenHeld() = Unit
+                    override suspend fun markLossReported() = Unit
+                    override suspend fun recordReaskDismissal(atMillis: Long) = Unit
+                },
+                isCallEndEnabled = { false },
+                isRoleAvailable = { false },
+                isRoleHeld = { false },
+                isDefaultSmsApp = { true },
+                nowMillis = { 0L },
+                scope = applicationScope,
+                logLost = {},
+                logResult = { _, _ -> },
+            ),
         )
         // Routed through a real ViewModelStore (rather than just using builtViewModel directly)
         // purely so tearDown can call the ordinary, public ViewModelStore.clear() -- ViewModel's

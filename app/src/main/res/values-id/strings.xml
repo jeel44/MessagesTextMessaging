@@ -77,6 +77,8 @@
     <string name="home_empty_message">Mulai percakapan dan itu akan muncul di sini.</string>
     <string name="home_not_default_title">Tetapkan #Messages sebagai aplikasi SMS default Anda</string>
     <string name="home_not_default_message">#Pesan harus menjadi aplikasi SMS default Anda untuk menyinkronkan dan menampilkan percakapan Anda di sini.</string>
+    <string name="home_call_screening_lost_message">Info penelepon setelah panggilan nonaktif</string>
+    <string name="home_call_screening_lost_action">Aktifkan</string>
     <string name="home_sync_failed_message">Beberapa pesan tidak dapat dimuat</string>
     <string name="home_sync_retry">Mencoba kembali</string>
     <string name="home_archived_row_title">Diarsipkan</string>

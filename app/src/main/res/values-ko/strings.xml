@@ -76,6 +76,8 @@
     <string name="home_empty_message">대화를 시작하면 여기에 표시됩니다.</string>
     <string name="home_not_default_title">#Messages를 기본 SMS 앱으로 설정</string>
     <string name="home_not_default_message">여기에서 대화를 동기화하고 표시하려면 #Messages가 기본 SMS 앱이어야 합니다.</string>
+    <string name="home_call_screening_lost_message">통화 후 발신자 정보가 꺼져 있습니다</string>
+    <string name="home_call_screening_lost_action">사용</string>
     <string name="home_sync_failed_message">일부 메시지를 로드할 수 없습니다.</string>
     <string name="home_sync_retry">다시 해 보다</string>
     <string name="home_archived_row_title">보관됨</string>

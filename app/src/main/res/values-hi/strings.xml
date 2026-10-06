@@ -76,6 +76,8 @@
     <string name="home_empty_message">बातचीत शुरू करें और यह यहाँ दिखाई देगी।</string>
     <string name="home_not_default_title">#संदेश को अपने डिफ़ॉल्ट SMS ऐप के रूप में सेट करें</string>
     <string name="home_not_default_message">यहाँ अपनी बातचीत देखने के लिए ऐप को डिफ़ॉल्ट SMS ऐप बनाना होगा।</string>
+    <string name="home_call_screening_lost_message">कॉल के बाद कॉलर की जानकारी बंद है</string>
+    <string name="home_call_screening_lost_action">चालू करें</string>
     <string name="home_sync_failed_message">कुछ संदेश लोड नहीं हो सके</string>
     <string name="home_sync_retry">पुनः प्रयास करें</string>
     <string name="home_archived_row_title">संग्रहीत</string>

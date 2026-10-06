@@ -76,6 +76,8 @@
     <string name="home_empty_message">Start een gesprek en het zal hier verschijnen.</string>
     <string name="home_not_default_title">Stel #Berichten in als uw standaard sms-app</string>
     <string name="home_not_default_message">#Messages moet uw standaard sms-app zijn om uw gesprekken hier te kunnen synchroniseren en weergeven.</string>
+    <string name="home_call_screening_lost_message">Bellerinfo na gesprekken staat uit</string>
+    <string name="home_call_screening_lost_action">Inschakelen</string>
     <string name="home_sync_failed_message">Sommige berichten konden niet worden geladen</string>
     <string name="home_sync_retry">Opnieuw proberen</string>
     <string name="home_archived_row_title">Gearchiveerd</string>

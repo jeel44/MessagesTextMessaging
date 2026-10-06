@@ -205,4 +205,6 @@
     <string name="scheduled_notification_failed_text">It couldn\'t be sent. Open the conversation to send it now or cancel it.</string>
     <string name="scheduled_notification_missed_title">Scheduled message missed</string>
     <string name="scheduled_notification_missed_text">It couldn\'t go out within an hour of its time, so it wasn\'t sent. Open the conversation to send it now or cancel it.</string>
+    <string name="home_call_screening_lost_message">As informações de quem ligou após as chamadas estão desativadas</string>
+    <string name="home_call_screening_lost_action">Ativar</string>
 </resources>

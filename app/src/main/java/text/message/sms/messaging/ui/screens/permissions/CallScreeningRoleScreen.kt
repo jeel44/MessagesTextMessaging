@@ -43,9 +43,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import text.message.sms.messaging.R
-import text.message.sms.messaging.analytics.Analytics
-import text.message.sms.messaging.analytics.CallScreeningResult
 import text.message.sms.messaging.service.CallScreeningRoleGuard
 import text.message.sms.messaging.ui.components.ShineButton
 import text.message.sms.messaging.ui.screens.conversationlist.screenSurfaceColor
@@ -71,7 +70,8 @@ private val MinComfortableHeight = 600.dp
  * either way the user moves on); on "Not now", which doesn't open the dialog at all; and straight
  * away -- without showing anything -- when the role is already held or isn't available on this
  * device or API level. The user can grant it later from Settings. Each user-driven outcome is
- * logged as [Analytics.callScreeningResult].
+ * reported to [text.message.sms.messaging.service.CallScreeningRoleTracker] (via
+ * [CallScreeningRoleViewModel]), which also remembers that the role was granted.
  *
  * The dialog is never opened automatically: only by the button.
  *
@@ -82,6 +82,7 @@ private val MinComfortableHeight = 600.dp
 fun CallScreeningRoleScreen(
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: CallScreeningRoleViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val guard = remember(context) { CallScreeningRoleGuard(context.applicationContext) }
@@ -89,14 +90,17 @@ fun CallScreeningRoleScreen(
     // Seeded once: "was there anything to ask for when we arrived", not something to re-read.
     val nothingToAsk = remember(context) { !guard.isAvailable || guard.isHeld }
     LaunchedEffect(nothingToAsk) {
-        if (nothingToAsk) onDone()
+        if (nothingToAsk) {
+            if (guard.isHeld) viewModel.onRoleAlreadyHeld()
+            onDone()
+        }
     }
     if (nothingToAsk) return
 
     val roleRequestLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
     ) {
-        Analytics.callScreeningResult(if (guard.isHeld) CallScreeningResult.GRANTED else CallScreeningResult.DECLINED)
+        viewModel.onRoleRequestResult()
         onDone()
     }
 
@@ -106,7 +110,7 @@ fun CallScreeningRoleScreen(
             guard.buildRoleRequestIntent()?.let(roleRequestLauncher::launch) ?: onDone()
         },
         onNotNowClick = {
-            Analytics.callScreeningResult(CallScreeningResult.SKIPPED)
+            viewModel.onNotNow()
             onDone()
         },
         modifier = modifier,

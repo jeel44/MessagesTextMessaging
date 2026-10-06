@@ -136,10 +136,14 @@ fun SettingsScreen(
     var callScreeningHeld by remember { mutableStateOf(callScreeningGuard.isHeld) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         callScreeningHeld = callScreeningGuard.isHeld
+        viewModel.onCallScreeningRoleChecked(callScreeningHeld)
     }
     val callScreeningRoleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
-    ) { callScreeningHeld = callScreeningGuard.isHeld }
+    ) {
+        callScreeningHeld = callScreeningGuard.isHeld
+        viewModel.onCallScreeningRequestResult()
+    }
 
     // Hardware-capable but not yet grantable/active-checked -> show the row disabled with a
     // permission hint. Hardware-capable and permitted but only one SIM actually active -> hide

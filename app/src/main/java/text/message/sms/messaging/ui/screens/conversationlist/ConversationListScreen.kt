@@ -199,6 +199,7 @@ fun ConversationListScreen(
     val selectedThreadIds = selectedThreadIdsState.value
     val selectedConversations by viewModel.selectedConversations.collectAsStateWithLifecycle()
     val adConsentState by viewModel.adConsentState.collectAsStateWithLifecycle()
+    val showCallScreeningReask by viewModel.showCallScreeningReask.collectAsStateWithLifecycle()
     val isSelectionMode = selectedThreadIds.isNotEmpty()
 
     val context = LocalContext.current
@@ -295,6 +296,7 @@ fun ConversationListScreen(
     LifecycleResumeEffect(Unit) {
         viewModel.refreshDefaultSmsAppStatus()
         viewModel.refreshContactsPermissionStatus()
+        viewModel.refreshCallScreeningReask()
         onPauseOrDispose {}
     }
 
@@ -302,6 +304,12 @@ fun ConversationListScreen(
         contract = ActivityResultContracts.StartActivityForResult(),
     ) {
         viewModel.refreshDefaultSmsAppStatus()
+    }
+
+    val callScreeningRoleLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+    ) {
+        viewModel.onCallScreeningRequestResult()
     }
 
     // Closed and inert while selecting -- the selection top bar replaces the hamburger anyway.
@@ -407,6 +415,17 @@ fun ConversationListScreen(
                         onRequestDefault = {
                             roleRequestLauncher.launch(viewModel.defaultSmsAppRoleRequestIntent())
                         },
+                    )
+                }
+
+                // Never alongside the lost-default-SMS banner above: that one matters more, and
+                // stacking two warnings would bury it.
+                if (showCallScreeningReask && isDefaultSmsApp) {
+                    CallScreeningLostBanner(
+                        onTurnOn = {
+                            viewModel.callScreeningRoleRequestIntent()?.let(callScreeningRoleLauncher::launch)
+                        },
+                        onDismiss = viewModel::dismissCallScreeningReask,
                     )
                 }
 
@@ -922,6 +941,47 @@ private fun LostDefaultSmsAppBanner(onRequestDefault: () -> Unit, modifier: Modi
                 Text(
                     text = stringResource(R.string.set_default_sms_button),
                     color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Dismissible banner for a user who had the call-screening role and lost it to another app, so
+ * the call-end screen stopped -- see [text.message.sms.messaging.service.CallScreeningRoleTracker]
+ * for when it shows. Neutral colors, not the error ones: nothing is broken, a choice was made
+ * elsewhere. [onTurnOn] opens the same role request as onboarding and Settings.
+ */
+@Composable
+private fun CallScreeningLostBanner(onTurnOn: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.home_call_screening_lost_message),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onTurnOn) {
+                Text(
+                    text = stringResource(R.string.home_call_screening_lost_action),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
             }
         }

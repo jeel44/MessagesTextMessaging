@@ -38,9 +38,15 @@ internal object Analytics {
     fun defaultSmsResult(granted: Boolean) =
         log(AnalyticsEvent.DEFAULT_SMS_RESULT, AnalyticsParam.RESULT to if (granted) "granted" else "denied")
 
-    /** How onboarding's call-screening role step ended -- see [CallScreeningResult]. */
-    fun callScreeningResult(result: CallScreeningResult) =
-        log(AnalyticsEvent.CALL_SCREENING_RESULT, AnalyticsParam.RESULT to result.name.lowercase())
+    /** How a call-screening role request from [source] ended -- see [CallScreeningResult]. */
+    fun callScreeningResult(result: CallScreeningResult, source: CallScreeningSource) = log(
+        AnalyticsEvent.CALL_SCREENING_RESULT,
+        AnalyticsParam.RESULT to result.name.lowercase(),
+        AnalyticsParam.SOURCE to source.name.lowercase(),
+    )
+
+    /** The call-screening role, granted once, was found held by another app. Once per loss. */
+    fun callScreeningLost() = log(AnalyticsEvent.CALL_SCREENING_LOST)
 
     fun drawerItemOpened(item: DrawerItem) =
         log(AnalyticsEvent.DRAWER_ITEM_OPENED, AnalyticsParam.ITEM to item.name.lowercase())
@@ -92,7 +98,8 @@ internal enum class AnalyticsEvent(val eventName: String, val allowedParams: Set
     LANGUAGE_SELECTED("language_selected", setOf(AnalyticsParam.LANGUAGE)),
     INTRO_SLIDE_VIEWED("intro_slide_viewed", setOf(AnalyticsParam.INDEX)),
     DEFAULT_SMS_RESULT("default_sms_result", setOf(AnalyticsParam.RESULT)),
-    CALL_SCREENING_RESULT("call_screening_result", setOf(AnalyticsParam.RESULT)),
+    CALL_SCREENING_RESULT("call_screening_result", setOf(AnalyticsParam.RESULT, AnalyticsParam.SOURCE)),
+    CALL_SCREENING_LOST("call_screening_lost", emptySet()),
     DRAWER_ITEM_OPENED("drawer_item_opened", setOf(AnalyticsParam.ITEM)),
     NUMBER_BLOCKED("number_blocked", emptySet()),
     NUMBER_UNBLOCKED("number_unblocked", emptySet()),
@@ -112,15 +119,20 @@ internal enum class AnalyticsParam(val key: String, val numeric: Boolean = false
     LANGUAGE("language"),
     INDEX("index", numeric = true),
     RESULT("result"),
+    SOURCE("source"),
     ITEM("item"),
     PLACEMENT("placement"),
     FORMAT("format"),
 }
 
 /** [GRANTED]/[DECLINED]: the role request dialog came back with the role held, or not.
- * [SKIPPED]: "Not now", without opening the dialog. A step skipped automatically (role already
- * held, or unavailable) logs nothing. */
+ * [SKIPPED]: onboarding's "Not now" or the inbox banner's close, without opening the dialog. An
+ * onboarding step skipped automatically (role already held, or unavailable) logs nothing. */
 internal enum class CallScreeningResult { GRANTED, DECLINED, SKIPPED }
+
+/** Where a [CallScreeningResult] came from: onboarding's role screen, the Settings row, or the
+ * inbox's re-ask banner. */
+internal enum class CallScreeningSource { ONBOARDING, SETTINGS, BANNER }
 
 internal enum class DrawerItem { ARCHIVED, BLOCKED, SCHEDULED, LANGUAGE }
 

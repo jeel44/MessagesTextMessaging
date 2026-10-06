@@ -76,6 +76,8 @@
     <string name="home_empty_message">Starten Sie ein Gespräch und es wird hier angezeigt.</string>
     <string name="home_not_default_title">Legen Sie #Messages als Ihre Standard-SMS-App fest</string>
     <string name="home_not_default_message">#Messages muss Ihre Standard-SMS-App sein, um Ihre Konversationen hier zu synchronisieren und anzuzeigen.</string>
+    <string name="home_call_screening_lost_message">Anruferinfos nach Anrufen sind aus</string>
+    <string name="home_call_screening_lost_action">Einschalten</string>
     <string name="home_sync_failed_message">Einige Nachrichten konnten nicht geladen werden</string>
     <string name="home_sync_retry">Wiederholen</string>
     <string name="home_archived_row_title">Archiviert</string>

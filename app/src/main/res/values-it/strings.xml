@@ -77,6 +77,8 @@
     <string name="home_empty_message">Avvia una conversazione e verrà visualizzata qui.</string>
     <string name="home_not_default_title">Imposta #Messaggi come app SMS predefinita</string>
     <string name="home_not_default_message">#Messages deve essere la tua app SMS predefinita per sincronizzare e mostrare le tue conversazioni qui.</string>
+    <string name="home_call_screening_lost_message">Le info del chiamante dopo le chiamate sono disattivate</string>
+    <string name="home_call_screening_lost_action">Attiva</string>
     <string name="home_sync_failed_message">Impossibile caricare alcuni messaggi</string>
     <string name="home_sync_retry">Riprova</string>
     <string name="home_archived_row_title">Archiviato</string>

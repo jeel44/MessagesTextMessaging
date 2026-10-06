@@ -1,5 +1,7 @@
 package text.message.sms.messaging.ui.screens.settings
 
+import text.message.sms.messaging.analytics.CallScreeningSource
+import text.message.sms.messaging.service.CallScreeningRoleTracker
 import android.app.Activity
 import android.content.Context
 import androidx.compose.ui.graphics.Color
@@ -61,7 +63,17 @@ class SettingsViewModel @Inject constructor(
     private val onboardingPreferences: OnboardingPreferences,
     private val adConsentManager: AdConsentManager,
     private val externalLinks: ExternalLinks,
+    private val callScreeningRoleTracker: CallScreeningRoleTracker,
 ) : ViewModel() {
+
+    /** The "Caller ID & spam" row re-read the role: held counts as granted once. */
+    internal fun onCallScreeningRoleChecked(held: Boolean) {
+        if (held) callScreeningRoleTracker.onRoleSeenHeld()
+    }
+
+    /** The row's role request came back -- logs call_screening_result with source settings. */
+    internal fun onCallScreeningRequestResult() =
+        callScreeningRoleTracker.onRoleRequestResult(CallScreeningSource.SETTINGS)
 
     /** The About section's Rate the app / Privacy policy / Help & feedback rows -- see
      * [ExternalLinks]. [context] is the screen's own, never retained here. */

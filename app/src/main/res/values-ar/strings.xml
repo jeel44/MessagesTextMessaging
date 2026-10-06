@@ -76,6 +76,8 @@
     <string name="home_empty_message">ابدأ محادثة وستظهر هنا.</string>
     <string name="home_not_default_title">قم بتعيين #Messages كتطبيق الرسائل القصيرة الافتراضي لديك</string>
     <string name="home_not_default_message">يجب أن يكون #Messages هو تطبيق الرسائل القصيرة الافتراضي لديك لمزامنة محادثاتك وإظهارها هنا.</string>
+    <string name="home_call_screening_lost_message">معلومات المتصل بعد المكالمات متوقفة</string>
+    <string name="home_call_screening_lost_action">تشغيل</string>
     <string name="home_sync_failed_message">تعذر تحميل بعض الرسائل</string>
     <string name="home_sync_retry">أعد المحاولة</string>
     <string name="home_archived_row_title">مؤرشف</string>
