@@ -44,10 +44,6 @@
     <string name="call_screening_role_mock_row_title">Anrufer-ID- und Spam-App</string>
     <string name="call_screening_role_mock_row_app">Nachrichten</string>
 
-    <string name="battery_optimization_title">Halten Sie Anrufbenachrichtigungen zuverlässig</string>
-    <string name="battery_optimization_body">Ohne dies kann Android #Messages im Hintergrund anhalten und den Moment verpassen, in dem ein Anruf endet.</string>
-    <string name="battery_optimization_button">Zulassen und fortfahren</string>
-    <string name="battery_optimization_reassurance">Sie können dies jederzeit in den Einstellungen deaktivieren.</string>
 
     <!-- Language -->
     <string name="language_title">App-Sprache auswählen</string>

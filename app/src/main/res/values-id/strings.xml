@@ -45,10 +45,6 @@
     <string name="call_screening_role_mock_row_title">Aplikasi ID penelepon &amp; spam</string>
     <string name="call_screening_role_mock_row_app">Pesan</string>
 
-    <string name="battery_optimization_title">Jaga agar peringatan panggilan tetap dapat diandalkan</string>
-    <string name="battery_optimization_body">Tanpa ini, Android dapat menjeda #Pesan di latar belakang dan melewatkan saat panggilan berakhir.</string>
-    <string name="battery_optimization_button">Izinkan &amp; lanjutkan</string>
-    <string name="battery_optimization_reassurance">Anda dapat menonaktifkannya kapan saja di Setelan.</string>
 
     <!-- Language -->
     <string name="language_title">Pilih Bahasa Aplikasi</string>

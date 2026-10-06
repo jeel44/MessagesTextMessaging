@@ -44,10 +44,6 @@
     <string name="call_screening_role_mock_row_title">कॉलर आईडी और स्पैम ऐप</string>
     <string name="call_screening_role_mock_row_app">संदेश</string>
 
-    <string name="battery_optimization_title">कॉल अलर्ट विश्वसनीय रखें</string>
-    <string name="battery_optimization_body">इसके बिना, एंड्रॉइड पृष्ठभूमि में ऐप को रोक सकता है।</string>
-    <string name="battery_optimization_button">अनुमति दें और आगे बढ़ें</string>
-    <string name="battery_optimization_reassurance">आप इसे सेटिंग्स में किसी भी समय बंद कर सकते हैं।</string>
 
     <!-- Language -->
     <string name="language_title">ऐप की भाषा चुनें</string>

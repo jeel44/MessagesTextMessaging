@@ -44,10 +44,6 @@
     <string name="call_screening_role_mock_row_title">발신자 표시 및 스팸 앱</string>
     <string name="call_screening_role_mock_row_app">메시지</string>
 
-    <string name="battery_optimization_title">통화 알림을 안정적으로 유지하세요</string>
-    <string name="battery_optimization_body">이것이 없으면 Android는 백그라운드에서 #Messages를 일시 중지하고 통화가 끝나는 순간을 놓칠 수 있습니다.</string>
-    <string name="battery_optimization_button">허용 및 계속</string>
-    <string name="battery_optimization_reassurance">언제든지 설정에서 이 기능을 끌 수 있습니다.</string>
 
     <!-- Language -->
     <string name="language_title">앱 언어 선택</string>

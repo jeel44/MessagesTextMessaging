@@ -46,10 +46,6 @@
     <string name="call_screening_role_mock_row_title">Caller ID &amp; spam app</string>
     <string name="call_screening_role_mock_row_app">Messages</string>
 
-    <string name="battery_optimization_title">Keep call alerts reliable</string>
-    <string name="battery_optimization_body">Without this, Android can pause #Messages in the background and miss the moment a call ends.</string>
-    <string name="battery_optimization_button">Allow &amp; continue</string>
-    <string name="battery_optimization_reassurance">You can turn this off anytime in Settings.</string>
 
     <!-- Language -->
     <string name="language_title">Select App Language</string>

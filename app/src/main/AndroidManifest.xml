@@ -37,26 +37,15 @@
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
 
-    <!-- Call-end screen's launch trigger needs no permission of its own beyond the ones above and
-         SYSTEM_ALERT_WINDOW below: PhoneStateReceiver (a manifest-registered receiver on the
-         exempted PHONE_STATE implicit broadcast) launches CallEndActivity itself when a call
-         ends, via CallEndLauncher. No service, foreground or otherwise, is involved: no
-         FOREGROUND_SERVICE* permission and no MANAGE_OWN_CALLS. See PhoneStateReceiver's and
-         CallEndLauncher's own doc comments. -->
+    <!-- Call-end screen's launch trigger needs no permission of its own: holding
+         ROLE_CALL_SCREENING (see CallScreeningServiceImpl below) is what makes Telecom launch
+         PostCallActivity via android.telecom.action.POST_CALL after each call, and that activity
+         opens CallEndActivity. No receiver, no service, no overlay: no SYSTEM_ALERT_WINDOW, no
+         FOREGROUND_SERVICE* and no MANAGE_OWN_CALLS. See PostCallActivity's own doc comment. -->
 
     <!-- Notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
-
-    <!-- "Appear on top", requested during onboarding by OverlayPermissionScreen. Used two ways:
-         (1) CallEndLauncher only launches CallEndActivity at all if Settings.canDrawOverlays()
-         is true, doing nothing (DEBUG-log only) otherwise: holding this is what exempts that
-         launch from the platform's background-activity-launch restrictions; (2)
-         BackgroundActivityLaunchOverlay additionally puts a transient, invisible 1x1
-         TYPE_APPLICATION_OVERLAY window on screen around the launch, for the platform's
-         visible-window exemption. See OverlayPermissionGuard, BackgroundActivityLaunchOverlay
-         and CallEndLauncher's own doc comments. -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <!-- Scheduled sends have to survive a reboot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -254,7 +243,7 @@
                 tools:node="remove" />
         </provider>
 
-        <!-- Full-screen call-end popup, launched directly by PhoneStateReceiver/CallEndLauncher (no
+        <!-- Full-screen call-end popup, opened by PostCallActivity after each call (no
              notification, no service). Its own task (taskAffinity + singleTask), excluded from Recents, so
              back/close returns to whatever the user was doing before the call, not into
              MainActivity's task; see CallEndActivity's own doc comment. -->
@@ -284,7 +273,8 @@
         </activity>
 
         <!-- Call screening: declaring a CallScreeningService is what makes this app eligible for
-             RoleManager.ROLE_CALL_SCREENING. Exported for Telecom to bind, and only Telecom can:
+             RoleManager.ROLE_CALL_SCREENING, and holding that role is what gets PostCallActivity
+             launched after each call. Exported for Telecom to bind, and only Telecom can:
              BIND_SCREENING_SERVICE is a system-only permission. Allows every call for now; see
              CallScreeningServiceImpl. -->
         <service

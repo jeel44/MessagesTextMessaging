@@ -134,7 +134,7 @@ fun SetDefaultSmsScreen(
     // Skips this screen entirely when there's genuinely nothing left for it to do -- both the
     // role and the core SMS/MMS permissions already held on entry (e.g. re-entering onboarding
     // after a process death mid-flow, past this step). Seeded once, not re-read on every
-    // recomposition, same reasoning as OverlayPermissionScreen's isGranted: this is a one-shot
+    // recomposition, same reasoning as CallScreeningRoleScreen's nothingToAsk: this is a one-shot
     // "was it already done when we arrived" check, not something that should flip mid-visit.
     val alreadyDone = remember(context) { guard.isDefault && guard.hasCoreSmsPermissions }
 

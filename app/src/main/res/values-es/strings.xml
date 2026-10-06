@@ -44,10 +44,6 @@
     <string name="call_screening_role_mock_row_title">App de identificador de llamadas y spam</string>
     <string name="call_screening_role_mock_row_app">Mensajes</string>
 
-    <string name="battery_optimization_title">Mantenga las alertas de llamadas confiables</string>
-    <string name="battery_optimization_body">Sin esto, Android puede pausar #Mensajes en segundo plano y perderse el momento en que finaliza una llamada.</string>
-    <string name="battery_optimization_button">Permitir y continuar</string>
-    <string name="battery_optimization_reassurance">Puedes desactivar esto en cualquier momento en Configuración.</string>
 
     <!-- Language -->
     <string name="language_title">Seleccionar idioma</string>

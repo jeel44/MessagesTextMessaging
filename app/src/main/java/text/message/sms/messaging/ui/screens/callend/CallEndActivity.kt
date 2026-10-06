@@ -45,8 +45,8 @@ private const val EXTRA_CALL_ENDED_AT = "extra_call_ended_at"
 private const val EXTRA_CALL_DURATION_MILLIS = "extra_call_duration_millis"
 
 /**
- * Full-screen call-end popup, launched directly by [text.message.sms.messaging.service
- * .CallEndLauncher] the instant a call ends (see [start]) -- no notification involved.
+ * Full-screen call-end popup, opened by [PostCallActivity] -- which Telecom launches after each
+ * call for the call-screening role holder -- through [start]. No notification involved.
  *
  * Lives in its own task (`launchMode="singleTask"` plus a dedicated `taskAffinity` and
  * `excludeFromRecents` in the manifest) so back/close returns to whatever the user was doing
@@ -190,11 +190,8 @@ class CallEndActivity : ComponentActivity() {
     }
 
     companion object {
-        /** Starts the call-end screen directly, bypassing any notification. Called from
-         * [text.message.sms.messaging.service.CallEndLauncher] only when
-         * [android.provider.Settings.canDrawOverlays] is true -- holding that permission is what
-         * exempts this from the platform's background-activity-launch restrictions when started
-         * from the background -- and from [PostCallActivity], which is in the foreground already.
+        /** Starts the call-end screen directly, bypassing any notification. Called only from
+         * [PostCallActivity], whose visible (translucent) window is what allows this launch.
          *
          * `FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS`/`FLAG_ACTIVITY_SINGLE_TOP` are deliberately not
          * added here -- this Activity's manifest entry already declares `excludeFromRecents=true`
@@ -213,8 +210,7 @@ class CallEndActivity : ComponentActivity() {
          * re-applies show-when-locked/turn-screen-on in onCreate. (Handling onNewIntent in place
          * would mean swapping the session, contact, tab and ad state inside a live ViewModel.) */
         fun start(context: Context, session: CallSession) {
-            // Backstop -- PhoneStateReceiver and CallEndLauncher already stop earlier with
-            // the call-end flag off.
+            // Backstop -- PostCallActivity already stops earlier with the call-end flag off.
             if (!CallEndFeatureFlag.isEnabled()) return
             val intent = Intent(context, CallEndActivity::class.java)
                 .addFlags(

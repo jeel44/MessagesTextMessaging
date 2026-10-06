@@ -166,10 +166,9 @@ class MessagingApplication : Application(), Configuration.Provider {
         }
         ColdStartTracer.mark("Application.onCreate:afterContactObserverRegisterAndSyncLaunch")
 
-        // Call monitoring (PhoneStateReceiver/CallEndLauncher) needs no bootstrap here --
-        // PhoneStateReceiver is a manifest-registered receiver on the exempted PHONE_STATE
-        // implicit broadcast, so the OS cold-starts the process and dispatches straight to it
-        // whenever a call's state changes; nothing needs to already be running beforehand.
+        // The call-end screen needs no bootstrap here: Telecom launches PostCallActivity itself
+        // (POST_CALL, for the call-screening role holder) after each call, cold-starting the
+        // process if needed; nothing needs to already be running beforehand.
 
         // The observer only needs READ_SMS (it just watches content://sms/content://mms), unlike
         // the sync/alarm work below, which needs the default-SMS role to actually write anything

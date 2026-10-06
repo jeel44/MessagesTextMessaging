@@ -5,19 +5,18 @@ import androidx.compose.runtime.Immutable
 enum class CallDirection { INCOMING, OUTGOING }
 
 /**
- * [MISSED] and [REJECTED] can't always be told apart from [android.telephony.TelephonyManager]
- * call-state alone -- both look like RINGING -> IDLE with no intervening OFFHOOK, whether the
- * user actively declined or simply never answered. [CallStateMonitor][text.message.sms.messaging
- * .service.CallStateMonitor] always reports that transition as [MISSED]; [REJECTED] only ever
- * comes from the call log's own `REJECTED_TYPE`, which can tell the two apart.
+ * [MISSED] and [REJECTED] come from the call log's `MISSED_TYPE`/`REJECTED_TYPE`, or, when the
+ * call log has no usable row, from `POST_CALL`'s disconnect cause (`DisconnectCause.MISSED` /
+ * `REJECTED`).
  */
 enum class CallOutcome { ANSWERED, MISSED, REJECTED }
 
 /**
  * A single completed phone call. Normally built from the call's [android.provider.CallLog.Calls]
- * row once it has ended (see [text.message.sms.messaging.service.CallSessionResolver]); when the
- * call log has no usable row, from what [text.message.sms.messaging.service.CallStateMonitor]
- * saw of the raw telephony call-state transitions instead, which carries no number.
+ * row once it has ended (see [text.message.sms.messaging.service.PostCallSessionResolver]); when
+ * the call log has no usable row, from `POST_CALL`'s own extras instead (handle and disconnect
+ * cause -- no direction or talk time; see
+ * [text.message.sms.messaging.ui.screens.callend.postCallFallbackSession]).
  *
  * @param phoneNumber The other party's number, from the call log. Null when READ_CALL_LOG isn't
  * granted, or nothing was resolvable (e.g. a private/unknown caller) -- callers must degrade

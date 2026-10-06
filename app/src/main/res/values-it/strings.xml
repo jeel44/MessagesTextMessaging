@@ -45,10 +45,6 @@
     <string name="call_screening_role_mock_row_title">App ID chiamante e spam</string>
     <string name="call_screening_role_mock_row_app">Messaggi</string>
 
-    <string name="battery_optimization_title">Mantieni affidabili gli avvisi di chiamata</string>
-    <string name="battery_optimization_body">Senza questo, Android può mettere in pausa #Messaggi in background e perdere il momento in cui termina la chiamata.</string>
-    <string name="battery_optimization_button">Consenti e continua</string>
-    <string name="battery_optimization_reassurance">Puoi disattivare questa funzionalità in qualsiasi momento nelle Impostazioni.</string>
 
     <!-- Language -->
     <string name="language_title">Seleziona la lingua dell\'app</string>

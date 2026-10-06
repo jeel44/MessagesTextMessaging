@@ -44,10 +44,6 @@
     <string name="call_screening_role_mock_row_title">تطبيق معرّف المتصل والمكالمات المزعجة</string>
     <string name="call_screening_role_mock_row_app">رسائل</string>
 
-    <string name="battery_optimization_title">حافظ على موثوقية تنبيهات المكالمات</string>
-    <string name="battery_optimization_body">وبدون ذلك، يمكن لنظام Android إيقاف #Messages مؤقتًا في الخلفية وتفويت لحظة انتهاء المكالمة.</string>
-    <string name="battery_optimization_button">السماح والمتابعة</string>
-    <string name="battery_optimization_reassurance">يمكنك إيقاف هذا في أي وقت في الإعدادات.</string>
 
     <!-- Language -->
     <string name="language_title">اختر لغة التطبيق</string>
