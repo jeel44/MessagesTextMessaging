@@ -65,12 +65,12 @@ class MessagingDatabaseMigrationTest {
         // Opening with the real Room.databaseBuilder (rather than the raw framework helper above)
         // is what actually exercises MessagingDatabase's own @Database(version = 6) declaration
         // against the migrated schema -- a mismatch here (e.g. a hand-written migration that
-        // drifted from the entity) throws IllegalStateException on open. The real database is now
-        // past v6, so the rest of the path is registered too.
+        // drifted from the entity) throws IllegalStateException on open. ALL_MIGRATIONS is the
+        // same list DatabaseModule registers, so a step missing there fails here too.
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val database = Room.databaseBuilder(context, MessagingDatabase::class.java, dbName)
             .openHelperFactory(FrameworkSQLiteOpenHelperFactory())
-            .addMigrations(MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(*ALL_MIGRATIONS)
             .build()
         database.openHelper.writableDatabase
         database.close()
@@ -127,7 +127,7 @@ class MessagingDatabaseMigrationTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val database = Room.databaseBuilder(context, MessagingDatabase::class.java, dbName)
             .openHelperFactory(FrameworkSQLiteOpenHelperFactory())
-            .addMigrations(MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(*ALL_MIGRATIONS)
             .build()
         database.openHelper.writableDatabase
         database.close()

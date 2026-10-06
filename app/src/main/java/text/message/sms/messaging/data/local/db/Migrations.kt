@@ -184,3 +184,18 @@ val MIGRATION_6_7: Migration = object : Migration(6, 7) {
         )
     }
 }
+
+/**
+ * Every migration, oldest first -- the one list both
+ * [text.message.sms.messaging.di.DatabaseModule] and the migration tests register, so a new step
+ * can't be tested without also shipping (or shipped without being tested). Append each new
+ * migration here.
+ */
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(
+    MIGRATION_1_2,
+    MIGRATION_2_3,
+    MIGRATION_3_4,
+    MIGRATION_4_5,
+    MIGRATION_5_6,
+    MIGRATION_6_7,
+)
