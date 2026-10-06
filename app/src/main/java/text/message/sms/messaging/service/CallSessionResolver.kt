@@ -31,7 +31,7 @@ internal const val UNOBSERVED_CALL_END_WINDOW_MILLIS = 120_000L
 
 /** The call log's write can land after the IDLE broadcast, so the row is polled for. Bounded well
  * inside the receiver's `goAsync()` budget (see [PhoneStateReceiver]). */
-private const val POLL_INTERVAL_MILLIS = 250L
+internal const val POLL_INTERVAL_MILLIS = 250L
 private const val POLL_TIMEOUT_MILLIS = 3_000L
 
 /** The columns of a [CallLog.Calls] row that [deriveCallSession] needs. */

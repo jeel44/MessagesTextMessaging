@@ -203,7 +203,15 @@ class CallEndActivity : ComponentActivity() {
          * Intent flags would be redundant. `FLAG_ACTIVITY_NO_USER_ACTION` (this launch isn't a
          * user gesture, so it shouldn't reset idle/screensaver timers as if it were) and
          * `FLAG_ACTIVITY_NO_ANIMATION` (an incoming-call-style instant appearance, not a normal
-         * windowed transition) have no manifest equivalent, so both are set explicitly. */
+         * windowed transition) have no manifest equivalent, so both are set explicitly.
+         *
+         * `FLAG_ACTIVITY_CLEAR_TASK` makes every call end a fresh instance. Without it, singleTask
+         * handed a back-to-back call's intent to the previous call's still-alive instance (left
+         * with Home or a screen-off rather than closed), which ignored it and kept showing the
+         * previous call. Clearing the task finishes that instance instead -- its ViewModel's
+         * onCleared destroys its ad -- and the new one reads its own session, reloads its ad and
+         * re-applies show-when-locked/turn-screen-on in onCreate. (Handling onNewIntent in place
+         * would mean swapping the session, contact, tab and ad state inside a live ViewModel.) */
         fun start(context: Context, session: CallSession) {
             // Backstop -- PhoneStateReceiver and CallEndLauncher already stop earlier with
             // the overlay/call-end flag off.
@@ -211,6 +219,7 @@ class CallEndActivity : ComponentActivity() {
             val intent = Intent(context, CallEndActivity::class.java)
                 .addFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TASK or
                         Intent.FLAG_ACTIVITY_NO_USER_ACTION or
                         Intent.FLAG_ACTIVITY_NO_ANIMATION,
                 )

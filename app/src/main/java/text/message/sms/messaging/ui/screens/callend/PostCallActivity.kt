@@ -2,6 +2,7 @@ package text.message.sms.messaging.ui.screens.callend
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.telecom.DisconnectCause
 import android.telecom.TelecomManager
@@ -17,9 +18,10 @@ import text.message.sms.messaging.domain.model.CallDirection
 import text.message.sms.messaging.domain.model.CallOutcome
 import text.message.sms.messaging.domain.model.CallSession
 import text.message.sms.messaging.service.CallEndShownGate
-import text.message.sms.messaging.service.CallEndSignal
-import text.message.sms.messaging.service.CallSessionResolver
 import text.message.sms.messaging.service.ContentResolverCallLogReader
+import text.message.sms.messaging.service.PostCallHistory
+import text.message.sms.messaging.service.PostCallInfo
+import text.message.sms.messaging.service.PostCallSessionResolver
 import javax.inject.Inject
 
 private const val TAG = "PostCallActivity"
@@ -44,9 +46,13 @@ private val ALLOWED_NUMBER_CHARS = Regex("[0-9+*#()\\-., ;pPwW]+")
  *
  * No UI of its own: a translucent window (not `Theme.NoDisplay`, which must finish before
  * `onResume` and so can't wait on the call log) that resolves the session, opens
- * [CallEndActivity] and finishes. The session comes from the call log, the same lookup
- * [text.message.sms.messaging.service.CallEndLauncher] uses for a call whose start it didn't see,
- * capped at [POST_CALL_CALL_LOG_WAIT_MILLIS]; the intent's extras only build the fallback.
+ * [CallEndActivity] and finishes. The session comes from this call's own call-log row, matched
+ * against the extras' handle and disconnect cause ([PostCallSessionResolver]) -- `POST_CALL` can
+ * arrive before Telecom writes that row, and the latest row is then the previous call's. Capped at
+ * [POST_CALL_CALL_LOG_WAIT_MILLIS]; with no matching row by then, the extras alone build the session.
+ *
+ * Shown over the lock screen (it's transparent, and gone within that cap): a call that ended while
+ * locked still has to open [CallEndActivity], and this window being visible is what lets it.
  *
  * [PhoneStateReceiver][text.message.sms.messaging.service.PhoneStateReceiver] still runs for users
  * with "draw over other apps"; [CallEndShownGate] makes sure one call end opens the screen once.
@@ -65,8 +71,12 @@ class PostCallActivity : ComponentActivity() {
     @Inject
     lateinit var callEndShownGate: CallEndShownGate
 
+    @Inject
+    lateinit var postCallHistory: PostCallHistory
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) setShowWhenLocked(true)
         // Recreated (config change) mid-wait: the first instance's work went with it, and running
         // it again this late would only open the screen after the user has moved on.
         if (savedInstanceState != null) {
@@ -82,17 +92,21 @@ class PostCallActivity : ComponentActivity() {
             return
         }
 
-        val endedAt = System.currentTimeMillis()
-        val fallback = readFallbackSession(intent, endedAt)
-        log("fallback session from extras: $fallback")
+        val call = readPostCallInfo(intent, endedAt = System.currentTimeMillis())
+        val fallback = call?.let { postCallFallbackSession(it.number, it.disconnectCause, it.endedAt) }
+        log("call from extras: $call, fallback session: $fallback")
 
         lifecycleScope.launch {
-            val resolver = CallSessionResolver(
-                ContentResolverCallLogReader(applicationContext),
-                pollTimeoutMillis = POST_CALL_CALL_LOG_WAIT_MILLIS,
-            )
-            // No observed start: the call log's most recent row is accepted if it ended recently.
-            val session = resolver.resolve(CallEndSignal(endedAt = endedAt, observedStartAt = null, observed = fallback))
+            val session = if (call == null) {
+                null
+            } else {
+                PostCallSessionResolver(
+                    reader = ContentResolverCallLogReader(applicationContext),
+                    history = postCallHistory,
+                    pollTimeoutMillis = POST_CALL_CALL_LOG_WAIT_MILLIS,
+                    log = ::log,
+                ).resolve(call, fallback)
+            }
             when {
                 session == null -> log("no session from the call log or the extras, finishing")
                 !callEndShownGate.tryClaim(session.phoneNumber) -> log("call-end screen already shown for this call, finishing")
@@ -132,10 +146,10 @@ private fun logAllExtras(intent: Intent) {
     }
 }
 
-/** Reads and validates the `POST_CALL` extras into [postCallFallbackSession]'s inputs. Never
- * throws: an extras bundle a sender stuffed with an unparcelable value just yields no fallback. */
+/** Reads and validates the `POST_CALL` extras. Never throws: an extras bundle a sender stuffed
+ * with an unparcelable value just yields null, and no screen. */
 @Suppress("DEPRECATION")
-private fun readFallbackSession(intent: Intent, endedAt: Long): CallSession? = try {
+private fun readPostCallInfo(intent: Intent, endedAt: Long): PostCallInfo? = try {
     val handle = IntentCompat.getParcelableExtra(intent, TelecomManager.EXTRA_HANDLE, Uri::class.java)
     val extras = intent.extras
     val disconnectCause = extras?.get(TelecomManager.EXTRA_DISCONNECT_CAUSE) as? Int
@@ -143,13 +157,13 @@ private fun readFallbackSession(intent: Intent, endedAt: Long): CallSession? = t
     val durationBucket = (extras?.get(TelecomManager.EXTRA_CALL_DURATION) as? Int)
         ?.takeIf { it in TelecomManager.DURATION_VERY_SHORT..TelecomManager.DURATION_LONG }
     if (BuildConfig.DEBUG) Log.d(TAG, "validated: handle=$handle cause=$disconnectCause durationBucket=$durationBucket")
-    postCallFallbackSession(
+    PostCallInfo(
         number = validPostCallNumber(handle?.scheme, handle?.schemeSpecificPart),
         disconnectCause = disconnectCause,
         endedAt = endedAt,
     )
 } catch (e: Exception) {
-    Log.w(TAG, "POST_CALL extras unreadable, no fallback session", e)
+    Log.w(TAG, "POST_CALL extras unreadable", e)
     null
 }
 
