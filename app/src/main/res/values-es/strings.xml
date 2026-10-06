@@ -42,6 +42,13 @@
     <string name="overlay_permission_reassurance">Puedes desactivar esto en cualquier momento en Configuración.</string>
     <string name="overlay_permission_mock_row_allow">Permitir visualización sobre otras aplicaciones y aparecer en la parte superior</string>
     <string name="overlay_permission_mock_row_app">Mensajes</string>
+    <string name="call_screening_role_title">Ver quién llamó</string>
+    <string name="call_screening_role_body">Justo después de cada llamada, Mensajes muestra quién llamó, con acciones rápidas para devolver la llamada o responder por SMS.</string>
+    <string name="call_screening_role_button">Establecer como app de identificador de llamadas</string>
+    <string name="call_screening_role_not_now">Ahora no</string>
+    <string name="call_screening_role_reassurance">Puedes cambiarlo en cualquier momento en Ajustes.</string>
+    <string name="call_screening_role_mock_row_title">App de identificador de llamadas y spam</string>
+    <string name="call_screening_role_mock_row_app">Mensajes</string>
 
     <string name="battery_optimization_title">Mantenga las alertas de llamadas confiables</string>
     <string name="battery_optimization_body">Sin esto, Android puede pausar #Mensajes en segundo plano y perderse el momento en que finaliza una llamada.</string>
@@ -293,6 +300,9 @@
 
     <string name="settings_default_app_title">Aplicación SMS predeterminada</string>
     <string name="settings_default_app_summary">Establecer #Mensajes como app predeterminada</string>
+    <string name="settings_call_screening_title">Identificador de llamadas y spam</string>
+    <string name="settings_call_screening_summary_on">Activado · Muestra la información de quien llama tras cada llamada</string>
+    <string name="settings_call_screening_summary_off">Desactivado · Toca para activarlo</string>
     <string name="settings_language_title">Idioma</string>
     <string name="settings_notifications_title">Notificaciones</string>
     <string name="settings_notifications_summary">Mostrar notificaciones de nuevos mensajes</string>

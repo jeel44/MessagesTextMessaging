@@ -42,6 +42,13 @@
     <string name="overlay_permission_reassurance">Vous pouvez désactiver cette option à tout moment dans les paramètres.</string>
     <string name="overlay_permission_mock_row_allow">Autoriser l\'affichage sur d\'autres applications et apparaître en premier</string>
     <string name="overlay_permission_mock_row_app">Messages</string>
+    <string name="call_screening_role_title">Voir qui a appelé</string>
+    <string name="call_screening_role_body">Juste après chaque appel, Messages affiche qui a appelé, avec des actions rapides pour rappeler ou répondre par SMS.</string>
+    <string name="call_screening_role_button">Définir comme app d\'identification de l\'appelant</string>
+    <string name="call_screening_role_not_now">Pas maintenant</string>
+    <string name="call_screening_role_reassurance">Vous pouvez modifier ce choix à tout moment dans les paramètres.</string>
+    <string name="call_screening_role_mock_row_title">App d\'identification de l\'appelant et de spam</string>
+    <string name="call_screening_role_mock_row_app">Messages</string>
 
     <string name="battery_optimization_title">Gardez les alertes d\'appel fiables</string>
     <string name="battery_optimization_body">Sans cela, Android peut suspendre les #Messages en arrière-plan et manquer le moment où un appel se termine.</string>
@@ -293,6 +300,9 @@
 
     <string name="settings_default_app_title">Application SMS par défaut</string>
     <string name="settings_default_app_summary">Définir #Messages comme application par défaut</string>
+    <string name="settings_call_screening_title">Identification de l\'appelant et spam</string>
+    <string name="settings_call_screening_summary_on">Activé · Affiche les infos de l\'appelant après chaque appel</string>
+    <string name="settings_call_screening_summary_off">Désactivé · Appuyez pour activer</string>
     <string name="settings_language_title">Langue</string>
     <string name="settings_notifications_title">Notifications</string>
     <string name="settings_notifications_summary">Afficher une notification pour les nouveaux messages</string>

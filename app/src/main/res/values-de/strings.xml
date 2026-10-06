@@ -42,6 +42,13 @@
     <string name="overlay_permission_reassurance">Sie können dies jederzeit in den Einstellungen deaktivieren.</string>
     <string name="overlay_permission_mock_row_allow">Anzeige über anderen Apps zulassen und oben erscheinen</string>
     <string name="overlay_permission_mock_row_app">Nachrichten</string>
+    <string name="call_screening_role_title">Sehen, wer angerufen hat</string>
+    <string name="call_screening_role_body">Direkt nach jedem Anruf zeigt Nachrichten, wer angerufen hat – mit Schnellaktionen zum Zurückrufen oder Antworten per SMS.</string>
+    <string name="call_screening_role_button">Als Anrufer-ID-App festlegen</string>
+    <string name="call_screening_role_not_now">Nicht jetzt</string>
+    <string name="call_screening_role_reassurance">Sie können dies jederzeit in den Einstellungen ändern.</string>
+    <string name="call_screening_role_mock_row_title">Anrufer-ID- und Spam-App</string>
+    <string name="call_screening_role_mock_row_app">Nachrichten</string>
 
     <string name="battery_optimization_title">Halten Sie Anrufbenachrichtigungen zuverlässig</string>
     <string name="battery_optimization_body">Ohne dies kann Android #Messages im Hintergrund anhalten und den Moment verpassen, in dem ein Anruf endet.</string>
@@ -293,6 +300,9 @@
 
     <string name="settings_default_app_title">Standard-SMS-App</string>
     <string name="settings_default_app_summary">#Nachrichten als Standard-SMS-App festlegen</string>
+    <string name="settings_call_screening_title">Anrufer-ID &amp; Spam</string>
+    <string name="settings_call_screening_summary_on">An · Zeigt Anruferinfos nach jedem Anruf</string>
+    <string name="settings_call_screening_summary_off">Aus · Zum Aktivieren tippen</string>
     <string name="settings_language_title">Sprache</string>
     <string name="settings_notifications_title">Benachrichtigungen</string>
     <string name="settings_notifications_summary">Benachrichtigung bei neuen Nachrichten anzeigen</string>

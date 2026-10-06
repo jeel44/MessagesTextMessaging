@@ -43,7 +43,7 @@ import text.message.sms.messaging.ui.screens.onboarding.OnboardingProgressViewMo
 import text.message.sms.messaging.ui.screens.onboarding.SetDefaultSmsScreen
 import text.message.sms.messaging.ui.screens.onboarding.SplashScreen
 import text.message.sms.messaging.ui.screens.onboarding.WelcomeScreen
-import text.message.sms.messaging.ui.screens.permissions.OverlayPermissionScreen
+import text.message.sms.messaging.ui.screens.permissions.CallScreeningRoleScreen
 import text.message.sms.messaging.ui.screens.search.SearchScreen
 import text.message.sms.messaging.ui.screens.settings.SettingsScreen
 
@@ -126,7 +126,7 @@ fun MessagingNavHost(
             )
         }
 
-        // Onboarding, in order: Language -> Intro -> Welcome -> OverlayPermission -> SetDefaultSms
+        // Onboarding, in order: Language -> Intro -> Welcome -> CallScreeningRole -> SetDefaultSms
         // -> inbox. Each step's "done" stores the next step before navigating there (see
         // OnboardingProgressViewModel), so Splash resumes at it after a process death.
         composable(MessagingDestination.Language.route) {
@@ -156,9 +156,9 @@ fun MessagingNavHost(
         composable(MessagingDestination.Welcome.route) {
             WelcomeScreen(
                 onContinue = {
-                    // OverlayPermission, or straight to SetDefaultSms with the overlay/call-end
+                    // CallScreeningRole, or straight to SetDefaultSms with the overlay/call-end
                     // flag off.
-                    val next = applyOverlayFlag(OnboardingStep.OVERLAY, OverlayFeatureFlag.isEnabled())
+                    val next = applyOverlayFlag(OnboardingStep.CALL_SCREENING, OverlayFeatureFlag.isEnabled())
                     onboardingProgress.advanceTo(next) {
                         navController.navigate(next.route()) {
                             popUpTo(MessagingDestination.Welcome.route) { inclusive = true }
@@ -168,20 +168,20 @@ fun MessagingNavHost(
             )
         }
 
-        composable(MessagingDestination.OverlayPermission.route) {
-            val onOverlayDone = {
+        composable(MessagingDestination.CallScreeningRole.route) {
+            val onCallScreeningDone = {
                 onboardingProgress.advanceTo(OnboardingStep.SET_DEFAULT_SMS) {
                     navController.navigate(MessagingDestination.SetDefaultSms.route) {
-                        popUpTo(MessagingDestination.OverlayPermission.route) { inclusive = true }
+                        popUpTo(MessagingDestination.CallScreeningRole.route) { inclusive = true }
                     }
                 }
             }
             if (OverlayFeatureFlag.isEnabled()) {
-                OverlayPermissionScreen(onGranted = onOverlayDone)
+                CallScreeningRoleScreen(onDone = onCallScreeningDone)
             } else {
                 // Backstop only -- Welcome and Splash never route here with the flag off. Moves
-                // straight on instead of ever showing (and requesting) the permission.
-                LaunchedEffect(Unit) { onOverlayDone() }
+                // straight on instead of ever showing (and requesting) the role.
+                LaunchedEffect(Unit) { onCallScreeningDone() }
             }
         }
 
@@ -382,7 +382,7 @@ private fun OnboardingStep.route(): String = when (this) {
     OnboardingStep.LANGUAGE -> MessagingDestination.Language.route
     OnboardingStep.INTRO -> MessagingDestination.Intro.route
     OnboardingStep.WELCOME -> MessagingDestination.Welcome.route
-    OnboardingStep.OVERLAY -> MessagingDestination.OverlayPermission.route
+    OnboardingStep.CALL_SCREENING -> MessagingDestination.CallScreeningRole.route
     OnboardingStep.SET_DEFAULT_SMS -> MessagingDestination.SetDefaultSms.route
     OnboardingStep.DONE -> MessagingDestination.ConversationList.route
 }

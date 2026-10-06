@@ -42,6 +42,13 @@
     <string name="overlay_permission_reassurance">आप इसे सेटिंग्स में किसी भी समय बंद कर सकते हैं।</string>
     <string name="overlay_permission_mock_row_allow">अन्य ऐप्स पर प्रदर्शन की अनुमति दें और शीर्ष पर प्रदर्शित हों</string>
     <string name="overlay_permission_mock_row_app">संदेशों</string>
+    <string name="call_screening_role_title">देखें किसने कॉल किया</string>
+    <string name="call_screening_role_body">हर कॉल के तुरंत बाद, संदेश दिखाता है कि किसने कॉल किया, साथ ही वापस कॉल करने या SMS से जवाब देने के त्वरित विकल्प।</string>
+    <string name="call_screening_role_button">कॉलर आईडी ऐप के रूप में सेट करें</string>
+    <string name="call_screening_role_not_now">अभी नहीं</string>
+    <string name="call_screening_role_reassurance">आप इसे कभी भी सेटिंग में बदल सकते हैं।</string>
+    <string name="call_screening_role_mock_row_title">कॉलर आईडी और स्पैम ऐप</string>
+    <string name="call_screening_role_mock_row_app">संदेश</string>
 
     <string name="battery_optimization_title">कॉल अलर्ट विश्वसनीय रखें</string>
     <string name="battery_optimization_body">इसके बिना, एंड्रॉइड पृष्ठभूमि में ऐप को रोक सकता है।</string>
@@ -293,6 +300,9 @@
 
     <string name="settings_default_app_title">डिफ़ॉल्ट SMS ऐप</string>
     <string name="settings_default_app_summary">#संदेश को अपने डिफ़ॉल्ट SMS ऐप के रूप में सेट करें</string>
+    <string name="settings_call_screening_title">कॉलर आईडी और स्पैम</string>
+    <string name="settings_call_screening_summary_on">चालू · हर कॉल के बाद कॉलर की जानकारी दिखाता है</string>
+    <string name="settings_call_screening_summary_off">बंद · चालू करने के लिए टैप करें</string>
     <string name="settings_language_title">भाषा</string>
     <string name="settings_notifications_title">सूचनाएं</string>
     <string name="settings_notifications_summary">नए संदेशों के लिए सूचना दिखाएं</string>

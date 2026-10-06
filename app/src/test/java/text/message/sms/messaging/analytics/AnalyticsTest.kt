@@ -30,6 +30,9 @@ class AnalyticsTest {
         Analytics.languageSelected("system")
         Analytics.introSlideViewed(2)
         Analytics.defaultSmsResult(granted = false)
+        Analytics.callScreeningResult(CallScreeningResult.GRANTED)
+        Analytics.callScreeningResult(CallScreeningResult.DECLINED)
+        Analytics.callScreeningResult(CallScreeningResult.SKIPPED)
         Analytics.drawerItemOpened(DrawerItem.BLOCKED)
         Analytics.numberBlocked()
         Analytics.numberUnblocked()
@@ -47,6 +50,9 @@ class AnalyticsTest {
                 "language_selected" to mapOf("language" to "system"),
                 "intro_slide_viewed" to mapOf("index" to 2L),
                 "default_sms_result" to mapOf("result" to "denied"),
+                "call_screening_result" to mapOf("result" to "granted"),
+                "call_screening_result" to mapOf("result" to "declined"),
+                "call_screening_result" to mapOf("result" to "skipped"),
                 "drawer_item_opened" to mapOf("item" to "blocked"),
                 "number_blocked" to emptyMap(),
                 "number_unblocked" to emptyMap(),
@@ -82,6 +88,7 @@ class AnalyticsTest {
         }
         OnboardingStep.entries.forEach { assertTrue(Analytics.onboardingStep(it)) }
         DrawerItem.entries.forEach { assertTrue(Analytics.drawerItemOpened(it)) }
+        CallScreeningResult.entries.forEach { assertTrue(Analytics.callScreeningResult(it)) }
     }
 
     @Test

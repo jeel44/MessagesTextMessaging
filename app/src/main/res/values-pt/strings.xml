@@ -41,6 +41,13 @@
     <string name="overlay_permission_body">Veja quem está ligando e responda instantaneamente, mesmo quando a tela estiver bloqueada.</string>
     <string name="overlay_permission_button">Ativar e continuar</string>
     <string name="overlay_permission_reassurance">Você pode desativar isso a qualquer momento nas Configurações.</string>
+    <string name="call_screening_role_title">Veja quem ligou</string>
+    <string name="call_screening_role_body">Logo após cada chamada, o Mensagens mostra quem ligou, com ações rápidas para retornar a ligação ou responder por SMS.</string>
+    <string name="call_screening_role_button">Definir como app de identificador de chamadas</string>
+    <string name="call_screening_role_not_now">Agora não</string>
+    <string name="call_screening_role_reassurance">Você pode alterar isso a qualquer momento nas Configurações.</string>
+    <string name="call_screening_role_mock_row_title">App de identificador de chamadas e spam</string>
+    <string name="call_screening_role_mock_row_app">Mensagens</string>
 
     <!-- Language -->
     <string name="language_title">Selecionar idioma do aplicativo</string>
@@ -111,6 +118,9 @@
 
     <string name="settings_default_app_title">App SMS padrão</string>
     <string name="settings_default_app_summary">Definir #Mensagens como seu app de SMS padrão</string>
+    <string name="settings_call_screening_title">Identificador de chamadas e spam</string>
+    <string name="settings_call_screening_summary_on">Ativado · Mostra informações de quem ligou após cada chamada</string>
+    <string name="settings_call_screening_summary_off">Desativado · Toque para ativar</string>
     <string name="settings_language_title">Idioma</string>
     <string name="settings_notifications_title">Notificações</string>
     <string name="settings_notifications_summary">Mostrar notificação para novas mensagens</string>

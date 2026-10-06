@@ -44,6 +44,13 @@
     <string name="overlay_permission_reassurance">You can turn this off anytime in Settings.</string>
     <string name="overlay_permission_mock_row_allow">Allow display over other apps &amp; appear on top</string>
     <string name="overlay_permission_mock_row_app">Messages</string>
+    <string name="call_screening_role_title">See who called</string>
+    <string name="call_screening_role_body">Right after each call, Messages shows who called, with quick actions to call back or reply by text.</string>
+    <string name="call_screening_role_button">Set as caller ID app</string>
+    <string name="call_screening_role_not_now">Not now</string>
+    <string name="call_screening_role_reassurance">You can change this anytime in Settings.</string>
+    <string name="call_screening_role_mock_row_title">Caller ID &amp; spam app</string>
+    <string name="call_screening_role_mock_row_app">Messages</string>
 
     <string name="battery_optimization_title">Keep call alerts reliable</string>
     <string name="battery_optimization_body">Without this, Android can pause #Messages in the background and miss the moment a call ends.</string>
@@ -327,6 +334,9 @@
 
     <string name="settings_default_app_title">Default SMS app</string>
     <string name="settings_default_app_summary">Set #Messages as your default SMS app</string>
+    <string name="settings_call_screening_title">Caller ID &amp; spam</string>
+    <string name="settings_call_screening_summary_on">On · Shows caller info after each call</string>
+    <string name="settings_call_screening_summary_off">Off · Tap to turn on</string>
     <string name="settings_language_title">Language</string>
     <string name="settings_notifications_title">Notifications</string>
     <string name="settings_notifications_summary">Show a notification for new messages</string>

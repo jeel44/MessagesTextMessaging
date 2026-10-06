@@ -42,6 +42,13 @@
     <string name="overlay_permission_reassurance">Je kunt dit op elk gewenst moment uitschakelen via Instellingen.</string>
     <string name="overlay_permission_mock_row_allow">Weergave boven andere apps toestaan ​​en bovenaan verschijnen</string>
     <string name="overlay_permission_mock_row_app">Berichten</string>
+    <string name="call_screening_role_title">Zie wie er belde</string>
+    <string name="call_screening_role_body">Direct na elk gesprek laat Berichten zien wie er belde, met snelle acties om terug te bellen of per sms te antwoorden.</string>
+    <string name="call_screening_role_button">Instellen als nummerweergave-app</string>
+    <string name="call_screening_role_not_now">Niet nu</string>
+    <string name="call_screening_role_reassurance">U kunt dit altijd wijzigen via Instellingen.</string>
+    <string name="call_screening_role_mock_row_title">Nummerweergave- en spam-app</string>
+    <string name="call_screening_role_mock_row_app">Berichten</string>
 
     <string name="battery_optimization_title">Houd oproepwaarschuwingen betrouwbaar</string>
     <string name="battery_optimization_body">Zonder dit kan Android #Berichten op de achtergrond pauzeren en het moment missen waarop een gesprek wordt beëindigd.</string>
@@ -293,6 +300,9 @@
 
     <string name="settings_default_app_title">Standaard sms-app</string>
     <string name="settings_default_app_summary">Stel #Berichten in als uw standaard sms-app</string>
+    <string name="settings_call_screening_title">Nummerweergave en spam</string>
+    <string name="settings_call_screening_summary_on">Aan · Toont bellerinfo na elk gesprek</string>
+    <string name="settings_call_screening_summary_off">Uit · Tik om in te schakelen</string>
     <string name="settings_language_title">Taal</string>
     <string name="settings_notifications_title">Meldingen</string>
     <string name="settings_notifications_summary">Toon een melding voor nieuwe berichten</string>

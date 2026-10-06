@@ -42,6 +42,13 @@
     <string name="overlay_permission_reassurance">يمكنك إيقاف هذا في أي وقت في الإعدادات.</string>
     <string name="overlay_permission_mock_row_allow">السماح بالعرض على التطبيقات الأخرى والظهور في الأعلى</string>
     <string name="overlay_permission_mock_row_app">رسائل</string>
+    <string name="call_screening_role_title">اعرف من اتصل بك</string>
+    <string name="call_screening_role_body">مباشرةً بعد كل مكالمة، يعرض تطبيق رسائل من اتصل بك، مع إجراءات سريعة لمعاودة الاتصال أو الرد برسالة نصية.</string>
+    <string name="call_screening_role_button">تعيين كتطبيق معرّف المتصل</string>
+    <string name="call_screening_role_not_now">ليس الآن</string>
+    <string name="call_screening_role_reassurance">يمكنك تغيير ذلك في أي وقت من الإعدادات.</string>
+    <string name="call_screening_role_mock_row_title">تطبيق معرّف المتصل والمكالمات المزعجة</string>
+    <string name="call_screening_role_mock_row_app">رسائل</string>
 
     <string name="battery_optimization_title">حافظ على موثوقية تنبيهات المكالمات</string>
     <string name="battery_optimization_body">وبدون ذلك، يمكن لنظام Android إيقاف #Messages مؤقتًا في الخلفية وتفويت لحظة انتهاء المكالمة.</string>
@@ -293,6 +300,9 @@
 
     <string name="settings_default_app_title">تطبيق الرسائل الافتراضي</string>
     <string name="settings_default_app_summary">تعيين #الرسائل كتطبيق الرسائل الافتراضي</string>
+    <string name="settings_call_screening_title">معرّف المتصل والمكالمات المزعجة</string>
+    <string name="settings_call_screening_summary_on">مفعّل · يعرض معلومات المتصل بعد كل مكالمة</string>
+    <string name="settings_call_screening_summary_off">غير مفعّل · انقر للتفعيل</string>
     <string name="settings_language_title">اللغة</string>
     <string name="settings_notifications_title">الإشعارات</string>
     <string name="settings_notifications_summary">إظهار إشعار للرسائل الجديدة</string>

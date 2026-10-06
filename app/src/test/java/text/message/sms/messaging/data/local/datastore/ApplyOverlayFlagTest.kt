@@ -7,7 +7,7 @@ import org.junit.Test
 /**
  * [applyOverlayFlag] with the overlay/call-end flag passed in explicitly, so these don't depend on
  * the Remote Config value in OverlayFeatureFlag. Covers both uses: the step Splash resumes at, and the
- * step Welcome moves on to (always [OnboardingStep.OVERLAY] going in).
+ * step Welcome moves on to (always [OnboardingStep.CALL_SCREENING] going in).
  */
 class ApplyOverlayFlagTest {
 
@@ -19,36 +19,36 @@ class ApplyOverlayFlagTest {
     }
 
     @Test
-    fun flagOff_savedOverlayResumesAtSetDefaultSms() {
-        assertEquals(OnboardingStep.SET_DEFAULT_SMS, applyOverlayFlag(OnboardingStep.OVERLAY, overlayEnabled = false))
+    fun flagOff_savedCallScreeningResumesAtSetDefaultSms() {
+        assertEquals(OnboardingStep.SET_DEFAULT_SMS, applyOverlayFlag(OnboardingStep.CALL_SCREENING, overlayEnabled = false))
     }
 
     @Test
     fun flagOff_everyOtherStepIsUnchanged() {
-        OnboardingStep.entries.filter { it != OnboardingStep.OVERLAY }.forEach { step ->
+        OnboardingStep.entries.filter { it != OnboardingStep.CALL_SCREENING }.forEach { step ->
             assertEquals(step, applyOverlayFlag(step, overlayEnabled = false))
         }
     }
 
     @Test
-    fun flagOff_nothingResolvesToOverlay() {
+    fun flagOff_nothingResolvesToCallScreening() {
         OnboardingStep.entries.forEach { step ->
-            assertNotEquals(OnboardingStep.OVERLAY, applyOverlayFlag(step, overlayEnabled = false))
+            assertNotEquals(OnboardingStep.CALL_SCREENING, applyOverlayFlag(step, overlayEnabled = false))
         }
     }
 
     @Test
     fun welcomeNextStep_followsTheFlag() {
-        assertEquals(OnboardingStep.OVERLAY, applyOverlayFlag(OnboardingStep.OVERLAY, overlayEnabled = true))
-        assertEquals(OnboardingStep.SET_DEFAULT_SMS, applyOverlayFlag(OnboardingStep.OVERLAY, overlayEnabled = false))
+        assertEquals(OnboardingStep.CALL_SCREENING, applyOverlayFlag(OnboardingStep.CALL_SCREENING, overlayEnabled = true))
+        assertEquals(OnboardingStep.SET_DEFAULT_SMS, applyOverlayFlag(OnboardingStep.CALL_SCREENING, overlayEnabled = false))
     }
 
-    /** The full resume path: a legacy/stored value resolved by [resolveOnboardingStep], then the
-     * flag applied, as SplashViewModel does. */
+    /** The full resume path: the legacy stored `OVERLAY` resolved by [resolveOnboardingStep] (to
+     * its replacement), then the flag applied, as SplashViewModel does. */
     @Test
-    fun storedOverlay_resolvedThenFlagged() {
+    fun storedLegacyOverlay_resolvedThenFlagged() {
         val stored = resolveOnboardingStep("OVERLAY", legacyOnboardingComplete = false, legacyIntroPending = false)
-        assertEquals(OnboardingStep.OVERLAY, applyOverlayFlag(stored, overlayEnabled = true))
+        assertEquals(OnboardingStep.CALL_SCREENING, applyOverlayFlag(stored, overlayEnabled = true))
         assertEquals(OnboardingStep.SET_DEFAULT_SMS, applyOverlayFlag(stored, overlayEnabled = false))
     }
 }

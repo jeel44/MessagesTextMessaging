@@ -120,7 +120,7 @@ internal class SplashViewModel @Inject constructor(
         if (started) return
         started = true
         viewModelScope.launch {
-            // A saved OVERLAY resumes at SetDefaultSms while the overlay/call-end flag is off.
+            // A saved CALL_SCREENING resumes at SetDefaultSms while the overlay/call-end flag is off.
             exit = applyOverlayFlag(onboardingPreferences.currentStep.first(), OverlayFeatureFlag.isEnabled())
             val onboardingComplete = exit == OnboardingStep.DONE
             // Completed onboarding implies an earlier launch, even from before this flag existed.

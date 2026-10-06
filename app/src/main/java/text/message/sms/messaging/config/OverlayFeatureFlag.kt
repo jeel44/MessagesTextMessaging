@@ -10,11 +10,11 @@ private const val TAG = "OverlayFeatureFlag"
 /**
  * The overlay-permission + call-end feature flag's Firebase Remote Config parameter (boolean).
  *
- * - true: onboarding asks for "draw over other apps" (OverlayPermissionScreen) and the call-end
+ * - true: onboarding asks for the call-screening role (CallScreeningRoleScreen) and the call-end
  *   screen opens after each call.
- * - false: overlay + call-end disabled -- onboarding skips OverlayPermission (Welcome goes
- *   straight to SetDefaultSms), the overlay permission is never requested, and
- *   PhoneStateReceiver/CallEndLauncher/CallEndActivity never show the call-end screen.
+ * - false: call-end disabled -- onboarding skips CallScreeningRole (Welcome goes straight to
+ *   SetDefaultSms), and PostCallActivity/PhoneStateReceiver/CallEndLauncher/CallEndActivity never
+ *   show the call-end screen.
  */
 internal const val OVERLAY_AND_CALL_END_KEY = "overlay_and_call_end_enabled"
 

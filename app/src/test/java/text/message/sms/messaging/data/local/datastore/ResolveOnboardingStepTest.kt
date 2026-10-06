@@ -34,6 +34,12 @@ class ResolveOnboardingStepTest {
     }
 
     @Test
+    fun legacyOverlayStep_resumesOnTheCallScreeningStepThatReplacedIt() {
+        assertEquals(OnboardingStep.CALL_SCREENING, resolve(storedStep = "OVERLAY"))
+        assertEquals(OnboardingStep.CALL_SCREENING, resolve(storedStep = "OVERLAY", complete = true))
+    }
+
+    @Test
     fun unknownStoredStep_fallsBackToLegacyFlags() {
         assertEquals(OnboardingStep.LANGUAGE, resolve(storedStep = "FROM_A_NEWER_BUILD"))
         assertEquals(OnboardingStep.DONE, resolve(storedStep = "FROM_A_NEWER_BUILD", complete = true))

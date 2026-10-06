@@ -43,6 +43,13 @@
     <string name="overlay_permission_reassurance">Anda dapat menonaktifkannya kapan saja di Setelan.</string>
     <string name="overlay_permission_mock_row_allow">Izinkan tampilan di atas aplikasi lain &amp; muncul di atas</string>
     <string name="overlay_permission_mock_row_app">Pesan</string>
+    <string name="call_screening_role_title">Lihat siapa yang menelepon</string>
+    <string name="call_screening_role_body">Tepat setelah setiap panggilan, Pesan menampilkan siapa yang menelepon, dengan tindakan cepat untuk menelepon balik atau membalas lewat SMS.</string>
+    <string name="call_screening_role_button">Setel sebagai aplikasi ID penelepon</string>
+    <string name="call_screening_role_not_now">Lain kali</string>
+    <string name="call_screening_role_reassurance">Anda dapat mengubahnya kapan saja di Setelan.</string>
+    <string name="call_screening_role_mock_row_title">Aplikasi ID penelepon &amp; spam</string>
+    <string name="call_screening_role_mock_row_app">Pesan</string>
 
     <string name="battery_optimization_title">Jaga agar peringatan panggilan tetap dapat diandalkan</string>
     <string name="battery_optimization_body">Tanpa ini, Android dapat menjeda #Pesan di latar belakang dan melewatkan saat panggilan berakhir.</string>
@@ -294,6 +301,9 @@
 
     <string name="settings_default_app_title">Aplikasi SMS bawaan</string>
     <string name="settings_default_app_summary">Tetapkan #Messages sebagai aplikasi SMS default Anda</string>
+    <string name="settings_call_screening_title">ID penelepon &amp; spam</string>
+    <string name="settings_call_screening_summary_on">Aktif · Menampilkan info penelepon setelah setiap panggilan</string>
+    <string name="settings_call_screening_summary_off">Nonaktif · Ketuk untuk mengaktifkan</string>
     <string name="settings_language_title">Bahasa</string>
     <string name="settings_notifications_title">Pemberitahuan</string>
     <string name="settings_notifications_summary">Tampilkan pemberitahuan untuk pesan baru</string>

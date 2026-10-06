@@ -14,9 +14,9 @@ sealed class MessagingDestination(val route: String) {
 
     data object Welcome : MessagingDestination("welcome")
 
-    /** Gates onboarding on "draw over other apps" -- see
-     * [text.message.sms.messaging.ui.screens.permissions.OverlayPermissionScreen]. */
-    data object OverlayPermission : MessagingDestination("overlay_permission")
+    /** Onboarding's request for the call-screening role, never blocking -- see
+     * [text.message.sms.messaging.ui.screens.permissions.CallScreeningRoleScreen]. */
+    data object CallScreeningRole : MessagingDestination("call_screening_role")
 
     data object SetDefaultSms : MessagingDestination("set_default_sms")
 

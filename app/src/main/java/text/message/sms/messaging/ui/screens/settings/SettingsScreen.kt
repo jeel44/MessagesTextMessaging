@@ -29,6 +29,7 @@ import androidx.annotation.DrawableRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.ContactPhone
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.PrivacyTip
@@ -67,6 +68,7 @@ import text.message.sms.messaging.data.local.datastore.SimSendPreference
 import text.message.sms.messaging.data.local.datastore.SwipeAction
 import text.message.sms.messaging.data.local.datastore.ThemeMode
 import text.message.sms.messaging.domain.model.SimInfo
+import text.message.sms.messaging.service.CallScreeningRoleGuard
 import text.message.sms.messaging.ui.components.AppTopBar
 import text.message.sms.messaging.ui.components.labelRes
 import text.message.sms.messaging.ui.components.sharpIconPainter
@@ -126,6 +128,18 @@ fun SettingsScreen(
     val phonePermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted -> hasPhonePermission = granted }
+
+    // Caller ID & spam (ROLE_CALL_SCREENING): re-checked on resume too, since the role can be
+    // moved to another app from the system's Default apps page this row opens once it's held.
+    val callScreeningGuard = remember(context) { CallScreeningRoleGuard(context.applicationContext) }
+    val callScreeningAvailable = remember(callScreeningGuard) { callScreeningGuard.isAvailable }
+    var callScreeningHeld by remember { mutableStateOf(callScreeningGuard.isHeld) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        callScreeningHeld = callScreeningGuard.isHeld
+    }
+    val callScreeningRoleLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+    ) { callScreeningHeld = callScreeningGuard.isHeld }
 
     // Hardware-capable but not yet grantable/active-checked -> show the row disabled with a
     // permission hint. Hardware-capable and permitted but only one SIM actually active -> hide
@@ -194,6 +208,30 @@ fun SettingsScreen(
                         summary = stringResource(R.string.settings_default_app_summary),
                     ),
                 )
+                if (callScreeningAvailable) {
+                    add(
+                        SettingsRow(
+                            icon = SettingsIcon.Vector(Icons.Filled.ContactPhone),
+                            title = stringResource(R.string.settings_call_screening_title),
+                            summary = stringResource(
+                                if (callScreeningHeld) {
+                                    R.string.settings_call_screening_summary_on
+                                } else {
+                                    R.string.settings_call_screening_summary_off
+                                },
+                            ),
+                            onClick = {
+                                // The request dialog isn't offered for a role already held; Default
+                                // apps is where it can be moved elsewhere.
+                                if (callScreeningHeld) {
+                                    context.startActivity(callScreeningGuard.buildManageIntent())
+                                } else {
+                                    callScreeningGuard.buildRoleRequestIntent()?.let(callScreeningRoleLauncher::launch)
+                                }
+                            },
+                        ),
+                    )
+                }
                 add(
                     SettingsRow(
                         icon = SettingsIcon.Drawable(R.drawable.ic_language),
