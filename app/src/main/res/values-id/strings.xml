@@ -37,12 +37,6 @@
     <string name="set_default_sms_button">Tetapkan sebagai Default</string>
     <string name="set_default_sms_hint">#Pesan harus menjadi aplikasi SMS default Anda untuk mengirim dan menerima SMS. Ketuk tombol kapan pun Anda siap.</string>
 
-    <string name="overlay_permission_title">Aktifkan peringatan panggilan</string>
-    <string name="overlay_permission_body">Lihat siapa yang menelepon &amp; membalas secara instan, bahkan saat layar Anda terkunci.</string>
-    <string name="overlay_permission_button">Aktifkan &amp; lanjutkan</string>
-    <string name="overlay_permission_reassurance">Anda dapat menonaktifkannya kapan saja di Setelan.</string>
-    <string name="overlay_permission_mock_row_allow">Izinkan tampilan di atas aplikasi lain &amp; muncul di atas</string>
-    <string name="overlay_permission_mock_row_app">Pesan</string>
     <string name="call_screening_role_title">Lihat siapa yang menelepon</string>
     <string name="call_screening_role_body">Tepat setelah setiap panggilan, Pesan menampilkan siapa yang menelepon, dengan tindakan cepat untuk menelepon balik atau membalas lewat SMS.</string>
     <string name="call_screening_role_button">Setel sebagai aplikasi ID penelepon</string>

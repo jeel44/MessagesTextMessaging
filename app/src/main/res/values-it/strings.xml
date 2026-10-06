@@ -37,12 +37,6 @@
     <string name="set_default_sms_button">Imposta come predefinito</string>
     <string name="set_default_sms_hint">#Messaggi deve essere l\'app SMS predefinita per inviare e ricevere messaggi. Tocca il pulsante ogni volta che sei pronto.</string>
 
-    <string name="overlay_permission_title">Abilita avvisi di chiamata</string>
-    <string name="overlay_permission_body">Scopri chi sta chiamando e rispondi immediatamente, anche quando lo schermo è bloccato.</string>
-    <string name="overlay_permission_button">Abilita e continua</string>
-    <string name="overlay_permission_reassurance">Puoi disattivare questa funzionalità in qualsiasi momento nelle Impostazioni.</string>
-    <string name="overlay_permission_mock_row_allow">Consenti la visualizzazione su altre app e appare in alto</string>
-    <string name="overlay_permission_mock_row_app">Messaggi</string>
     <string name="call_screening_role_title">Scopri chi ha chiamato</string>
     <string name="call_screening_role_body">Subito dopo ogni chiamata, Messaggi mostra chi ha chiamato, con azioni rapide per richiamare o rispondere via SMS.</string>
     <string name="call_screening_role_button">Imposta come app ID chiamante</string>

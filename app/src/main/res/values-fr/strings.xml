@@ -36,12 +36,6 @@
     <string name="set_default_sms_button">Définir par défaut</string>
     <string name="set_default_sms_hint">#Messages doit être votre application SMS par défaut pour envoyer et recevoir des SMS. Appuyez sur le bouton chaque fois que vous êtes prêt.</string>
 
-    <string name="overlay_permission_title">Activer les alertes d\'appel</string>
-    <string name="overlay_permission_body">Voyez qui appelle et répondez instantanément, même lorsque votre écran est verrouillé.</string>
-    <string name="overlay_permission_button">Activer et continuer</string>
-    <string name="overlay_permission_reassurance">Vous pouvez désactiver cette option à tout moment dans les paramètres.</string>
-    <string name="overlay_permission_mock_row_allow">Autoriser l\'affichage sur d\'autres applications et apparaître en premier</string>
-    <string name="overlay_permission_mock_row_app">Messages</string>
     <string name="call_screening_role_title">Voir qui a appelé</string>
     <string name="call_screening_role_body">Juste après chaque appel, Messages affiche qui a appelé, avec des actions rapides pour rappeler ou répondre par SMS.</string>
     <string name="call_screening_role_button">Définir comme app d\'identification de l\'appelant</string>

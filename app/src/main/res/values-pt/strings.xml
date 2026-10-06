@@ -37,10 +37,6 @@
     <string name="set_default_sms_button">Definir como padrão</string>
     <string name="set_default_sms_hint">#Mensagens precisa ser seu aplicativo de SMS padrão para enviar e receber textos.</string>
 
-    <string name="overlay_permission_title">Habilitar alertas de chamada</string>
-    <string name="overlay_permission_body">Veja quem está ligando e responda instantaneamente, mesmo quando a tela estiver bloqueada.</string>
-    <string name="overlay_permission_button">Ativar e continuar</string>
-    <string name="overlay_permission_reassurance">Você pode desativar isso a qualquer momento nas Configurações.</string>
     <string name="call_screening_role_title">Veja quem ligou</string>
     <string name="call_screening_role_body">Logo após cada chamada, o Mensagens mostra quem ligou, com ações rápidas para retornar a ligação ou responder por SMS.</string>
     <string name="call_screening_role_button">Definir como app de identificador de chamadas</string>

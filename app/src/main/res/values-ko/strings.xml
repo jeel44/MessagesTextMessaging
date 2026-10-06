@@ -36,12 +36,6 @@
     <string name="set_default_sms_button">기본값으로 설정</string>
     <string name="set_default_sms_hint">문자를 보내고 받으려면 #Messages가 기본 SMS 앱이어야 합니다. 준비가 되면 언제든지 버튼을 탭하세요.</string>
 
-    <string name="overlay_permission_title">통화 알림 활성화</string>
-    <string name="overlay_permission_body">화면이 잠겨 있어도 누가 전화했는지 확인하고 즉시 응답할 수 있습니다.</string>
-    <string name="overlay_permission_button">활성화 및 계속</string>
-    <string name="overlay_permission_reassurance">언제든지 설정에서 이 기능을 끌 수 있습니다.</string>
-    <string name="overlay_permission_mock_row_allow">다른 앱 위에 표시 및 맨 위에 표시 허용</string>
-    <string name="overlay_permission_mock_row_app">메시지</string>
     <string name="call_screening_role_title">누가 전화했는지 확인</string>
     <string name="call_screening_role_body">통화가 끝나면 바로 메시지 앱이 발신자와 함께 다시 걸기, 문자로 답장 같은 빠른 작업을 보여 줍니다.</string>
     <string name="call_screening_role_button">발신자 표시 앱으로 설정</string>

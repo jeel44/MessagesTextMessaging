@@ -65,7 +65,7 @@ internal fun matchPostCallRow(
     val rowEnd = entry.dateMillis + entry.durationSeconds.coerceAtLeast(0L) * 1_000L
     if (rowEnd > call.endedAt + ROW_END_FUTURE_SLACK_MILLIS) return null
     if (previousCallEndedAt != null && rowEnd < previousCallEndedAt) return null
-    return deriveCallSession(entry, CallEndSignal(endedAt = call.endedAt, observedStartAt = null, observed = null))
+    return deriveCallSession(entry, call.endedAt)
 }
 
 /**

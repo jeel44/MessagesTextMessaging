@@ -36,12 +36,6 @@
     <string name="set_default_sms_button">Instellen als standaard</string>
     <string name="set_default_sms_hint">#Berichten moet je standaard sms-app zijn om sms-berichten te kunnen verzenden en ontvangen. Tik op de knop wanneer u er klaar voor bent.</string>
 
-    <string name="overlay_permission_title">Schakel oproepwaarschuwingen in</string>
-    <string name="overlay_permission_body">Zie wie er belt en antwoord direct, zelfs als uw scherm is vergrendeld.</string>
-    <string name="overlay_permission_button">Inschakelen en doorgaan</string>
-    <string name="overlay_permission_reassurance">Je kunt dit op elk gewenst moment uitschakelen via Instellingen.</string>
-    <string name="overlay_permission_mock_row_allow">Weergave boven andere apps toestaan ​​en bovenaan verschijnen</string>
-    <string name="overlay_permission_mock_row_app">Berichten</string>
     <string name="call_screening_role_title">Zie wie er belde</string>
     <string name="call_screening_role_body">Direct na elk gesprek laat Berichten zien wie er belde, met snelle acties om terug te bellen of per sms te antwoorden.</string>
     <string name="call_screening_role_button">Instellen als nummerweergave-app</string>

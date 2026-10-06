@@ -36,12 +36,6 @@
     <string name="set_default_sms_button">Als Standard festlegen</string>
     <string name="set_default_sms_hint">#Messages muss Ihre Standard-SMS-App zum Senden und Empfangen von Texten sein. Tippen Sie auf die Schaltfläche, wann immer Sie bereit sind.</string>
 
-    <string name="overlay_permission_title">Anrufbenachrichtigungen aktivieren</string>
-    <string name="overlay_permission_body">Sehen Sie, wer anruft, und antworten Sie sofort, auch wenn Ihr Bildschirm gesperrt ist.</string>
-    <string name="overlay_permission_button">Aktivieren und fortfahren</string>
-    <string name="overlay_permission_reassurance">Sie können dies jederzeit in den Einstellungen deaktivieren.</string>
-    <string name="overlay_permission_mock_row_allow">Anzeige über anderen Apps zulassen und oben erscheinen</string>
-    <string name="overlay_permission_mock_row_app">Nachrichten</string>
     <string name="call_screening_role_title">Sehen, wer angerufen hat</string>
     <string name="call_screening_role_body">Direkt nach jedem Anruf zeigt Nachrichten, wer angerufen hat – mit Schnellaktionen zum Zurückrufen oder Antworten per SMS.</string>
     <string name="call_screening_role_button">Als Anrufer-ID-App festlegen</string>

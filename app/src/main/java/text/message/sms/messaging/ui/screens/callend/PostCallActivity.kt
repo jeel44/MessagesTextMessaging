@@ -17,7 +17,6 @@ import text.message.sms.messaging.config.OverlayFeatureFlag
 import text.message.sms.messaging.domain.model.CallDirection
 import text.message.sms.messaging.domain.model.CallOutcome
 import text.message.sms.messaging.domain.model.CallSession
-import text.message.sms.messaging.service.CallEndShownGate
 import text.message.sms.messaging.service.ContentResolverCallLogReader
 import text.message.sms.messaging.service.PostCallHistory
 import text.message.sms.messaging.service.PostCallInfo
@@ -54,9 +53,6 @@ private val ALLOWED_NUMBER_CHARS = Regex("[0-9+*#()\\-., ;pPwW]+")
  * Shown over the lock screen (it's transparent, and gone within that cap): a call that ended while
  * locked still has to open [CallEndActivity], and this window being visible is what lets it.
  *
- * [PhoneStateReceiver][text.message.sms.messaging.service.PhoneStateReceiver] still runs for users
- * with "draw over other apps"; [CallEndShownGate] makes sure one call end opens the screen once.
- *
  * Exported, so the extras are untrusted: every one is type- and range-checked, and anything
  * malformed is ignored. Any app can send `POST_CALL` here, though, and there's no reliable way to
  * tell Telecom's launch from another app's before API 34 (and even then only if the sender opts
@@ -67,9 +63,6 @@ private val ALLOWED_NUMBER_CHARS = Regex("[0-9+*#()\\-., ;pPwW]+")
  */
 @AndroidEntryPoint
 class PostCallActivity : ComponentActivity() {
-
-    @Inject
-    lateinit var callEndShownGate: CallEndShownGate
 
     @Inject
     lateinit var postCallHistory: PostCallHistory
@@ -109,7 +102,6 @@ class PostCallActivity : ComponentActivity() {
             }
             when {
                 session == null -> log("no session from the call log or the extras, finishing")
-                !callEndShownGate.tryClaim(session.phoneNumber) -> log("call-end screen already shown for this call, finishing")
                 else -> try {
                     log("starting CallEndActivity for $session")
                     CallEndActivity.start(this@PostCallActivity, session)

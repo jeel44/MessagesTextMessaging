@@ -254,17 +254,6 @@
                 tools:node="remove" />
         </provider>
 
-        <!-- Manifest-registered receiver for the PHONE_STATE implicit broadcast; see
-             PhoneStateReceiver's own doc comment for why this can be a manifest receiver at all
-             (most implicit broadcasts can't, post-API-26) and why nothing needs to bootstrap it. -->
-        <receiver
-            android:name=".service.PhoneStateReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.PHONE_STATE" />
-            </intent-filter>
-        </receiver>
-
         <!-- Full-screen call-end popup, launched directly by PhoneStateReceiver/CallEndLauncher (no
              notification, no service). Its own task (taskAffinity + singleTask), excluded from Recents, so
              back/close returns to whatever the user was doing before the call, not into
